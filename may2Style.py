@@ -5,6 +5,9 @@ button_textcolor = (230, 200, 255)
 field_bgcolor = (60, 10, 80)
 rendergroup_bordercolor = (160, 0, 190)
 
+default_fontname = 'RobotoMono-Regular'
+default_fontsize = 17
+
 may2Style = """
 
 MainWindow {
@@ -17,4 +20,10 @@ QGroupBox {
     padding: 5px;
 }
 
-"""
+"""\
+    .replace('DEFAULT_TEXTCOLOR', 'rgb' + str(default_textcolor))\
+    .replace('GROUP_BGCOLOR', 'rgb' + str(group_bgcolor))\
+    .replace('BUTTON_BGCOLOR', 'rgb' + str(button_bgcolor))\
+    .replace('BUTTON_TEXTCOLOR', 'rgb' + str(button_textcolor))\
+    .replace('FIELD_BGCOLOR', 'rgb' + str(field_bgcolor))\
+    .replace('RENDERGROUP_BORDERCOLOR', 'rgb' + str(rendergroup_bordercolor))

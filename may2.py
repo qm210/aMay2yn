@@ -11,9 +11,9 @@ from functools import partial
 from os import path
 import json
 
-from May2TrackWidget import *
-from May2PatternWidget import *
-from May2SynthWidget import *
+from May2TrackWidget import May2TrackWidget
+from May2PatternWidget import May2PatternWidget
+from May2SynthWidget import May2SynthWidget
 
 
 class MainWindow(QWidget):
