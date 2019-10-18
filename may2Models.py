@@ -18,7 +18,7 @@ class TrackModel(QAbstractListModel):
         i = index.row()
         if role == Qt.DisplayRole:
             track = self.tracks[i]
-            return f"{track['name']} ({track['synths'][track['current_synth']][2:]}, {round(track['par_norm'] * 100) if not track['mute'] else 'MUTE'}%)"
+            return f"{track.name} ({track.synths[track.current_synth][2:]}, {round(track.par_norm * 100) if not track.mute else 'MUTE'}%)"
 
     def rowCount(self, index = None):
         return len(self.tracks)
@@ -35,13 +35,13 @@ class TrackModel(QAbstractListModel):
 
     def setSynthList(self, synths):
         for track in self.tracks:
-            track['synths'] = synths
+            track.synths = synths
 
     def updateModulesWithChangedPattern(self, pattern):
         for track in self.tracks:
-            for module in track['modules']:
-                if module['pattern']['name'] == pattern['name']:
-                    module['pattern'] = pattern # deepcopy(pattern)
+            for module in track.modules:
+                if module.pattern.name == pattern.name:
+                    module.pattern = pattern # deepcopy(pattern)
 
 
 class ModuleModel(QAbstractListModel):
@@ -60,7 +60,7 @@ class ModuleModel(QAbstractListModel):
         i = index.row()
         module = self.modules[i]
         if role == Qt.DisplayRole:
-            return f"{module['pattern']['name']} @ {module['mod_on']:.0f}..{module['mod_on'] + module['pattern']['length']:.0f} ({module['transpose']})"
+            return f"{module.pattern.name} @ {module.mod_on:.0f}..{module.mod_on + module.pattern.length:.0f} ({module.transpose})"
 
     def rowCount(self, index = None):
         return len(self.modules)
@@ -82,7 +82,7 @@ class PatternModel(QAbstractListModel):
         i = index.row()
         if role == Qt.DisplayRole:
             pattern = self.patterns[i]
-            return f"{pattern['name']} [{pattern['length']}] ({len(pattern['notes'])} Notes)"
+            return f"{pattern.name} [{pattern.length}] ({len(pattern.notes)} Notes)"
 
     def rowCount(self, index = None):
         return len(self.patterns)
@@ -112,12 +112,12 @@ class NoteModel(QAbstractListModel):
         if role == Qt.DisplayRole:
             note = self.notes[i]
             if self.drumkit is None:
-                key = self.keys[int(note['note_pitch']) % len(self.keys)]
-                octave = int(note['note_pitch']) // 12
-                return f"{key}{octave} [{note['note_on']}, {note['note_off']}] ({note['note_vel']}, {note['note_pan']}, {note['note_slide']}, {note['note_aux']})"
+                key = self.keys[int(note.note_pitch) % len(self.keys)]
+                octave = int(note.note_pitch) // 12
+                return f"{key}{octave} [{note.note_on}, {note.note_off}] ({note.note_vel}, {note.note_pan}, {note.note_slide}, {note.note_aux})"
             else:
-                drumname = self.drumkit[note['note_pitch']] if note['note_pitch'] < len(self.drumkit) else f"undef{note['note_pitch']}"
-                return f"{drumname} [{note['note_on']}, {note['note_off']}] ({note['note_vel']}, {note['note_pan']}, {note['note_slide']}, {note['note_aux']})"
+                drumname = self.drumkit[note.note_pitch] if note.note_pitch < len(self.drumkit) else f"undef{note.note_pitch}"
+                return f"{drumname} [{note.note_on}, {note.note_off}] ({note.note_vel}, {note.note_pan}, {note.note_slide}, {note.note_aux})"
 
     def rowCount(self, index = None):
         return len(self.notes)
@@ -146,13 +146,13 @@ class NoteModel(QAbstractListModel):
             #self.reloadNoteParameters.emit(index)
             return
 
-        note['note_pitch'] = pitch
-        note['note_on'] = float(beatStrings[0])
-        note['note_off'] = float(beatStrings[1])
-        note['note_vel'] = int(detailStrings[0])
-        note['note_pan'] = int(detailStrings[1])
-        note['note_slide'] = float(detailStrings[2])
-        note['note_aux'] = float(detailStrings[2])
+        note.note_pitch = pitch
+        note.note_on = float(beatStrings[0])
+        note.note_off = float(beatStrings[1])
+        note.note_vel = int(detailStrings[0])
+        note.note_pan = int(detailStrings[1])
+        note.note_slide = float(detailStrings[2])
+        note.note_aux = float(detailStrings[2])
 
         self.dataChanged.emit(index, index)
 
@@ -163,7 +163,7 @@ class NoteModel(QAbstractListModel):
             print("weird. this drum seems not to be in the drumkit?", drum, self.drumkit)
             return
         print("set drum to", drum)
-        self.notes[index.row()]['note_pitch'] = self.drumkit.index(drum)
+        self.notes[index.row()].note_pitch = self.drumkit.index(drum)
 
         self.dataChanged.emit(index, index)
         self.reloadNoteParameters.emit(index)

@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QWidget
 from math import sqrt, floor
 from numpy import clip
 
-from may2Objects import *
+from may2Objects import * # pylint: disable=unused-wildcard-import
 from may2Models import * # pylint: disable=unused-wildcard-import
 from may2Utils import * # pylint: disable=unused-wildcard-import
 import may2Style
@@ -25,9 +25,10 @@ PAD_B = 22
 
 CLICK_PRECISION = 1.03
 
-quantize = lambda x, q: floor(x/q)*q
 
 class May2PatternWidget(QWidget):
+
+    noteSelected = pyqtSignal(int)
 
     claviature = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
@@ -35,8 +36,6 @@ class May2PatternWidget(QWidget):
         super().__init__()
         self.parent = parent
 
-        self.pattern = Pattern(name = 'NJU', length = 6, synth_type = '_', max_note = 0)
-        self.pattern.notes = [Note(note_on = 0.25, note_len = 0.5, note_pitch = 22)]
         self.active = False # Hope I don't need this too soon
 
         self.offsetV = 0
@@ -49,7 +48,6 @@ class May2PatternWidget(QWidget):
 
         self.dragNote = None
         self.dragOrigin = (None, None)
-        self.dragPos = (None, None)
         self.dragNoteOrigin = None
 
         self.stretchNote = None
@@ -57,20 +55,21 @@ class May2PatternWidget(QWidget):
         self.stretchPos = None
         self.stretchNoteOrigin = None
 
+        self.pattern = None
+
+    def setPattern(self, pattern):
+        self.pattern = pattern
 
     def paintEvent(self, event):
         self.setGeometry(event)
         qp = QPainter()
         qp.begin(self)
-
         qp.setFont(QFont(may2Style.default_fontname, self.fontSize))
-
         qp.fillRect(self.X - PAD_L, self.Y - PAD_T, self.W + PAD_L + PAD_R, self.H + PAD_T + PAD_B, colorBG)
-
         self.drawBackground(qp)
         self.drawGrid(qp)
-        self.drawNotes(qp)
-
+        if self.pattern is not None:
+            self.drawNotes(qp)
         qp.end()
 
     def setGeometry(self, event):
@@ -91,20 +90,23 @@ class May2PatternWidget(QWidget):
 
         self.rollX = self.X + self.pianoW
         self.rollW = self.R - self.rollX
-        self.T = self.Y
+
+        self.numberKeysVisible = int(self.H / self.keyH)
+        self.T = self.B - self.keyH * (self.numberKeysVisible)
+
+        self.maxNumberBars = self.W - self.pianoW
+        self.numberBarsVisible = 0 if not self.pattern else int(clip(4 * (self.pattern.length - self.offsetH), 0, self.maxNumberBars))
+
 
     def drawBackground(self, qp):
 
         isKeyWhite = lambda key: '#' not in self.claviature[key % 12]
 
-        numberKeysVisible = int(self.H / self.keyH)
-        self.T = self.B - self.keyH * (numberKeysVisible)
-
 #        if self.active:
 #            Color(1.,0.,1,.5)
 #            Line(angle = [self.x + 3, self.y + 4, self.width - 7, self.height - 4], width = 1.5)
 
-        for c in range(numberKeysVisible):
+        for c in range(self.numberKeysVisible):
             key = self.offsetV + c
             y = self.B - (c + 1) * self.keyH
 
@@ -121,19 +123,19 @@ class May2PatternWidget(QWidget):
 
     def drawGrid(self, qp):
 
-        maxNumberBars = self.W - self.pianoW
-        numberBarsVisible = 0 if not self.pattern else clip(4 * (self.pattern.length - self.offsetH), 0, maxNumberBars)
-
         x = self.X + self.pianoW
 
         qp.setPen(QColor(150, 200, 200)) # first grid label # HARDCODE
         qp.font().setPointSize(12) # HARDCODE
         drawText(qp, x, self.B + 1, Qt.AlignHCenter | Qt.AlignTop, f'{self.offsetH : .2f}')
-        for b in range(numberBarsVisible):
-            qp.setPen(QColor(13, 0, 13, 100)) # HARDCODE
-            qp.pen().setWidthF(1.5 if b % 4 == 0 else 1) # WORKS NOT. WHY. SHIT.
+        pen = qp.pen()
+        for b in range(self.numberBarsVisible):
+            pen.setColor(QColor(13, 0, 13, 100)) # HARDCODE
+            pen.setWidthF(1.5 if b % 4 == 0 else 1)
+            qp.setPen(pen)
             qp.drawLine(x, self.B, x, self.T)
-            qp.pen().setWidthF(.3) # WORKS NOT. WHY. SHIT.
+            pen.setWidthF(.3)
+            qp.setPen(pen)
             x += 0.25 * self.barW
             qp.drawLine(x, self.B, x, self.T)
             x += 0.25 * self.barW
@@ -141,7 +143,8 @@ class May2PatternWidget(QWidget):
             x += 0.25 * self.barW
             qp.drawLine(x, self.B, x, self.T)
             x += 0.25 * self.barW
-            qp.setPen(QColor(153, 204, 204)) # HARDCODE
+            pen.setColor(QColor(153, 204, 204)) # HARDCODE
+            qp.setPen(pen)
             drawText(qp, x, self.B + 1, Qt.AlignHCenter | Qt.AlignTop, f'{(b+1)/4 + self.offsetH : .2f}')
 
         # END SEGMENT
@@ -152,22 +155,20 @@ class May2PatternWidget(QWidget):
 
 
     def drawNotes(self, qp):
+
         if self.pattern is None:
             return
 
         for note in self.pattern.notes:
             note_on = note.note_on - self.offsetH
-            L, T, R, B = self.getRectOfNote(note)
-
+            L, R, T, B = self.getRectOfNote(note)
             if note_on < 0 or L > self.R or T < self.T:
                 continue
-
-            #color = self.pattern.color
-            #color.setAlpha
-            color = QColor(255, 0, 0, 140)
-            qp.fillRect(L + 1, T, R - L, B - T, color)
-            if self.pattern.current_gap:
-                qp.fillRect(R - 1, T + self.keyH / 2, self.beatW * self.pattern.current_gap, self.keyH / 4, QColor(255, 255, 255, 100))
+            qp.fillRect(L + 1, T, R - L, B - T, QColor(*self.parent.getPatternColor(self.pattern._hash), 140))
+            if note == self.pattern.getNote():
+                qp.fillRect(L + 1, T, R - L, B - T, QColor(255, 255, 255, 150))
+                if self.pattern.currentGap:
+                    qp.fillRect(R - 1, T + self.keyH / 2, self.beatW * self.pattern.currentGap, self.keyH / 4, QColor(255, 255, 255, 100))
 
 
     def getRectOfNote(self, note):
@@ -175,13 +176,13 @@ class May2PatternWidget(QWidget):
         coordR = coordL + self.beatW * note.note_len
         coordB = self.B - self.keyH * (note.note_pitch - self.offsetV)
         coordT = coordB - self.keyH
-        return coordL, coordT, coordR, coordB
+        return coordL, coordR, coordT, coordB
 
-    def findNextNeighbor(self, coordX, coordY):
+    def findCorrespondingNote(self, coordX, coordY):
         nextNeighbor = None
         minDistance = None
         for note in self.pattern.notes:
-            L, T, R, B = self.getRectOfNote(note)
+            L, R, T, B = self.getRectOfNote(note)
             centerX = 0.5 * (L + R)
             centerY = 0.5 * (T + B)
             deltaX = abs(coordX - centerX)
@@ -220,13 +221,14 @@ class May2PatternWidget(QWidget):
         self.stretchNote.note_len = self.stretchNoteOrigin + quantize(noteDistance[0], self.beatQuantum)
 
     def mousePressEvent(self, event):
-        nextNote = self.findNextNeighbor(event.pos().x(), event.pos().y())
-        if nextNote is None:
+        corrNote = self.findCorrespondingNote(event.pos().x(), event.pos().y())
+        if corrNote is None:
             return
+        self.select(corrNote)
         if event.button() == Qt.LeftButton:
-            self.initDragNote(nextNote, event.pos())
+            self.initDragNote(corrNote, event.pos())
         if event.button() == Qt.RightButton:
-            self.initStretchNote(nextNote, event.pos())
+            self.initStretchNote(corrNote, event.pos())
 
     def mouseMoveEvent(self, event):
         if self.dragNote is not None:
@@ -240,3 +242,21 @@ class May2PatternWidget(QWidget):
         self.dragNote = None
         self.stretchNote = None
         self.update()
+        # TODO: re-sort notes upon drop
+
+    def wheelEvent(self, event):
+        if self.pattern:
+            self.offsetV += event.angleDelta().y() / 30
+            self.offsetV = int(clip(self.offsetV, 0, self.pattern.max_note - self.numberKeysVisible))
+            self.repaint()
+
+    def select(self, note):
+        note.tag()
+        self.pattern.selectFirstTaggedNoteAndUntag()
+        self.noteSelected.emit(note)
+        self.repaint()
+
+
+    def debugOutput(self):
+        print("=== PATTERN ===")
+        print(self.pattern)

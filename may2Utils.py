@@ -1,4 +1,7 @@
 from PyQt5.QtCore import Qt, QRectF
+from math import floor
+
+quantize = lambda x, q: floor(x/q)*q
 
 def drawText(qp, x, y, flags, text):
     size = 2**15 - 1
