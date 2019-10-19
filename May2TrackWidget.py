@@ -198,7 +198,7 @@ class May2TrackWidget(QWidget):
         self.offsetV -= event.angleDelta().y() / 30
         self.offsetV = int(clip(self.offsetV, 0, self.model.rowCount() - self.numberTracksVisible))
         self.offsetH -= event.angleDelta().x() / 15
-        self.offsetH = int(clip(self.offsetH, 0, self.model.totalLength()))
+        self.offsetH = int(clip(self.offsetH, 0, self.model.totalLength() - .5 * self.numberBeatsVisible))
         self.repaint()
 
     def activate(self):

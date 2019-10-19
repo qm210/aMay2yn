@@ -76,13 +76,34 @@ class MainWindow(QMainWindow):
 
 
     def initMenu(self):
+        self.toolBar = self.addToolBar("Shit")
+        self.toolBar.setMovable(False)
+
         loadAction = QAction(QIcon.fromTheme('document-open'), '&Load .mayson', self)
         loadAction.setShortcut('Ctrl+L')
         loadAction.triggered.connect(self.loadAndImportMayson)
-
-        self.toolBar = self.addToolBar("Shit")
-        self.toolBar.setMovable(False)
         self.toolBar.addAction(loadAction)
+
+        saveAction = QAction(QIcon.fromTheme('document-save'), '&Save .mayson', self)
+        saveAction.setShortcut('Ctrl+S')
+        saveAction.triggered.connect(self.exportMayson)
+        self.toolBar.addAction(saveAction)
+
+        self.toolBar.addSeparator()
+
+        settingsAction = QAction(QIcon.fromTheme('preferences-system'), 'Settings', self)
+        settingsAction.triggered.connect(self.openSettingsDialog)
+        self.toolBar.addAction(settingsAction)
+
+        renderModuleAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderModule', self)
+        renderModuleAction.setShortcut('Ctrl+T')
+        renderModuleAction.triggered.connect(self.renderModule)
+        self.toolBar.addAction(renderModuleAction)
+
+        renderTrackAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderTrack', self)
+        renderTrackAction.setShortcut('Ctrl+Enter')
+        renderTrackAction.triggered.connect(self.renderTrack)
+        self.toolBar.addAction(renderTrackAction)
 
 
     def initSignals(self):
@@ -215,6 +236,10 @@ class MainWindow(QMainWindow):
 
         self.applyStateToUI()
 
+    def exportMayson(self):
+        print("Implemented self.exportMayson() pls")
+        quit()
+
 
     def getTitleAndSynFromMayson(self, maysonFile):
         synFile = '.'.join(maysonFile.split('.')[:-1]) + '.syn'
@@ -304,6 +329,17 @@ class MainWindow(QMainWindow):
                 sanityCheck += 1
         if sanityCheck != 1:
             print(f"wtf? something went wrong with trying to load {module.patternName} ({module.patternHash}), sanityCheck = {sanityCheck}")
+
+###################################################################
+
+    def openSettingsDialog(self):
+        pass
+
+    def renderModule(self):
+        pass
+
+    def renderTrack(self):
+        pass
 
 ###################################################################
 

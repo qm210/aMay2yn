@@ -203,8 +203,7 @@ class May2PatternWidget(QWidget):
 
     def dragNoteTo(self, pos):
         noteDistance = self.getDistanceInNoteUnits(pos.x() - self.dragOrigin.x(), pos.y() - self.dragOrigin.y())
-        self.dragNote.note_on = self.dragNoteOrigin[0] + quantize(noteDistance[0], self.beatQuantum)
-        self.dragNote.note_off = self.dragNote.note_on + self.dragNote.note_len
+        self.dragNote.moveNoteOn(self.dragNoteOrigin[0] + quantize(noteDistance[0], self.beatQuantum))
         self.dragNote.note_pitch = self.dragNoteOrigin[1] + quantize(noteDistance[1], 1)
 
     def initStretchNote(self, note, origin):
