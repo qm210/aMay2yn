@@ -10,7 +10,7 @@ rendergroup_bordercolor = (160, 0, 190)
 default_fontname = 'RobotoMono' # TODO: HOW CAN I USE THIS FONT, GOD DAMMIT FUCKING SHIT
 default_fontsize = 17
 
-noCrime = """
+notACrime = """
 
 MainWindow {
     /* background-color: white; */
@@ -19,11 +19,19 @@ MainWindow {
 QGroupBox {
     background-color: GROUP_BGCOLOR;
     border-radius: 10px;
+    border-width: 0px;
+    border-style: solid;
+    border-color: white;
     padding: 5px;
 }
 
 QGroupBox::title {
     color: DEFAULT_TEXTCOLOR
+}
+
+QGroupBox#activated {
+    border-width: 5px;
+    border-color: rgb(128, 0, 128);
 }
 
 """\

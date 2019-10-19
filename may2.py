@@ -18,7 +18,7 @@ from May2PatternWidget import May2PatternWidget
 from May2SynthWidget import May2SynthWidget
 from may2Models import *
 from may2Objects import *
-from may2Style import noCrime
+from may2Style import notACrime
 
 globalStateFile = 'global.state'
 
@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
         self.initSignals()
         self.initModelView()
         self.initState()
-        self.setStyleSheet(noCrime)
+        self.setStyleSheet(notACrime)
 
         self.show()
 
@@ -64,6 +64,7 @@ class MainWindow(QMainWindow):
         self.upperLayout.setOrientation(Qt.Vertical)
         self.upperLayout.addWidget(self.trackGroup)
         self.upperLayout.addWidget(self.patternGroup)
+        self.upperLayout.setSizes([400,500])
 
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.addWidget(self.upperLayout, 6)
@@ -86,7 +87,8 @@ class MainWindow(QMainWindow):
 
     def initSignals(self):
         self.trackWidget.moduleSelected.connect(self.loadModule)
-
+        self.trackWidget.activated.connect(partial(self.toggleActivated, activateTrack = True))
+        self.patternWidget.activated.connect(partial(self.toggleActivated, activatePattern = True))
 
     def initModelView(self):
         self.trackModel = TrackModel()
@@ -141,6 +143,20 @@ class MainWindow(QMainWindow):
     def applyStateToUI(self):
         pass # for now
 
+    def toggleActivated(self, activateTrack = False, activatePattern = False):
+        if activateTrack:
+            self.trackGroup.setObjectName('activated')
+            self.patternGroup.setObjectName('')
+            self.patternWidget.active = False
+        elif activatePattern:
+            self.patternGroup.setObjectName('activated')
+            self.trackGroup.setObjectName('')
+            self.trackWidget.active = False
+        else:
+            return
+        self.trackGroup.style().polish(self.trackGroup)
+        self.patternGroup.style().polish(self.patternGroup)
+
 
     def loadAndImportMayson(self):
         name, _ = QFileDialog.getOpenFileName(self, 'Load MAYSON file', '', 'aMaySyn *.mayson(*.mayson)')
@@ -178,7 +194,7 @@ class MainWindow(QMainWindow):
         if self.amaysyn is not None:
             self.amaysyn.updateState(info = self.info)
 
-        tracks, patterns, synths, drumkit = self.decodeAndProcessMaysonData(maysonData)
+        tracks, patterns, synths, drumkit = self.decodeMaysonData(maysonData)
         self.trackModel.setTracks(tracks)
         self.patternModel.setPatterns(patterns)
         self.synthModel.setStringList(synths)
@@ -189,6 +205,13 @@ class MainWindow(QMainWindow):
 
         self.synthModel.layoutChanged.emit()
         self.drumModel.layoutChanged.emit()
+
+        self.trackWidget.activate()
+        if tracks:
+            if tracks[0].modules:
+                self.trackWidget.select(tracks[0], tracks[0].modules[0])
+            else:
+                self.trackWidget.select(tracks[0])
 
         self.applyStateToUI()
 
@@ -227,7 +250,7 @@ class MainWindow(QMainWindow):
         QApplication.quit()
 
 
-    def decodeAndProcessMaysonData(self, data):
+    def decodeMaysonData(self, data):
         """
         We have some cleaning up to do. I used to save whole patterns in the track modules.
         Now I just want to store the hash of each pattern, stored in pattern._hash

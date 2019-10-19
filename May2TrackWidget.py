@@ -13,19 +13,20 @@ colorBG = QColor(*may2Style.group_bgcolor)
 PAD_L = 10
 PAD_R = 20
 PAD_T = 9
-PAD_B = 10
+PAD_B = 0
 
 
 class May2TrackWidget(QWidget):
 
     moduleSelected = pyqtSignal(Module)
     trackChanged = pyqtSignal()
+    activated = pyqtSignal()
 
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
 
-        self.active = False # Hope I don't need this too soon
+        self.active = False
 
         self.offsetV = 0
         self.offsetH = 0
@@ -69,6 +70,7 @@ class May2TrackWidget(QWidget):
 
         self.fontSize = 13 * sqrt(self.scaleV)
         self.fontSizeSmall = 8 * min(self.scaleH, self.scaleV)
+        self.fontSizeSmallerScale = .9
 
         self.charW = 10
         self.nrCharName = 13
@@ -84,11 +86,6 @@ class May2TrackWidget(QWidget):
         self.offsetV = min(self.offsetV, abs(self.model.rowCount() - self.maxTracksVisible))
 
     def drawTracks(self, qp):
-
-#        if self.active:
-#            Color(1.,0.,1,.5)
-#            Line(angle = [self.x + 3, self.y + 4, self.width - 7, self.height - 4], width = 1.5)
-
         for c in range(self.numberTracksVisible):
             track = self.model.tracks[self.offsetV + c]
             x = self.X
@@ -115,13 +112,13 @@ class May2TrackWidget(QWidget):
         pen = qp.pen()
 
         x = self.gridX
-
-        font.setPointSize(self.fontSizeSmall)
-        qp.setFont(font)
         for b in range(self.numberBeatsVisible):
             pen.setColor(QColor(153, 204, 204)) # HARDCODE
             qp.setPen(pen)
-            drawText(qp, x, self.endY + 1, Qt.AlignHCenter | Qt.AlignTop, f'{b + self.offsetH}')
+            beatNr = f'{b + self.offsetH}'
+            font.setPointSize(self.fontSizeSmall * (1 if len(beatNr) < 3 else self.fontSizeSmallerScale))
+            qp.setFont(font)
+            drawText(qp, x, self.endY + 1, Qt.AlignHCenter | Qt.AlignTop, beatNr)
             pen.setColor(QColor(13, 0, 13, 100)) # HARDCODE
             pen.setWidth(2)
             qp.setPen(pen)
@@ -136,9 +133,9 @@ class May2TrackWidget(QWidget):
             y = self.Y + c * self.rowH
             for module in track.modules:
                 L, R = self.getPosOfModule(module)
-                if R < 0 or L > self.R:
+                if R < self.gridX or L > self.R:
                     continue
-                L = max(L, 0)
+                L = max(L, self.gridX)
                 R = min(R, self.R)
                 patternColor = self.parent.getPatternColor(module.patternHash)
                 qp.fillRect(L + 1, y, R - L, self.trackH, QColor(*patternColor, 100)) # HARDCODE
@@ -174,6 +171,9 @@ class May2TrackWidget(QWidget):
         return track, None
 
     def mousePressEvent(self, event):
+        if not self.active:
+            self.activate()
+
         corrTrack, corrModule = self.findCorrespondingTrackAndModule(event.pos().x(), event.pos().y())
         if corrModule is None:
             return
@@ -194,6 +194,17 @@ class May2TrackWidget(QWidget):
         self.dragModule = None
         self.update()
 
+    def wheelEvent(self, event):
+        self.offsetV -= event.angleDelta().y() / 30
+        self.offsetV = int(clip(self.offsetV, 0, self.model.rowCount() - self.numberTracksVisible))
+        self.offsetH -= event.angleDelta().x() / 15
+        self.offsetH = int(clip(self.offsetH, 0, self.model.totalLength()))
+        self.repaint()
+
+    def activate(self):
+        self.active = True
+        self.activated.emit()
+
     def initDragModule(self, track, module, origin):
         if self.dragModule is None:
             self.dragModule = module
@@ -209,15 +220,16 @@ class May2TrackWidget(QWidget):
         if self.dragModule:
             if self.dragModule.mod_on < self.offsetH or self.dragModule.mod_on > self.offsetH + self.numberBeatsVisible + 1:
                 self.dragModuleTo(self.dragOrigin)
-        #TODO: note to self; Editor should allow overlapping modules but export should be declined, then! (give error message)
-        else:
-            self.trackChanged.emit()
+            #TODO: note to self; Editor should allow overlapping modules but export should be declined, then! (give error message)
+            else:
+                self.trackChanged.emit()
 
-    def select(self, track, module):
+    def select(self, track, module = None):
         self.currentTrack = track
-        module.tag()
-        self.currentTrack.selectFirstTaggedModuleAndUntag()
-        self.moduleSelected.emit(module)
+        if module is not None:
+            module.tag()
+            self.currentTrack.selectFirstTaggedModuleAndUntag()
+            self.moduleSelected.emit(module)
 
     def debugOutput(self):
         print("=== TRACK MODEL ===")

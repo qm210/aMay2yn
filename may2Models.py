@@ -43,6 +43,9 @@ class TrackModel(QAbstractListModel):
                 if module.pattern.name == pattern.name:
                     module.pattern = pattern # deepcopy(pattern)
 
+    def totalLength(self):
+        return max(t.getLastModuleOff() for t in self.tracks)
+
 
 class ModuleModel(QAbstractListModel):
 

@@ -29,6 +29,8 @@ CLICK_PRECISION = 1.03
 class May2PatternWidget(QWidget):
 
     noteSelected = pyqtSignal(int)
+    patternChanged = pyqtSignal()
+    activated = pyqtSignal()
 
     claviature = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
@@ -36,9 +38,9 @@ class May2PatternWidget(QWidget):
         super().__init__()
         self.parent = parent
 
-        self.active = False # Hope I don't need this too soon
+        self.active = False
 
-        self.offsetV = 0
+        self.offsetV = 12
         self.offsetH = 0
         self.scaleV = 1
         self.scaleH = 1
@@ -94,17 +96,13 @@ class May2PatternWidget(QWidget):
         self.numberKeysVisible = int(self.H / self.keyH)
         self.T = self.B - self.keyH * (self.numberKeysVisible)
 
-        self.maxNumberBars = self.W - self.pianoW
-        self.numberBarsVisible = 0 if not self.pattern else int(clip(4 * (self.pattern.length - self.offsetH), 0, self.maxNumberBars))
-
+        self.maxNumberBars = (self.W - self.pianoW) / self.barW
+        self.numberBarsVisible = 0 if not self.pattern else int(clip(self.barsPerBeat * (self.pattern.length - self.offsetH), 0, self.maxNumberBars))
+        self.numberBeatsVisible = self.numberBarsVisible / self.barsPerBeat
 
     def drawBackground(self, qp):
 
         isKeyWhite = lambda key: '#' not in self.claviature[key % 12]
-
-#        if self.active:
-#            Color(1.,0.,1,.5)
-#            Line(angle = [self.x + 3, self.y + 4, self.width - 7, self.height - 4], width = 1.5)
 
         for c in range(self.numberKeysVisible):
             key = self.offsetV + c
@@ -155,10 +153,8 @@ class May2PatternWidget(QWidget):
 
 
     def drawNotes(self, qp):
-
         if self.pattern is None:
             return
-
         for note in self.pattern.notes:
             note_on = note.note_on - self.offsetH
             L, R, T, B = self.getRectOfNote(note)
@@ -172,7 +168,7 @@ class May2PatternWidget(QWidget):
 
 
     def getRectOfNote(self, note):
-        coordL = self.X + self.pianoW + self.beatW * note.note_on
+        coordL = self.X + self.pianoW + self.beatW * (note.note_on - self.offsetH)
         coordR = coordL + self.beatW * note.note_len
         coordB = self.B - self.keyH * (note.note_pitch - self.offsetV)
         coordT = coordB - self.keyH
@@ -205,7 +201,7 @@ class May2PatternWidget(QWidget):
             self.dragOrigin = origin
             self.dragNoteOrigin = (note.note_on, note.note_pitch)
 
-    def dragNoteRelativeToNoteOrigin(self, pos):
+    def dragNoteTo(self, pos):
         noteDistance = self.getDistanceInNoteUnits(pos.x() - self.dragOrigin.x(), pos.y() - self.dragOrigin.y())
         self.dragNote.note_on = self.dragNoteOrigin[0] + quantize(noteDistance[0], self.beatQuantum)
         self.dragNote.note_pitch = self.dragNoteOrigin[1] + quantize(noteDistance[1], 1)
@@ -216,11 +212,14 @@ class May2PatternWidget(QWidget):
             self.stretchOrigin = origin
             self.stretchNoteOrigin = note.note_len
 
-    def stretchNoteRelativeToNoteOrigin(self, pos):
+    def stretchNoteTo(self, pos):
         noteDistance = self.getDistanceInNoteUnits(pos.x() - self.stretchOrigin.x(), 0)
         self.stretchNote.note_len = self.stretchNoteOrigin + quantize(noteDistance[0], self.beatQuantum)
 
     def mousePressEvent(self, event):
+        if not self.active:
+            self.activate()
+
         corrNote = self.findCorrespondingNote(event.pos().x(), event.pos().y())
         if corrNote is None:
             return
@@ -232,13 +231,14 @@ class May2PatternWidget(QWidget):
 
     def mouseMoveEvent(self, event):
         if self.dragNote is not None:
-            self.dragNoteRelativeToNoteOrigin(event.pos())
+            self.dragNoteTo(event.pos())
             self.repaint()
         if self.stretchNote is not None:
-            self.stretchNoteRelativeToNoteOrigin(event.pos())
+            self.stretchNoteTo(event.pos())
             self.repaint()
 
     def mouseReleaseEvent(self, event):
+        self.finalizeDragAndStretch()
         self.dragNote = None
         self.stretchNote = None
         self.update()
@@ -247,14 +247,30 @@ class May2PatternWidget(QWidget):
     def wheelEvent(self, event):
         if self.pattern:
             self.offsetV += event.angleDelta().y() / 30
-            self.offsetV = int(clip(self.offsetV, 0, self.pattern.max_note - self.numberKeysVisible))
+            self.offsetV = int(clip(self.offsetV, -24, self.pattern.max_note - self.numberKeysVisible))
+            self.offsetH -= event.angleDelta().x() / 30
+            self.offsetH = .25 * int(4 * clip(self.offsetH, 0, self.pattern.length - self.numberBeatsVisible))
             self.repaint()
+
+    def activate(self):
+        self.active = True
+        self.activated.emit()
 
     def select(self, note):
         note.tag()
         self.pattern.selectFirstTaggedNoteAndUntag()
         self.noteSelected.emit(note)
         self.repaint()
+
+    def finalizeDragAndStretch(self):
+        if self.dragNote is not None:
+            if self.dragNote.note_on < self.offsetH or self.dragNote.note_on > self.offsetH + self.numberBeatsVisible + 1 or self.dragNote.note_off > self.pattern.length:
+                self.dragNoteTo(self.dragOrigin)
+            else:
+                self.patternChanged.emit()
+        if self.stretchNote is not None:
+            print("TEST THIS")
+            quit()
 
 
     def debugOutput(self):
