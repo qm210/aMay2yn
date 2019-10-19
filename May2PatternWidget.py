@@ -204,6 +204,7 @@ class May2PatternWidget(QWidget):
     def dragNoteTo(self, pos):
         noteDistance = self.getDistanceInNoteUnits(pos.x() - self.dragOrigin.x(), pos.y() - self.dragOrigin.y())
         self.dragNote.note_on = self.dragNoteOrigin[0] + quantize(noteDistance[0], self.beatQuantum)
+        self.dragNote.note_off = self.dragNote.note_on + self.dragNote.note_len
         self.dragNote.note_pitch = self.dragNoteOrigin[1] + quantize(noteDistance[1], 1)
 
     def initStretchNote(self, note, origin):
@@ -264,8 +265,10 @@ class May2PatternWidget(QWidget):
 
     def finalizeDragAndStretch(self):
         if self.dragNote is not None:
-            if self.dragNote.note_on < self.offsetH or self.dragNote.note_on > self.offsetH + self.numberBeatsVisible + 1 or self.dragNote.note_off > self.pattern.length:
-                self.dragNoteTo(self.dragOrigin)
+            if self.dragNote.note_on < self.offsetH or self.dragNote.note_on > self.offsetH + self.numberBeatsVisible + 1 \
+                or self.dragNote.note_off > self.pattern.length \
+                or self.dragNote.note_pitch < self.offsetV or self.dragNote.note_pitch >= self.offsetV + self.numberKeysVisible:
+                    self.dragNoteTo(self.dragOrigin)
             else:
                 self.patternChanged.emit()
         if self.stretchNote is not None:
