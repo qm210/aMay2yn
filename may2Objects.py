@@ -69,7 +69,8 @@ class Track:
     def getSynthFullName(self):           return self.synths[self.current_synth if self.current_synth is not None else 0] if self.synths else '__None'
     def getSynthName(self):               return self.getSynthFullName()[2:]
     def getSynthType(self):               return self.getSynthFullName()[0]
-    def getNorm(self):                    return self.par_norm
+    def isDrumTrack(self):                return self.getSynthType() == 'D'
+    def getNorm(self):                    return self.volume
     def isEmpty(self):                    return (self.modules == [])
 
     def selectFirstTaggedModule(self):
@@ -216,9 +217,9 @@ class Track:
         else:
             self.current_synth = -1
 
-    def setParameters(self, norm = None, mute = None):
-        if norm is not None:
-            self.par_norm = float(norm)
+    def setParameters(self, volume = None, mute = None):
+        if volume is not None:
+            self.volume = float(volume)
         if mute is not None:
             self.mute = mute
 

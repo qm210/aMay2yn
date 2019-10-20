@@ -192,7 +192,7 @@ class May2TrackWidget(QWidget):
             else:
                 if event.button() == Qt.LeftButton:
                     self.insertModule(corrTrack, self.copyOfLastSelectedModule, eventX, forceModOn = True)
-                return
+            return
 
         self.select(corrTrack, corrModule)
         if event.button() == Qt.LeftButton:

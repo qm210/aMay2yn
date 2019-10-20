@@ -309,7 +309,8 @@ class MainWindow(QMainWindow):
                         module.setPattern(pattern)
             tracks.append(track)
 
-        synths = data['synths']
+        synths = [synthName[2:] for synthName in data['synths'] if synthName[0] == 'I']
+
         drumkit = data['drumkit']
 
         return tracks, patterns, synths, drumkit
