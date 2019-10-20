@@ -2,6 +2,7 @@ from PyQt5.QtGui import QColor, QPainter, QFont
 from PyQt5.QtWidgets import QWidget
 from math import sqrt, floor
 from numpy import clip
+from copy import deepcopy
 
 from may2Objects import * # pylint: disable=unused-wildcard-import
 from may2Models import * # pylint: disable=unused-wildcard-import
@@ -21,7 +22,7 @@ colorBlackBG = QColor(25, 25, 25)
 PAD_L = 10
 PAD_R = 20
 PAD_T = 10
-PAD_B = 22
+PAD_B = 16
 
 CLICK_PRECISION = 1.03
 
@@ -58,6 +59,7 @@ class May2PatternWidget(QWidget):
         self.stretchNoteOrigin = None
 
         self.pattern = None
+        self.copyOfLastSelectedNote = None
 
     def setPattern(self, pattern):
         self.pattern = pattern
@@ -192,6 +194,12 @@ class May2PatternWidget(QWidget):
                     minDistance = distance
         return nextNeighbor
 
+    def getPositionInNoteUnits(self, coordX, coordY):
+        distanceToCorner = self.getDistanceInNoteUnits(coordX - self.rollX, coordY - self.B)
+        distanceX = quantize(distanceToCorner[0], self.beatQuantum)
+        distanceY = quantize(distanceToCorner[1], 1)
+        return (distanceX + self.offsetH, distanceY + self.offsetV)
+
     def getDistanceInNoteUnits(self, deltaX, deltaY):
         return (deltaX / self.beatW, -deltaY / self.keyH)
 
@@ -203,7 +211,8 @@ class May2PatternWidget(QWidget):
 
     def dragNoteTo(self, pos):
         noteDistance = self.getDistanceInNoteUnits(pos.x() - self.dragOrigin.x(), pos.y() - self.dragOrigin.y())
-        self.dragNote.moveNoteOn(self.dragNoteOrigin[0] + quantize(noteDistance[0], self.beatQuantum))
+        if not self.parent.shiftPressed:
+            self.dragNote.moveNoteOn(self.dragNoteOrigin[0] + quantize(noteDistance[0], self.beatQuantum))
         self.dragNote.note_pitch = self.dragNoteOrigin[1] + quantize(noteDistance[1], 1)
 
     def initStretchNote(self, note, origin):
@@ -222,12 +231,16 @@ class May2PatternWidget(QWidget):
 
         corrNote = self.findCorrespondingNote(event.pos().x(), event.pos().y())
         if corrNote is None:
+            if event.button() == Qt.LeftButton:
+                self.insertNote(self.copyOfLastSelectedNote, event.pos(), copyParameters = False, initDrag = True)
             return
         self.select(corrNote)
         if event.button() == Qt.LeftButton:
             self.initDragNote(corrNote, event.pos())
         if event.button() == Qt.RightButton:
             self.initStretchNote(corrNote, event.pos())
+        if event.button() == Qt.MiddleButton:
+            self.deleteNote(corrNote)
 
     def mouseMoveEvent(self, event):
         if self.dragNote is not None:
@@ -252,6 +265,7 @@ class May2PatternWidget(QWidget):
             self.offsetH = .25 * int(4 * clip(self.offsetH, 0, self.pattern.length - self.numberBeatsVisible))
             self.repaint()
 
+
     def activate(self):
         self.active = True
         self.activated.emit()
@@ -261,8 +275,10 @@ class May2PatternWidget(QWidget):
         self.pattern.selectFirstTaggedNoteAndUntag()
         self.noteSelected.emit(note)
         self.repaint()
+        self.copyOfLastSelectedNote = deepcopy(note)
 
     def finalizeDragAndStretch(self):
+        # do I want to bring the notes in sorted order now?
         if self.dragNote is not None:
             if self.dragNote.note_on < self.offsetH or self.dragNote.note_on > self.offsetH + self.numberBeatsVisible + 1 \
                 or self.dragNote.note_off > self.pattern.length \
@@ -271,9 +287,29 @@ class May2PatternWidget(QWidget):
             else:
                 self.patternChanged.emit()
         if self.stretchNote is not None:
-            print("TEST THIS")
-            quit()
+            if self.stretchNote.note_off > self.pattern.length:
+                self.moveNoteOff(self.pattern.length)
+            if self.stretchNote.note_len < 0:
+                self.stretchNoteTo(self.stretchOrigin)
+            else:
+                self.patternChanged.emit()
 
+    def insertNote(self, notePrototype, pos, copyParameters = False, initDrag = False):
+        if notePrototype is None:
+            notePrototype = Note(note_len = 1)
+        notePos = self.getPositionInNoteUnits(pos.x(), pos.y())
+        if copyParameters:
+            newNote = notePrototype
+        else:
+            newNote = Note(note_len = notePrototype.note_len)
+        newNote.moveNoteOn(notePos[0])
+        newNote.note_pitch = notePos[1]
+        self.pattern.addNote(newNote)
+        if initDrag:
+            self.initDragNote(self.pattern.getNote(), pos)
+
+    def deleteNote(self, note):
+        self.pattern.delNote(note)
 
     def debugOutput(self):
         print("=== PATTERN ===")

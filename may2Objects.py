@@ -9,9 +9,9 @@ def decodeTrack(tDict):
         synths = tDict['synths'],
         synth = tDict['current_synth']
     )
-    track.modules = [Module(m['mod_on'], decodePattern(m['pattern']), m['transpose']) for m in tDict['modules']]
-    track.par_norm = tDict['par_norm']
-    track.mute = tDict['mute']
+    track.modules = [Module(m['mod_on'], decodePattern(m['pattern']), m.get('transpose', 0)) for m in tDict['modules']]
+    track.volume = tDict.get('volume', tDict.get('par_norm', 1))
+    track.mute = tDict.get('mute', False)
     return track
 
 def decodePattern(pDict):
@@ -40,7 +40,7 @@ class Track:
     name = ''
     current_synth = -1
 
-    par_norm = 1.
+    volume = 1
     mute = False
 
     def __init__(self, synths, name = '', synth = -1):
@@ -79,25 +79,36 @@ class Track:
         self.currentModuleIndex = self.getFirstTaggedModuleIndex()
         self.modules[self.currentModuleIndex].tag(False)
 
+    def findIndexOfModule(self, module):
+        for i, m in enumerate(self.modules):
+            if m == module:
+                return i
+        return None
+
     def cloneTrack(self, track):
         self.modules = [copy(m) for m in track.modules]
         self.currentModuleIndex = track.current_module
         self.current_synth = track.current_synth
 
-    def addModule(self, pattern, transpose = 0):
+    def addModuleFromPattern(self, pattern, transpose = 0):
+        modOn = self.getModuleOff() if self.modules else 0
+        newModule = Module(modOn, pattern, transpose)
+        self.addModule(newModule)
+
+    def addModule(self, newModule, forceModOn = False):
         if not self.modules:
-            self.modules.append(Module(0, pattern, transpose))
+            self.modules.append(newModule)
             return
-        newModule = Module(self.getModuleOff(), pattern, transpose)
         newModule.tag()
         self.modules.append(newModule)
         self.modules.sort(key = lambda m: m.mod_on)
-        self.selectTaggedModule()
-        while newModule.collidesWithAnyOf(self.modules):
-            self.moveModule(+1)
-            self.modules.sort(key = lambda m: m.mod_on)
-            self.selectTaggedModule()
-        self.untagAllModules()
+        if not forceModOn:
+            self.selectFirstTaggedModule()
+            while newModule.collidesWithAnyOf(self.modules):
+                self.moveModule(+1)
+                self.modules.sort(key = lambda m: m.mod_on)
+                self.selectFirstTaggedModule()
+            self.untagAllModules()
 
     def delModule(self):
         if self.modules:
@@ -218,11 +229,20 @@ class Track:
 
 class Module:
 
-    def __init__(self, mod_on, pattern, transpose = 0):
+    patternHash = None
+    patternName = None
+    patternLength = None
+
+    def __init__(self, mod_on, pattern = None, transpose = 0, copyModule = None):
         self.mod_on = mod_on
         self.transpose = transpose
         self.tagged = False
-        self.setPattern(pattern)
+        if pattern is not None:
+            self.setPattern(pattern)
+        elif copyModule is not None:
+            self.patternHash = copyModule.patternHash
+            self.patternName = copyModule.patternName
+            self.patternLength = copyModule.patternLength
 
     def setPattern(self, pattern):
         self.patternHash = pattern._hash
@@ -263,12 +283,12 @@ class Pattern:
         self.name = name
         self.notes = []
         self.length = length if length and length > 0 else 1
-        self.currentNote = 0
+        self.currentNoteIndex = 0
         self.currentGap = 0
         self.setTypeParam(synth_type = synth_type, max_note = max_note if max_note > 0 else 88)
 
     def __repr__(self):
-        return ','.join(str(i) for i in [self.name, self.notes, self.length, self.currentNote, self.synth_type])
+        return ','.join(str(i) for i in [self.name, self.notes, self.length, self.currentNoteIndex, self.synth_type])
 
     def isDuplicateOf(self, other):
         return len(self.notes) == len(other.notes) and all(nS == nO for nS, nO in zip(self.notes, other.notes))
@@ -286,7 +306,7 @@ class Pattern:
         self.name = other.name
         self.notes = other.notes
         self.length = other.length
-        self.currentNote = other.currentNote
+        self.currentNoteIndex = other.currentNote
         self.currentGap = other.currentGap
         self.synth_type = other.synth_type
         self.max_note = other.max_note
@@ -294,7 +314,7 @@ class Pattern:
         quit()
 
     # helpers...
-    def getNote(self, offset=0):        return self.notes[(self.currentNote + offset) % len(self.notes)] if self.notes else None
+    def getNote(self, offset=0):        return self.notes[(self.currentNoteIndex + offset) % len(self.notes)] if self.notes else None
     def getNoteOn(self, offset=0):      return self.getNote(offset).note_on if self.getNote(offset) else None
     def getNoteOff(self, offset=0):     return self.getNote(offset).note_off if self.getNote(offset) else None
     def getFirstNote(self):             return self.notes[0]  if self.notes else None
@@ -305,8 +325,15 @@ class Pattern:
     def getDrumIndex(self):             return self.getNote().note_pitch if self.getNote() and self.synth_type == 'D' else None
 
     def selectFirstTaggedNoteAndUntag(self):
-        self.currentNote = self.getFirstTaggedNoteIndex()
-        self.notes[self.currentNote].tag(False)
+        self.currentNoteIndex = self.getFirstTaggedNoteIndex()
+        self.notes[self.currentNoteIndex].tag(False)
+
+    def findIndexOfNote(self, note):
+        for i, n in enumerate(self.notes):
+            if n == note:
+                return i
+        return None
+
 
     def addNote(self, note = None, select = True, append = False, clone = False):
         if note is None:
@@ -331,10 +358,11 @@ class Pattern:
 
         self.notes.append(note)
         self.notes.sort(key = lambda n: (n.note_on, n.note_pitch))
-        self.currentNote = self.getFirstTaggedNoteIndex()
+        self.currentNoteIndex = self.getFirstTaggedNoteIndex()
         self.untagAllNotes()
         # cloning: since we have polyphonic mode now, we can not just assign the right gap - have to do it via space/backspace - will be changed to polyphonic cloning
         if not clone: self.setGap(to = 0)
+
 
     def fillNote(self, note = None): #this is for instant pattern creation... copy the content during the current note (plus gap) and repeat it as long as the pattern allows to
         if note is None: return
@@ -369,25 +397,27 @@ class Pattern:
             copy_pos += copy_span
 
         self.notes.sort(key = lambda n: (n.note_on, n.note_pitch))
-        self.currentNote = self.getFirstTaggedNoteIndex()
+        self.currentNoteIndex = self.getFirstTaggedNoteIndex()
         self.untagAllNotes()
 
-    def delNote(self):
+    def delNote(self, specificNote = None):
         if self.notes:
-            old_note = self.currentNote
+            if specificNote is not None:
+                self.currentNoteIndex = self.findIndexOfNote(specificNote)
+            old_note = self.currentNoteIndex
             old_pitch = self.notes[old_note].note_pitch
 
-            del self.notes[self.currentNote if self.currentNote is not None else -1]
+            del self.notes[self.currentNoteIndex if self.currentNoteIndex is not None else -1]
 
-            if self.currentNote > 0:
-                self.currentNote = min(self.currentNote-1, len(self.notes)-1)
+            if self.currentNoteIndex > 0:
+                self.currentNoteIndex = min(self.currentNoteIndex-1, len(self.notes)-1)
 
             if self.synth_type == 'D':
                 for n in self.notes[old_note:] + self.notes[0:old_note-1]:
                     if n.note_pitch == old_pitch:
                         n.tag()
                         self.notes.sort(key = lambda n: (n.note_on, n.note_pitch))
-                        self.currentNote = self.getFirstTaggedNoteIndex()
+                        self.currentNoteIndex = self.getFirstTaggedNoteIndex()
                         self.untagAllNotes()
                         break
 
@@ -412,9 +442,9 @@ class Pattern:
                 if same_pitch:
                     while self.getNote(offset = inc).note_pitch != self.getNote().note_pitch and abs(inc) < len(self.notes):
                         inc += 1 if inc > 0 else -1
-                self.currentNote = (self.currentNote + inc) % len(self.notes)
+                self.currentNoteIndex = (self.currentNoteIndex + inc) % len(self.notes)
             else:
-                self.currentNote = (len(self.notes) + to) % len(self.notes)
+                self.currentNoteIndex = (len(self.notes) + to) % len(self.notes)
 
     def shiftNote(self, inc):
         if self.notes:
@@ -464,7 +494,7 @@ class Pattern:
             self.getNote().note_off = self.getNote().note_on + self.getNote().note_len
 
         self.notes.sort(key = lambda n: (n.note_on, n.note_pitch))
-        self.currentNote = self.getFirstTaggedNoteIndex()
+        self.currentNoteIndex = self.getFirstTaggedNoteIndex()
         self.untagAllNotes()
 
     def moveAllNotes(self, inc):
@@ -543,6 +573,7 @@ class Note:
             and self.note_aux == other.note_aux)
 
     def moveNoteOn(self, to):
+        to = max(to, 0)
         self.note_on = to
         self.note_off = to + self.note_len
 

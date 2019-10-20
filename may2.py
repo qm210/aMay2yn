@@ -11,13 +11,14 @@ from copy import deepcopy
 from functools import partial
 from os import path
 from time import sleep
+from random import uniform
 import json
 
 from May2TrackWidget import May2TrackWidget
 from May2PatternWidget import May2PatternWidget
 from May2SynthWidget import May2SynthWidget
-from may2Models import *
-from may2Objects import *
+from may2Models import TrackModel, PatternModel
+from may2Objects import decodeTrack, decodePattern
 from may2Style import notACrime
 
 globalStateFile = 'global.state'
@@ -30,7 +31,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('aMay2yn')
         self.setWindowIcon(QIcon('./qm_avatar32.gif'))
 
-        self.initMenu()
+        self.initToolBar()
         self.initLayouts()
         self.initSignals()
         self.initModelView()
@@ -38,6 +39,8 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(notACrime)
 
         self.show()
+
+        self.shiftPressed = False
 
         # print(QFontDatabase.addApplicationFont(':/RobotoMono-Regular.ttf')) # could redistribute, but then I should read about its LICENSE first
 
@@ -75,34 +78,39 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.centralWidget)
 
 
-    def initMenu(self):
+    def initToolBar(self):
         self.toolBar = self.addToolBar("Shit")
         self.toolBar.setMovable(False)
 
-        loadAction = QAction(QIcon.fromTheme('document-open'), '&Load .mayson', self)
+        loadAction = QAction(QIcon.fromTheme('document-open'), 'Load .mayson', self)
         loadAction.setShortcut('Ctrl+L')
         loadAction.triggered.connect(self.loadAndImportMayson)
-        self.toolBar.addAction(loadAction)
-
-        saveAction = QAction(QIcon.fromTheme('document-save'), '&Save .mayson', self)
+        saveAction = QAction(QIcon.fromTheme('document-save'), 'Save .mayson', self)
         saveAction.setShortcut('Ctrl+S')
         saveAction.triggered.connect(self.exportMayson)
-        self.toolBar.addAction(saveAction)
-
-        self.toolBar.addSeparator()
-
+        undoAction = QAction(QIcon.fromTheme('edit-undo'), 'Undo', self)
+        undoAction.setShortcut('Ctrl+Z')
+        undoAction.triggered.connect(self.undo)
+        redoAction = QAction(QIcon.fromTheme('edit-redo'), 'Redo', self)
+        redoAction.setShortcut('Shift+Ctrl+Z')
+        redoAction.triggered.connect(self.redo)
         settingsAction = QAction(QIcon.fromTheme('preferences-system'), 'Settings', self)
         settingsAction.triggered.connect(self.openSettingsDialog)
-        self.toolBar.addAction(settingsAction)
-
         renderModuleAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderModule', self)
         renderModuleAction.setShortcut('Ctrl+T')
         renderModuleAction.triggered.connect(self.renderModule)
-        self.toolBar.addAction(renderModuleAction)
-
         renderTrackAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderTrack', self)
         renderTrackAction.setShortcut('Ctrl+Enter')
         renderTrackAction.triggered.connect(self.renderTrack)
+
+        self.toolBar.addAction(loadAction)
+        self.toolBar.addAction(saveAction)
+        self.toolBar.addSeparator()
+        self.toolBar.addAction(undoAction)
+        self.toolBar.addAction(redoAction)
+        self.toolBar.addAction(settingsAction)
+        self.toolBar.addSeparator()
+        self.toolBar.addAction(renderModuleAction)
         self.toolBar.addAction(renderTrackAction)
 
 
@@ -258,6 +266,8 @@ class MainWindow(QMainWindow):
 
     def keyPressEvent(self, event):
         key = event.key()
+        self.shiftPressed = event.modifiers() & Qt.ShiftModifier
+
         if key == Qt.Key_Escape:
             self.close()
 
@@ -270,6 +280,8 @@ class MainWindow(QMainWindow):
         elif key == Qt.Key_F11:
             self.synthWidget.debugOutput()
 
+    def keyReleaseEvent(self, event):
+        self.shiftPressed = event.modifiers() & Qt.ShiftModifier
 
     def closeEvent(self, event):
         QApplication.quit()
@@ -302,13 +314,18 @@ class MainWindow(QMainWindow):
 
         return tracks, patterns, synths, drumkit
 
+    def undo(self):
+        print('undo pls')
+
+    def redo(self):
+        print('redo pls')
 
 ############################### HELPERS ############################
 
     # THE MOST IMPORTANT FUNCTION!
     def randomColor(self):
         colorHSV = QColor()
-        colorHSV.setHsvF(random.uniform(.05,.95), .8, .88)
+        colorHSV.setHsvF(uniform(.05,.95), .8, .88)
         return (colorHSV.red(), colorHSV.green(), colorHSV.blue())
 
     def getPatternColor(self, patternHash):
@@ -328,7 +345,7 @@ class MainWindow(QMainWindow):
                 self.patternWidget.update()
                 sanityCheck += 1
         if sanityCheck != 1:
-            print(f"wtf? something went wrong with trying to load {module.patternName} ({module.patternHash}), sanityCheck = {sanityCheck}")
+            print(f"wtf? something went wrong with trying to load module {module.patternName} ({module.patternHash}), sanityCheck = {sanityCheck}")
 
 ###################################################################
 

@@ -2,10 +2,12 @@ from PyQt5.QtGui import QColor, QPainter, QFont
 from PyQt5.QtWidgets import QWidget
 from math import sqrt, floor
 from numpy import clip
+from copy import deepcopy
 
 from may2Objects import * # pylint: disable=unused-wildcard-import
 from may2Models import * # pylint: disable=unused-wildcard-import
 from may2Utils import * # pylint: disable=unused-wildcard-import
+from SynthDialog import SynthDialog
 import may2Style
 
 colorBG = QColor(*may2Style.group_bgcolor)
@@ -13,7 +15,7 @@ colorBG = QColor(*may2Style.group_bgcolor)
 PAD_L = 10
 PAD_R = 20
 PAD_T = 9
-PAD_B = 0
+PAD_B = -12
 
 
 class May2TrackWidget(QWidget):
@@ -40,6 +42,7 @@ class May2TrackWidget(QWidget):
 
         self.model = None
         self.currentTrack = None
+        self.copyOfLastSelectedModule = None
 
     def setTrackModel(self, model):
         self.model = model
@@ -76,6 +79,7 @@ class May2TrackWidget(QWidget):
         self.nrCharName = 13
         self.nrCharSynth = 13
 
+        self.synthX = self.X + self.charW * (self.nrCharName + 1) + 5
         self.gridX = self.X + self.charW * (self.nrCharName + self.nrCharSynth + 2) + 10 # HARDCODE (the 10. but what??)
         self.numberBeatsVisible = int((self.R - self.gridX) / self.beatW + 1)
 
@@ -88,19 +92,16 @@ class May2TrackWidget(QWidget):
     def drawTracks(self, qp):
         for c in range(self.numberTracksVisible):
             track = self.model.tracks[self.offsetV + c]
-            x = self.X
             y = self.Y + c * self.rowH
 
             color = QColor(50, 50, 50) if track != self.currentTrack else QColor(128, 50, 50)
-            qp.fillRect(x, y, self.charW * self.nrCharName + 4, self.trackH, color)
+            qp.fillRect(self.X, y, self.charW * self.nrCharName + 4, self.trackH, color)
 
-            x += 1
             qp.setPen(Qt.white)
-            drawText(qp, x, y, Qt.AlignTop, f'{track.name[:self.nrCharName]}')
+            drawText(qp, self.X + 1, y, Qt.AlignTop, f'{track.name[:self.nrCharName]}')
 
-            x += self.charW * (self.nrCharName + 1) + 4
             qp.setPen(QColor(210, 210, 210))
-            drawText(qp, x, y, Qt.AlignTop, f'{track.getSynthName()[:self.nrCharSynth]}')
+            drawText(qp, self.synthX, y, Qt.AlignTop, f'{track.getSynthName()[:self.nrCharSynth]}')
 
             color = QColor(50, 50, 50) if track != self.currentTrack else QColor(128, 50, 50)
             color.setAlpha(255 - 128 * track.mute)
@@ -159,6 +160,13 @@ class May2TrackWidget(QWidget):
         track = self.model.tracks[self.offsetV + visibleRow]
         return track
 
+    def getBeatAtX(self, x):
+        if x < self.gridX or x > self.R:
+            return None
+        visibleBeat = int((x - self.gridX) / (self.R - self.gridX) * self.numberBeatsVisible)
+        beat = self.offsetH + visibleBeat
+        return beat
+
     def findCorrespondingTrackAndModule(self, coordX, coordY):
         track = self.getTrackAtY(coordY)
         if track is None:
@@ -173,16 +181,27 @@ class May2TrackWidget(QWidget):
     def mousePressEvent(self, event):
         if not self.active:
             self.activate()
-
-        corrTrack, corrModule = self.findCorrespondingTrackAndModule(event.pos().x(), event.pos().y())
+        eventX = event.pos().x()
+        eventY = event.pos().y()
+        corrTrack, corrModule = self.findCorrespondingTrackAndModule(eventX, eventY)
         if corrModule is None:
-            return
+            if eventX < self.synthX:
+                corrTrack.mute = not corrTrack.mute
+            elif eventX < self.gridX:
+                self.openSynthDialog(corrTrack)
+            else:
+                if event.button() == Qt.LeftButton:
+                    self.insertModule(corrTrack, self.copyOfLastSelectedModule, eventX, forceModOn = True)
+                return
+
         self.select(corrTrack, corrModule)
         if event.button() == Qt.LeftButton:
             self.initDragModule(corrTrack, corrModule, event.pos())
-        if event.button() == Qt.RightButton:
+        elif event.button() == Qt.RightButton:
             pass
             #self.openModuleSelector(module) # window to choose Pattern and Transpose, and exact Position
+        elif event.button() == Qt.MiddleButton:
+            self.deleteModule(corrTrack, corrModule)
 
     def mouseMoveEvent(self, event):
         if self.dragModule is not None:
@@ -230,9 +249,25 @@ class May2TrackWidget(QWidget):
             module.tag()
             self.currentTrack.selectFirstTaggedModuleAndUntag()
             self.moduleSelected.emit(module)
+            self.copyOfLastSelectedModule = deepcopy(module)
+
+    def insertModule(self, track, modulePrototype, eventX, forceModOn = False):
+        if track is None or modulePrototype is None:
+            return # if modulePrototype is None, should open some window to choose pattern
+        newModule = Module(mod_on = self.getBeatAtX(eventX), pattern = None, copyModule = modulePrototype, transpose = modulePrototype.transpose)
+        track.addModule(newModule, forceModOn = forceModOn)
+
+    def deleteModule(self, track, module):
+        track.currentModuleIndex = track.findIndexOfModule(module)
+        track.delModule()
 
     def debugOutput(self):
         print("=== TRACK MODEL ===")
         print("MODEL CONTENT:", self.model.rowCount(), "ENTRIES")
         for item in self.model:
             print(item.__dict__)
+
+    def openSynthDialog(self, track):
+        synthDialog = SynthDialog(self, track)
+        if synthDialog.exec_():
+            print(synthDialog.nameEdit.text())
