@@ -1,77 +1,52 @@
 from copy import copy
 from numpy import clip
 import random
+import json
 
 
-def decodeTrack(tDict):
-    track = Track(
-        name = tDict['name'],
-        synths = tDict['synths'],
-        synth = tDict['current_synth']
-    )
-    track.modules = [Module(m['mod_on'], decodePattern(m['pattern']), m.get('transpose', 0)) for m in tDict['modules']]
-    track.volume = tDict.get('volume', tDict.get('par_norm', 1))
-    track.mute = tDict.get('mute', False)
-    return track
-
-def decodePattern(pDict):
-    pattern = Pattern(
-        name = pDict['name'],
-        length = pDict['length'],
-        synth_type = pDict['synth_type'],
-        max_note = pDict['max_note'],
-        _hash = pDict['_hash'] if '_hash' in pDict else None
-    )
-    pattern.notes = [Note(
-        note_on = n['note_on'],
-        note_len = n['note_len'],
-        note_pitch = n['note_pitch'],
-        note_pan = n['note_pan'],
-        note_vel = n['note_vel'],
-        note_slide = n['note_slide'],
-        note_aux = n['note_aux']
-        ) for n in pDict['notes']]
-    return pattern
-
+SYNTHTYPE, DRUMTYPE, NONETYPE = ['I', 'D', '_']
 
 class Track:
 
-    synths = []
-    name = ''
-    current_synth = -1
-
-    volume = 1
-    mute = False
-
-    def __init__(self, synths, name = '', synth = -1):
-        self.synths = synths
+    def __init__(self, name = '', synthName = None, synthType = None):
         self.name = name
+        self.synthName = synthName or 'None'
+        self.synthType = synthType or NONETYPE
         self.modules = []
         self.currentModuleIndex = 0
-        if synth is not None: self.current_synth = synth
+        self.volume = 1
+        self.mute = False
 
     def __repr__(self):
-        return ','.join(str(i) for i in [self.name, self.synths, self.current_synth, self.modules, self.currentModuleIndex])
+        return ','.join(str(i) for i in [self.name, self.synthName, self.synthType, self.modules, self.currentModuleIndex])
 
     # helpers...
-    def getModule(self, offset=0):        return self.modules[(self.currentModuleIndex + offset) % len(self.modules)] if isinstance(self.currentModuleIndex, int) and self.modules else None
-    def getModulePattern(self, offset=0): return self.getModule(offset).pattern if self.getModule(offset) else None # TODO this will raise an error, .pattern doesn't exist anymore
-    def getModuleOn(self, offset=0):      return self.getModule(offset).mod_on
-    def getModuleLen(self, offset=0):     return self.getModule(offset).patternLength
-    def getModuleOff(self, offset=0):     return self.getModule(offset).getModuleOff()
-    def getFirstModule(self):             return self.modules[0]  if len(self.modules) > 0 else None
-    def getFirstModuleOn(self):           return self.getFirstModule().mod_on if self.getFirstModule() else None
-    def getLastModule(self):              return self.modules[-1] if len(self.modules) > 0 else None
-    def getLastModuleOff(self):           return self.getLastModule().getModuleOff() if self.getLastModule() else 0
-    def getFirstTaggedModuleIndex(self):  return next(i for i in range(len(self.modules)) if self.modules[i].tagged)
-
-    def getSynthIndex(self):              return (self.current_synth - len(self.synths)) if self.synths[self.current_synth][0] not in ['I','D'] and self.current_synth != -1 else self.current_synth
-    def getSynthFullName(self):           return self.synths[self.current_synth if self.current_synth is not None else 0] if self.synths else '__None'
-    def getSynthName(self):               return self.getSynthFullName()[2:]
-    def getSynthType(self):               return self.getSynthFullName()[0]
-    def isDrumTrack(self):                return self.getSynthType() == 'D'
-    def getNorm(self):                    return self.volume
-    def isEmpty(self):                    return (self.modules == [])
+    def getModule(self, offset=0):
+        return self.modules[(self.currentModuleIndex + offset) % len(self.modules)] if isinstance(self.currentModuleIndex, int) and self.modules else None
+    def getModuleOn(self, offset=0):
+        return self.getModule(offset).mod_on
+    def getModuleLen(self, offset=0):
+        return self.getModule(offset).patternLength
+    def getModuleOff(self, offset=0):
+        return self.getModule(offset).getModuleOff()
+    def getFirstModule(self):
+        return self.modules[0]  if len(self.modules) > 0 else None
+    def getFirstModuleOn(self):
+        return self.getFirstModule().mod_on if self.getFirstModule() else None
+    def getLastModule(self):
+        return self.modules[-1] if len(self.modules) > 0 else None
+    def getLastModuleOff(self):
+        return self.getLastModule().getModuleOff() if self.getLastModule() else 0
+    def getFirstTaggedModuleIndex(self):
+        return next(i for i in range(len(self.modules)) if self.modules[i].tagged)
+    def getSynthFullName(self):
+        return f'{self.synthType}_{self.synthName}'
+    def isDrumTrack(self):
+        return self.synthType == DRUMTYPE
+    def getVolume(self):
+        return self.volume
+    def isEmpty(self):
+        return (self.modules == [])
 
     def selectFirstTaggedModule(self):
         self.currentModuleIndex = self.getFirstTaggedModuleIndex()
@@ -96,7 +71,7 @@ class Track:
         newModule = Module(modOn, pattern, transpose)
         self.addModule(newModule)
 
-    def addModule(self, newModule, forceModOn = False):
+    def addModule(self, newModule, forceModOn = True):
         if not self.modules:
             self.modules.append(newModule)
             return
@@ -171,7 +146,6 @@ class Track:
         self.modules.sort(key = lambda m: m.mod_on)
         self.currentModuleIndex = self.getFirstTaggedModuleIndex()
         self.untagAllModules()
-        # TODO: check for collisions
 
     def moveAllModules(self, inc):
         if self.modules:
@@ -180,42 +154,17 @@ class Track:
         for m in self.modules:
             m.mod_on += inc
 
-    def checkModuleCollision(self, module):
-        pass
-
     def clearModules(self):
         self.modules=[]
 
-    def switchSynth(self, inc, switch_to = None, debug = False):
-        if self.synths:
-            #make sure that only empty tracks can be assigned the special synths
-            if not self.isEmpty() and not debug and switch_to is None:
-                synth = self.synths[self.current_synth]
-                synth_type = synth[0]
-                if synth_type in ['I','_']:
-                    isynths = [s for s in self.synths if s[0] in ['I','_']]
-                    current_isynth = isynths.index(synth)
-                    current_isynth = (current_isynth + inc) % len(isynths)
-                    self.current_synth = self.synths.index(isynths[current_isynth])
-                else:
-                    print("Can't switch synth if track is not empty, and not a synth track. Synth type: " + self.synths[self.current_synth][0])
-
-            else:
-                if switch_to is not None:
-                    self.current_synth = switch_to
-                else:
-                    self.current_synth = (self.current_synth + inc) % len(self.synths)
-
-                if self.getModulePattern():
-                    self.getModulePattern().setTypeParam(synth_type = self.synths[self.current_synth][0])
-
-    def updateSynths(self, synths):
-        old_synth = self.getSynthFullName()
-        self.synths = synths
-        if old_synth in synths:
-            self.current_synth = synths.index(old_synth)
-        else:
-            self.current_synth = -1
+    def setSynth(self, name = None, type = None, fullName = None):
+        if fullName is not None:
+            self.synthType = fullName[0]
+            self.synthName = fullName[2:]
+        if name is not None:
+            self.synthName = name
+        if type is not None:
+            self.synthType = type
 
     def setParameters(self, volume = None, mute = None):
         if volume is not None:
@@ -267,7 +216,7 @@ class Module:
 
     def collidesWithAnyOf(self, modules):
         for m in modules:
-            if self == m:
+            if m == self:
                 continue
             if self.getModuleOn() <= m.getModuleOn() and self.getModuleOff() > m.getModuleOn():
                 return True
@@ -315,15 +264,22 @@ class Pattern:
         quit()
 
     # helpers...
-    def getNote(self, offset=0):        return self.notes[(self.currentNoteIndex + offset) % len(self.notes)] if self.notes else None
-    def getNoteOn(self, offset=0):      return self.getNote(offset).note_on if self.getNote(offset) else None
-    def getNoteOff(self, offset=0):     return self.getNote(offset).note_off if self.getNote(offset) else None
-    def getFirstNote(self):             return self.notes[0]  if self.notes else None
-    def getLastNote(self):              return self.notes[-1] if self.notes else None
-    def getFirstTaggedNoteIndex(self):  return next(i for i in range(len(self.notes)) if self.notes[i].tagged)
-
-    def isEmpty(self):                  return False if self.notes else True
-    def getDrumIndex(self):             return self.getNote().note_pitch if self.getNote() and self.synth_type == 'D' else None
+    def getNote(self, offset=0):
+        return self.notes[(self.currentNoteIndex + offset) % len(self.notes)] if self.notes else None
+    def getNoteOn(self, offset=0):
+        return self.getNote(offset).note_on if self.getNote(offset) else None
+    def getNoteOff(self, offset=0):
+        return self.getNote(offset).note_off if self.getNote(offset) else None
+    def getFirstNote(self):
+        return self.notes[0]  if self.notes else None
+    def getLastNote(self):
+        return self.notes[-1] if self.notes else None
+    def getFirstTaggedNoteIndex(self):
+        return next(i for i in range(len(self.notes)) if self.notes[i].tagged)
+    def isEmpty(self):
+        return False if self.notes else True
+    def getDrumIndex(self):
+        return self.getNote().note_pitch if self.getNote() and self.synth_type == DRUMTYPE else None
 
     def selectFirstTaggedNoteAndUntag(self):
         self.currentNoteIndex = self.getFirstTaggedNoteIndex()
@@ -413,7 +369,7 @@ class Pattern:
             if self.currentNoteIndex > 0:
                 self.currentNoteIndex = min(self.currentNoteIndex-1, len(self.notes)-1)
 
-            if self.synth_type == 'D':
+            if self.synth_type == DRUMTYPE:
                 for n in self.notes[old_note:] + self.notes[0:old_note-1]:
                     if n.note_pitch == old_pitch:
                         n.tag()
@@ -452,7 +408,7 @@ class Pattern:
             self.getNote().note_pitch = (self.getNote().note_pitch + inc) % self.max_note
 
     def shiftAllNotes(self, inc):
-        notes = self.notes if not self.synth_type == 'D' else [n for n in self.notes if n.note_pitch == self.getNote().note_pitch]
+        notes = self.notes if not self.synth_type == DRUMTYPE else [n for n in self.notes if n.note_pitch == self.getNote().note_pitch]
         if notes:
             for n in notes:
                 n.note_pitch = (n.note_pitch + inc) % self.max_note
@@ -533,7 +489,7 @@ class Pattern:
                 break
 
     def updateDrumkit(self, old_drumkit, new_drumkit):
-        if not self.synth_type == 'D' or not self.notes:
+        if not self.synth_type == DRUMTYPE or not self.notes:
             return
         for n in self.notes:
             try:
@@ -667,3 +623,84 @@ class Note:
             self.note_aux = min(999, max(-999, float(value)))
         except:
             self.note_aux = 0
+
+################### EN/DECODING FUNCTIONALITY #####################
+# have to include some processing for migration between parameters
+
+def encodeTrack(obj):
+    if isinstance(obj, Track):
+        objDict = {
+            'name': obj.name,
+            'modules': json.dumps(obj.modules, default = (lambda mod: mod.__dict__)),
+            'synthName': obj.synthName,
+            'synthType': obj.synthType,
+            'volume': obj.volume,
+            'mute': obj.mute,
+        }
+        return objDict
+    return super().default(obj)
+
+def decodeTrack(tDict):
+    synthName = None
+    synthType = None
+    if 'synths' in tDict and 'current_synth' in tDict:
+        synth = tDict['synths'][tDict['current_synth']]
+        synthType = synth[0]
+        synthName = synth[2:]
+    track = Track(
+        name = tDict.get('name', ''),
+        synthName = tDict.get('synthName', synthName),
+        synthType = tDict.get('synthType', synthType)
+    )
+    for m in tDict['modules']:
+        module = Module(
+            mod_on = m.get('mod_on', 0),
+            transpose = m.get('transpose', 0)
+        )
+        if 'pattern' in m:
+            module.setPattern(decodePattern(m.get('pattern', None)))
+        else:
+            module.patternHash = m.get('patternHash', None)
+            module.patternName = m.get('patternName', None)
+            module.patternLength = m.get('patternLength', None)
+        track.modules.append(module)
+    track.volume = tDict.get('volume', tDict.get('par_norm', track.volume))
+    track.mute = tDict.get('mute', track.mute)
+    track.currentModuleIndex = tDict.get('currentModuleIndex', track.currentModuleIndex)
+    return track
+
+def encodePattern(obj):
+    if isinstance(obj, Pattern):
+        objDict = {
+            'name': obj.name,
+            'length': obj.length,
+            'synth_type': obj.synth_type,
+            'max_note': obj.max_note,
+            '_hash': obj._hash,
+            'notes': json.dumps(obj.notes, default = (lambda note: note.__dict__)),
+            'currentNoteIndex': obj.currentNoteIndex,
+            'currentGap': obj.currentGap,
+        }
+        return objDict
+    return super().default(obj)
+
+def decodePattern(pDict):
+    pattern = Pattern(
+        name = pDict.get('name', Pattern().name),
+        length = pDict.get('length', Pattern().length),
+        synth_type = pDict.get('synth_type', Pattern().synth_type),
+        max_note = pDict.get('max_note', Pattern().max_note),
+        _hash = pDict.get('_hash', None)
+    )
+    pattern.notes = [Note(
+        note_on = n.get('note_on', Note().note_on),
+        note_len = n.get('note_len', Note().note_len),
+        note_pitch = n.get('note_pitch', Note().note_pitch),
+        note_pan = n.get('note_pan', Note().note_pan),
+        note_vel = n.get('note_vel', Note().note_vel),
+        note_slide = n.get('note_slide', Note().note_slide),
+        note_aux = n.get('note_aux', Note().note_aux)
+        ) for n in pDict['notes']]
+    pattern.currentNoteIndex = pDict.get('currentNoteIndex', pattern.currentNoteIndex)
+    pattern.currentGap = pDict.get('currentGap', pattern.currentGap)
+    return pattern

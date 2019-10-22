@@ -1,13 +1,15 @@
 from PyQt5.QtGui import QColor, QPainter, QFont
 from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import Qt, pyqtSignal
 from math import sqrt, floor
 from numpy import clip
 from copy import deepcopy
 
-from may2Objects import * # pylint: disable=unused-wildcard-import
-from may2Models import * # pylint: disable=unused-wildcard-import
-from may2Utils import * # pylint: disable=unused-wildcard-import
+from may2Objects import Track, Module
+from may2TrackModel import TrackModel
+from may2Utils import drawText, quantize
 from SynthDialog import SynthDialog
+from PatternDialog import PatternDialog
 import may2Style
 
 colorBG = QColor(*may2Style.group_bgcolor)
@@ -41,7 +43,7 @@ class May2TrackWidget(QWidget):
         self.dragModuleTrack = None
 
         self.model = None
-        self.currentTrack = None
+        self.trackSolo = None
         self.copyOfLastSelectedModule = None
 
     def setTrackModel(self, model):
@@ -57,6 +59,7 @@ class May2TrackWidget(QWidget):
             self.drawTracks(qp)
             self.drawGrid(qp)
             self.drawModules(qp)
+            self.drawTrackInfo(qp)
         qp.end()
 
     def setGeometry(self, event):
@@ -94,16 +97,16 @@ class May2TrackWidget(QWidget):
             track = self.model.tracks[self.offsetV + c]
             y = self.Y + c * self.rowH
 
-            color = QColor(50, 50, 50) if track != self.currentTrack else QColor(128, 50, 50)
+            color = QColor(50, 50, 50) if track != self.model.currentTrack() else QColor(128, 50, 50)
             qp.fillRect(self.X, y, self.charW * self.nrCharName + 4, self.trackH, color)
 
             qp.setPen(Qt.white)
             drawText(qp, self.X + 1, y, Qt.AlignTop, f'{track.name[:self.nrCharName]}')
 
             qp.setPen(QColor(210, 210, 210))
-            drawText(qp, self.synthX, y, Qt.AlignTop, f'{track.getSynthName()[:self.nrCharSynth]}')
+            drawText(qp, self.synthX, y, Qt.AlignTop, f'{track.synthName[:self.nrCharSynth]}')
 
-            color = QColor(50, 50, 50) if track != self.currentTrack else QColor(128, 50, 50)
+            color = QColor(50, 50, 50) if track != self.model.currentTrack() else QColor(128, 50, 50)
             color.setAlpha(255 - 128 * track.mute)
             qp.fillRect(self.gridX, y, self.R - self.gridX, self.trackH, color)
 
@@ -126,7 +129,6 @@ class May2TrackWidget(QWidget):
             qp.drawLine(x, self.endY, x, self.Y)
             x += self.beatW
 
-
     def drawModules(self, qp):
         qp.font().setPointSize(self.fontSizeSmall)
         for c in range(self.numberTracksVisible):
@@ -144,8 +146,23 @@ class May2TrackWidget(QWidget):
                 drawText(qp, L, y + self.trackH + 2, Qt.AlignLeft | Qt.AlignBottom, module.patternName[:3*int(module.patternLength)])
                 if module.transpose != 0:
                     drawText(qp, L + 1, y - 2, Qt.AlignLeft | Qt.AlignTop, f'{module.transpose:+d}')
-                if module == track.getModule() and track == self.currentTrack:
+                if module == track.getModule() and track == self.model.currentTrack():
                     qp.drawRect(L - 1, y - 1, R - L + 1, self.trackH + 2)
+
+    def drawTrackInfo(self, qp):
+        qp.setPen(QColor(255, 255, 255, 180))
+        font = qp.font()
+        font.setPointSize(self.fontSize)
+        qp.setFont(font)
+        for c in range(self.numberTracksVisible):
+            track = self.model.tracks[self.offsetV + c]
+            y = self.Y + c * self.rowH
+            label = f'{100 * track.volume}%'
+            if track.mute or (self.trackSolo is not None and track != self.trackSolo):
+                label = 'MUTE'
+            elif track == self.trackSolo:
+                label = f'SOLO {label}'
+            drawText(qp, self.R, y, Qt.AlignRight | Qt.AlignTop, label)
 
 
     def getPosOfModule(self, module):
@@ -171,7 +188,6 @@ class May2TrackWidget(QWidget):
         track = self.getTrackAtY(coordY)
         if track is None:
             return None, None
-
         for module in track.modules:
             L, R = self.getPosOfModule(module)
             if coordX >= L and coordX <= R:
@@ -184,24 +200,33 @@ class May2TrackWidget(QWidget):
         eventX = event.pos().x()
         eventY = event.pos().y()
         corrTrack, corrModule = self.findCorrespondingTrackAndModule(eventX, eventY)
+
+        self.select(corrTrack, corrModule)
         if corrModule is None:
             if eventX < self.synthX:
-                corrTrack.mute = not corrTrack.mute
+                if event.button() == Qt.RightButton:
+                    self.toggleMute(corrTrack)
             elif eventX < self.gridX:
                 self.openSynthDialog(corrTrack)
             else:
-                if event.button() == Qt.LeftButton:
-                    self.insertModule(corrTrack, self.copyOfLastSelectedModule, eventX, forceModOn = True)
+                beat = self.getBeatAtX(eventX)
+                if event.button() == Qt.LeftButton and self.parent.ctrlPressed:
+                    self.openPatternDialog(corrTrack, beat = beat)
+                elif event.button() == Qt.MiddleButton:
+                    self.insertModule(corrTrack, self.copyOfLastSelectedModule, beat)
             return
 
-        self.select(corrTrack, corrModule)
         if event.button() == Qt.LeftButton:
-            self.initDragModule(corrTrack, corrModule, event.pos())
+            if self.parent.ctrlPressed:
+                self.openPatternDialog(corrTrack, module = corrModule)
+            else:
+                self.initDragModule(corrTrack, corrModule, event.pos())
         elif event.button() == Qt.RightButton:
             pass
             #self.openModuleSelector(module) # window to choose Pattern and Transpose, and exact Position
         elif event.button() == Qt.MiddleButton:
             self.deleteModule(corrTrack, corrModule)
+
 
     def mouseMoveEvent(self, event):
         if self.dragModule is not None:
@@ -214,10 +239,14 @@ class May2TrackWidget(QWidget):
         self.update()
 
     def wheelEvent(self, event):
-        self.offsetV -= event.angleDelta().y() / 30
-        self.offsetV = int(clip(self.offsetV, 0, self.model.rowCount() - self.numberTracksVisible))
-        self.offsetH -= event.angleDelta().x() / 15
-        self.offsetH = int(clip(self.offsetH, 0, self.model.totalLength() - .5 * self.numberBeatsVisible))
+        if self.parent.shiftPressed:
+            xScroll = -event.angleDelta().y() / 60
+            yScroll = 0
+        else:
+            xScroll = event.angleDelta().x() / 15
+            yScroll = event.angleDelta().y() / 30
+        self.offsetV = int(clip(self.offsetV - yScroll, 0, self.model.rowCount() - self.numberTracksVisible))
+        self.offsetH = int(clip(self.offsetH - xScroll, 0, self.model.totalLength() - .5 * self.numberBeatsVisible))
         self.repaint()
 
     def activate(self):
@@ -244,22 +273,27 @@ class May2TrackWidget(QWidget):
                 self.trackChanged.emit()
 
     def select(self, track, module = None):
-        self.currentTrack = track
+        self.model.setCurrentTrack(track)
         if module is not None:
             module.tag()
-            self.currentTrack.selectFirstTaggedModuleAndUntag()
+            self.model.currentTrack().selectFirstTaggedModuleAndUntag()
             self.moduleSelected.emit(module)
             self.copyOfLastSelectedModule = deepcopy(module)
+        self.repaint()
 
-    def insertModule(self, track, modulePrototype, eventX, forceModOn = False):
+    def insertModule(self, track, modulePrototype, modOn, forceModOn = True):
         if track is None or modulePrototype is None:
             return # if modulePrototype is None, should open some window to choose pattern
-        newModule = Module(mod_on = self.getBeatAtX(eventX), pattern = None, copyModule = modulePrototype, transpose = modulePrototype.transpose)
+        newModule = Module(mod_on = modOn, pattern = None, copyModule = modulePrototype, transpose = modulePrototype.transpose)
         track.addModule(newModule, forceModOn = forceModOn)
+        self.trackChanged.emit()
 
     def deleteModule(self, track, module):
         track.currentModuleIndex = track.findIndexOfModule(module)
         track.delModule()
+        self.trackChanged.emit()
+
+    ################# HELPERS ##############
 
     def debugOutput(self):
         print("=== TRACK MODEL ===")
@@ -267,7 +301,50 @@ class May2TrackWidget(QWidget):
         for item in self.model:
             print(item.__dict__)
 
-    def openSynthDialog(self, track):
-        synthDialog = SynthDialog(self, track)
+    ############ BASIC FUNCTIONALITY ###############
+
+    def selectTrack(self, inc):
+        index = self.getTrackIndex() + inc
+        self.select(self.model.track(index))
+        print(inc)
+
+    def toggleMute(self, track = None):
+        if track is None:
+            track = self.model.currentTrack()
+        track.mute = not track.mute
+        self.trackChanged.emit()
+        self.repaint()
+
+    def toggleSolo(self, track = None):
+        if track is None:
+            track = self.model.currentTrack()
+        self.trackSolo = track if self.trackSolo is None else None
+        self.repaint()
+
+    def openSynthDialog(self, track = None):
+        self.parent.setModifiers()
+        if track is None:
+            track = self.model.currentTrack()
+        # TODO: separate DrumkitDialog for drum tracks... None Type: open Window --> choose Synth / Drum
+        synthDialog = SynthDialog(self.parent, self.parent.synthModel, track)
         if synthDialog.exec_():
-            print(synthDialog.nameEdit.text())
+            track.setSynth(name = synthDialog.synthName())
+            self.trackChanged.emit()
+
+    def openPatternDialog(self, track, beat = None, module = None):
+        self.parent.setModifiers()
+        filteredModel = self.parent.patternModel.createFilteredModel(track.synthType)
+        if module is None:
+            patternDialog = PatternDialog(self.parent, filteredModel, track = track, pattern = self.parent.getModulePattern(), beat = beat)
+            if patternDialog.exec_():
+                track.addModule(patternDialog.module)
+                self.trackChanged.emit()
+        else:
+            patternDialog = PatternDialog(self.parent, filteredModel, track = track, module = module)
+            status = patternDialog.exec_()
+            if status:
+                pattern = patternDialog.getPattern()
+                if pattern._hash != module.patternHash:
+                    module.setPattern(pattern)
+                    self.trackChanged.emit()
+

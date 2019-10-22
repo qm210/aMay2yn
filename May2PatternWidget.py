@@ -1,11 +1,12 @@
 from PyQt5.QtGui import QColor, QPainter, QFont
 from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import pyqtSignal
 from math import sqrt, floor
 from numpy import clip
 from copy import deepcopy
 
-from may2Objects import * # pylint: disable=unused-wildcard-import
-from may2Models import * # pylint: disable=unused-wildcard-import
+from may2Objects import Pattern, Note
+from may2PatternModel import PatternModel
 from may2Utils import * # pylint: disable=unused-wildcard-import
 import may2Style
 
@@ -46,6 +47,7 @@ class May2PatternWidget(QWidget):
         self.scaleV = 1
         self.scaleH = 1
 
+        # TODO: these should be configurable
         self.barsPerBeat = 4
         self.beatQuantum = 1/16
 
@@ -90,7 +92,7 @@ class May2PatternWidget(QWidget):
         self.fontSize = 9 * min(self.scaleH, self.scaleV)
         self.fontSizeParameters = self.fontSize * sqrt(self.scaleH)
         self.barW = 48 * self.scaleH
-        self.beatW = self.barsPerBeat * self.barW # would change for a 3/4 beat!
+        self.beatW = self.barsPerBeat * self.barW
 
         self.rollX = self.X + self.pianoW
         self.rollW = self.R - self.rollX
@@ -162,9 +164,9 @@ class May2PatternWidget(QWidget):
             L, R, T, B = self.getRectOfNote(note)
             if note_on < 0 or L > self.R or T < self.T:
                 continue
-            qp.fillRect(L + 1, T, R - L, B - T, QColor(*self.parent.getPatternColor(self.pattern._hash), 140))
+            qp.fillRect(L + 1, T, R - L - 1, B - T - 1, QColor(*self.parent.getPatternColor(self.pattern._hash), 140))
             if note == self.pattern.getNote():
-                qp.fillRect(L + 1, T, R - L, B - T, QColor(255, 255, 255, 150))
+                qp.fillRect(L + 1, T, R - L - 1, B - T - 1, QColor(255, 255, 255, 150))
                 if self.pattern.currentGap:
                     qp.fillRect(R - 1, T + self.keyH / 2, self.beatW * self.pattern.currentGap, self.keyH / 4, QColor(255, 255, 255, 100))
 
@@ -234,6 +236,8 @@ class May2PatternWidget(QWidget):
             if event.button() == Qt.LeftButton:
                 self.insertNote(self.copyOfLastSelectedNote, event.pos(), copyParameters = False, initDrag = True)
             return
+
+        # noteAlreadySelected = (corrNote == self.pattern.getNote()) # TOOD: use this, or ctrlPressed, to somehow change the parameters
         self.select(corrNote)
         if event.button() == Qt.LeftButton:
             self.initDragNote(corrNote, event.pos())
@@ -259,10 +263,14 @@ class May2PatternWidget(QWidget):
 
     def wheelEvent(self, event):
         if self.pattern:
-            self.offsetV += event.angleDelta().y() / 30
-            self.offsetV = int(clip(self.offsetV, -24, self.pattern.max_note - self.numberKeysVisible))
-            self.offsetH -= event.angleDelta().x() / 30
-            self.offsetH = .25 * int(4 * clip(self.offsetH, 0, self.pattern.length - self.numberBeatsVisible))
+            if self.parent.shiftPressed:
+                xScroll = -event.angleDelta().y() / 120
+                yScroll = 0
+            else:
+                xScroll = event.angleDelta().x() / 30
+                yScroll = event.angleDelta().y() / 30
+            self.offsetV = int(clip(self.offsetV + yScroll, -24, self.pattern.max_note - self.numberKeysVisible))
+            self.offsetH = .25 * int(4 * clip(self.offsetH - xScroll, 0, self.pattern.length - self.numberBeatsVisible))
             self.repaint()
 
 
@@ -307,9 +315,11 @@ class May2PatternWidget(QWidget):
         self.pattern.addNote(newNote)
         if initDrag:
             self.initDragNote(self.pattern.getNote(), pos)
+        self.patternChanged.emit()
 
     def deleteNote(self, note):
         self.pattern.delNote(note)
+        self.patternChanged.emit()
 
     def debugOutput(self):
         print("=== PATTERN ===")

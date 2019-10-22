@@ -1,5 +1,8 @@
 from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex, pyqtSignal
 from copy import deepcopy
+import json
+
+from may2Objects import Track, encodeTrack
 
 
 class TrackModel(QAbstractListModel):
@@ -7,6 +10,7 @@ class TrackModel(QAbstractListModel):
     def __init__ (self, *args, **kwargs):
         super(TrackModel, self).__init__(*args, **kwargs)
         self.tracks = []
+        self.currentTrackIndex = None
 
     def setTracks(self, tracks):
         self.beginRemoveRows(QModelIndex(), self.createIndex(0,0).row(), self.createIndex(self.rowCount(),0).row())
@@ -33,6 +37,11 @@ class TrackModel(QAbstractListModel):
         self.tracks.insert(row, deepcopy(self.tracks[row]))
         self.endInsertRows()
 
+    def addRow(self, row, parent = QModelIndex()):
+        self.beginInsertRows(parent, row, row)
+        self.tracks.insert(row, Track())
+        self.endInsertRows()
+
     def setSynthList(self, synths):
         for track in self.tracks:
             track.synths = synths
@@ -46,24 +55,31 @@ class TrackModel(QAbstractListModel):
     def totalLength(self):
         return max(t.getLastModuleOff() for t in self.tracks)
 
+########################## HELPFUL HELPERS ############################
 
-class PatternModel(QAbstractListModel):
+    def track(self, index):
+        if not self.tracks or index is None:
+            return None
+        return self.tracks[index % self.rowCount()]
 
-    def __init__ (self, *args, **kwargs):
-        super(PatternModel, self).__init__(*args, **kwargs)
-        self.patterns = []
+    def currentTrack(self):
+        return self.track(self.currentTrackIndex)
 
-    def setPatterns(self, patterns):
-        self.beginRemoveRows(QModelIndex(), self.createIndex(0,0).row(), self.createIndex(self.rowCount(),0).row())
-        self.patterns = patterns
-        self.layoutChanged.emit()
-        self.endRemoveRows()
+    def setCurrentTrack(self, track):
+        self.currentTrackIndex = self.tracks.index(track) if track in self.tracks else None
 
-    def data(self, index, role):
-        i = index.row()
-        if role == Qt.DisplayRole:
-            pattern = self.patterns[i]
-            return f"{pattern.name} [{pattern.length}] ({len(pattern.notes)} Notes)"
+    def addTrack(self, row = None):
+        if row is None:
+            row = self.currentTrackIndex
+        self.addRow(row)
 
-    def rowCount(self, index = None):
-        return len(self.patterns)
+    def cloneTrack(self, row = None):
+        if row is None:
+            row = self.currentTrackIndex
+        self.cloneRow(row)
+
+    def deleteTrack(self, row = None):
+        if row is None:
+            row = self.currentTrackIndex
+        self.removeRow(row)
+
