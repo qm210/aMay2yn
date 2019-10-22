@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex, pyqtSignal
 from copy import deepcopy
 import json
-import may2Objects
+from may2Objects import Pattern
 
 
 class PatternModel(QAbstractListModel):
@@ -25,6 +25,20 @@ class PatternModel(QAbstractListModel):
     def rowCount(self, index = None):
         return len(self.patterns)
 
+    def removeRow(self, row, parent = QModelIndex()):
+        self.beginRemoveRows(parent, row, row)
+        self.patterns.remove(self.patterns[row])
+        self.endRemoveRows()
+
+    def cloneRow(self, row, parent = QModelIndex()):
+        self.beginInsertRows(parent, row, row)
+        self.patterns.insert(row, deepcopy(self.patterns[row]))
+        self.endInsertRows()
+
+    def addRow(self, row, pattern, parent = QModelIndex()):
+        self.beginInsertRows(parent, row, row)
+        self.patterns.insert(row, pattern)
+        self.endInsertRows()
 
     def getPatternOfHash(self, hash):
         return next(p for p in self.patterns if p._hash == hash)

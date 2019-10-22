@@ -1,7 +1,6 @@
 from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex, pyqtSignal
 from copy import deepcopy
 import json
-
 from may2Objects import Track, encodeTrack
 
 

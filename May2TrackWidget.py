@@ -287,11 +287,13 @@ class May2TrackWidget(QWidget):
         newModule = Module(mod_on = modOn, pattern = None, copyModule = modulePrototype, transpose = modulePrototype.transpose)
         track.addModule(newModule, forceModOn = forceModOn)
         self.trackChanged.emit()
+        self.select(track, newModule)
 
     def deleteModule(self, track, module):
         track.currentModuleIndex = track.findIndexOfModule(module)
         track.delModule()
         self.trackChanged.emit()
+        self.select(track, track.getModule())
 
     ################# HELPERS ##############
 
@@ -338,6 +340,7 @@ class May2TrackWidget(QWidget):
             patternDialog = PatternDialog(self.parent, filteredModel, track = track, pattern = self.parent.getModulePattern(), beat = beat)
             if patternDialog.exec_():
                 track.addModule(patternDialog.module)
+                self.select(track, patternDialog.module)
                 self.trackChanged.emit()
         else:
             patternDialog = PatternDialog(self.parent, filteredModel, track = track, module = module)
@@ -346,5 +349,8 @@ class May2TrackWidget(QWidget):
                 pattern = patternDialog.getPattern()
                 if pattern._hash != module.patternHash:
                     module.setPattern(pattern)
+                    self.select(track, module)
                     self.trackChanged.emit()
 
+    def addPattern(self, pattern, clone = False):
+        self.parent.addPattern(pattern, clone)

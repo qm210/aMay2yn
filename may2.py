@@ -497,6 +497,17 @@ class MainWindow(QMainWindow):
     def patternChanged(self):
         self.pushUndoStack()
 
+    def addPattern(self, pattern = None, clone = False):
+        index = self.patternModel.getIndexOfPattern(pattern)
+        if index is None:
+            index = self.patternModel.rowCount() - 1
+        if clone:
+            self.patternModel.cloneRow(index)
+        elif pattern is not None:
+            self.patternModel.addRow(index, pattern)
+            self.patternColors[pattern._hash] = self.randomColor()
+
+
 ######################### SYNATIZE FUNCTIONALITY #####################
 
     def renderModule(self):
