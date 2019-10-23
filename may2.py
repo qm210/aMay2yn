@@ -4,7 +4,7 @@
 #########################################################################
 
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QVBoxLayout, QGroupBox, QSplitter, QFileDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QVBoxLayout, QGroupBox, QSplitter, QFileDialog, QDoubleSpinBox, QCheckBox, QLabel,QInputDialog, QLineEdit
 from PyQt5.QtCore import Qt, pyqtSignal, QItemSelectionModel, QFile, QTextStream, QStringListModel
 from PyQt5.QtGui import QFontDatabase, QIcon, QColor
 from copy import deepcopy
@@ -21,7 +21,7 @@ from May2PatternWidget import May2PatternWidget
 from May2SynthWidget import May2SynthWidget
 from may2TrackModel import TrackModel
 from may2PatternModel import PatternModel
-from may2Objects import decodeTrack, decodePattern
+from may2Objects import Track, Pattern, decodeTrack, decodePattern
 from may2Style import notACrime
 
 globalStateFile = 'global.state'
@@ -35,7 +35,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('aMay2yn')
         self.setWindowIcon(QIcon('./qm_avatar32.gif'))
 
-        self.initToolBar()
         self.initLayouts()
         self.initSignals()
         self.initModelView()
@@ -51,6 +50,8 @@ class MainWindow(QMainWindow):
         # print(QFontDatabase.addApplicationFont(':/RobotoMono-Regular.ttf')) # could redistribute, but then I should read about its LICENSE first
 
     def initLayouts(self):
+        self.initToolBar()
+
         self.trackWidget = May2TrackWidget(self)
         self.trackGroupLayout = QVBoxLayout()
         self.trackGroupLayout.addWidget(self.trackWidget)
@@ -85,39 +86,75 @@ class MainWindow(QMainWindow):
 
 
     def initToolBar(self):
-        self.toolBar = self.addToolBar("Shit")
+        self.toolBar = self.addToolBar('Main')
         self.toolBar.setMovable(False)
 
+        newAction = QAction(QIcon.fromTheme('document-new'), 'New', self)
         loadAction = QAction(QIcon.fromTheme('document-open'), 'Load .mayson', self)
         loadAction.setShortcut('Ctrl+L')
-        loadAction.triggered.connect(self.loadAndImportMayson)
         saveAction = QAction(QIcon.fromTheme('document-save'), 'Save .mayson', self)
         saveAction.setShortcut('Ctrl+S')
-        saveAction.triggered.connect(self.exportMayson)
+        saveAsAction = QAction(QIcon.fromTheme('document-save-as'), 'Save .mayson As...', self)
+        saveAsAction.setShortcut('Ctrl+Shift+S')
         undoAction = QAction(QIcon.fromTheme('edit-undo'), 'Undo', self)
         undoAction.setShortcut('Ctrl+Z')
-        undoAction.triggered.connect(partial(self.loadUndoStep, relativeStep = +1))
         redoAction = QAction(QIcon.fromTheme('edit-redo'), 'Redo', self)
         redoAction.setShortcut('Shift+Ctrl+Z')
-        redoAction.triggered.connect(partial(self.loadUndoStep, relativeStep = -1))
         settingsAction = QAction(QIcon.fromTheme('preferences-system'), 'Settings', self)
-        settingsAction.triggered.connect(self.openSettingsDialog)
         renderModuleAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderModule', self)
         renderModuleAction.setShortcut('Ctrl+T')
-        renderModuleAction.triggered.connect(self.renderModule)
         renderTrackAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderTrack', self)
         renderTrackAction.setShortcut('Ctrl+Enter')
+
+        newAction.triggered.connect(self.newSong)
+        loadAction.triggered.connect(self.loadAndImportMayson)
+        saveAction.triggered.connect(self.exportMayson)
+        saveAsAction.triggered.connect(partial(self.exportMayson, saveAs = True))
+        undoAction.triggered.connect(partial(self.loadUndoStep, relativeStep = +1))
+        redoAction.triggered.connect(partial(self.loadUndoStep, relativeStep = -1))
+        settingsAction.triggered.connect(self.openSettingsDialog)
+        renderModuleAction.triggered.connect(self.renderModule)
         renderTrackAction.triggered.connect(self.renderTrack)
 
         self.toolBar.addAction(loadAction)
         self.toolBar.addAction(saveAction)
+        self.toolBar.addAction(saveAsAction)
         self.toolBar.addSeparator()
         self.toolBar.addAction(undoAction)
         self.toolBar.addAction(redoAction)
         self.toolBar.addAction(settingsAction)
         self.toolBar.addSeparator()
+        self.toolBar.addWidget(QLabel('  Module:'))
         self.toolBar.addAction(renderModuleAction)
+        self.toolBar.addWidget(QLabel('Track:'))
         self.toolBar.addAction(renderTrackAction)
+
+        self.toolBar.addWidget(QLabel('  ', self))
+        self.beatOffsetCheckBox = QCheckBox('From: ', self)
+        self.beatOffsetCheckBox.setChecked(True)
+        self.toolBar.addWidget(self.beatOffsetCheckBox)
+
+        self.beatOffsetSpinBox = QDoubleSpinBox(self)
+        self.beatOffsetSpinBox.setDecimals(1)
+        self.beatOffsetSpinBox.setSingleStep(1)
+        self.beatOffsetSpinBox.setRange(0, 999)
+        self.beatOffsetSpinBox.setPrefix('Beat ')
+        self.beatOffsetSpinBox.setMinimumWidth(120)
+        self.beatOffsetSpinBox.setEnabled(True)
+        self.toolBar.addWidget(self.beatOffsetSpinBox)
+
+        self.toolBar.addWidget(QLabel('  ', self))
+        self.beatStopCheckBox = QCheckBox('To: ', self)
+        self.toolBar.addWidget(self.beatStopCheckBox)
+
+        self.beatStopSpinBox = QDoubleSpinBox(self)
+        self.beatStopSpinBox.setDecimals(1)
+        self.beatStopSpinBox.setSingleStep(1)
+        self.beatStopSpinBox.setRange(0, 999)
+        self.beatStopSpinBox.setPrefix('Beat ')
+        self.beatStopSpinBox.setMinimumWidth(120)
+        self.beatStopSpinBox.setEnabled(False)
+        self.toolBar.addWidget(self.beatStopSpinBox)
 
 
     def initSignals(self):
@@ -126,6 +163,11 @@ class MainWindow(QMainWindow):
         self.trackWidget.activated.connect(partial(self.toggleActivated, activateTrack = True))
         self.patternWidget.activated.connect(partial(self.toggleActivated, activatePattern = True))
         self.patternWidget.patternChanged.connect(self.patternChanged)
+
+        self.beatOffsetCheckBox.stateChanged.connect(self.updateRenderRange)
+        self.beatOffsetSpinBox.valueChanged.connect(partial(self.updateRenderRange, keepLength = True))
+        self.beatStopCheckBox.stateChanged.connect(self.updateRenderRange)
+        self.beatStopSpinBox.valueChanged.connect(self.updateRenderRange)
 
     def initModelView(self):
         self.trackModel = TrackModel()
@@ -147,6 +189,8 @@ class MainWindow(QMainWindow):
             'lastRendered': '',
             'writeWAV': False,
             'extraTimeShift': 0,
+            'useOffset': False,
+            'useStop': False,
         }
         self.info = {}
         self.patterns = []
@@ -176,6 +220,25 @@ class MainWindow(QMainWindow):
         self.undoStep = 0
         self.pushUndoStack()
 
+    def updateUIfromState(self):
+        self.beatOffsetSpinBox.blockSignals(True)
+        self.beatOffsetSpinBox.setValue(self.info.get('B_offset', 0))
+        self.beatOffsetSpinBox.blockSignals(False)
+
+        self.beatStopSpinBox.blockSignals(True)
+        self.beatStopSpinBox.setValue(self.info.get('B_stop', 0))
+        self.beatStopSpinBox.blockSignals(False)
+
+        self.beatOffsetCheckBox.blockSignals(True)
+        self.beatOffsetCheckBox.setChecked(self.state.get('useOffset', False))
+        self.beatOffsetCheckBox.blockSignals(False)
+
+        self.beatStopCheckBox.blockSignals(True)
+        self.beatStopCheckBox.setChecked(self.state.get('useStop', False))
+        self.beatStopCheckBox.blockSignals(False)
+
+        self.updateRenderRange()
+
 
     def toggleActivated(self, activateTrack = False, activatePattern = False, activateSynth = False):
         self.trackGroup.setObjectName('activated' if activateTrack else '')
@@ -190,6 +253,14 @@ class MainWindow(QMainWindow):
         self.synthWidget.active = activateSynth
         self.synthGroup.style().polish(self.synthGroup)
 
+
+    def newSong(self):
+        newTitle, ok = QInputDialog.getText(self, 'New Song', 'Title:', QLineEdit.Normal, '')
+        if ok:
+            self.setModelsFromData(None)
+            self.state['title'] = newTitle
+            self.state['synFile'] = None # f"{self.globalState['lastDirectory']}/{newTitle}"
+            self.globalState['maysonFile'] = None
 
     def loadAndImportMayson(self):
         name, _ = QFileDialog.getOpenFileName(self, 'Load MAYSON file', '', 'aMaySyn *.mayson(*.mayson)')
@@ -220,6 +291,7 @@ class MainWindow(QMainWindow):
         if maysonData == {}:
             return
 
+        self.state = maysonData['state']
         self.info = maysonData['info']
         if 'title' not in self.state or 'synFile' not in self.state:
             self.state['title'], self.state['synFile'] = self.getTitleAndSynFromMayson(self.globalState['maysonFile'])
@@ -238,8 +310,23 @@ class MainWindow(QMainWindow):
             else:
                 self.trackWidget.select(tracks[0])
 
-    def exportMayson(self):
-        json_filename = f"{self.state['title']}.mayson"
+        self.updateUIfromState()
+
+
+    def exportMayson(self, saveAs = False):
+        if saveAs:
+            filename, _ = QFileDialog.getSaveFileName(self, 'Save new MAYSON file', '', 'aMaySyn *.mayson(*.mayson)')
+            if filename == '':
+                return
+            self.globalState['maysonFile'] = filename
+            self.globalState['lastDirectory'] = path.dirname(filename)
+            oldSynFile = self.state['synFile']
+            self.state['title'], self.state['synFile'] = self.getTitleAndSynFromMayson(filename)
+            self.ensureSynFile(copySynFile = oldSynFile)
+        else:
+            self.globalState['maysonFile'] = self.globalState['maysonFile'] or f"{self.state['title']}.mayson"
+            self.ensureSynFile()
+
         data = {
             'state': self.state,
             'info': self.info,
@@ -248,16 +335,23 @@ class MainWindow(QMainWindow):
             'synths': self.synthModel.stringList(),
             'drumkit': self.drumModel.stringList(),
         }
-        fn = open(json_filename, 'w')
+        fn = open(self.globalState['maysonFile'], 'w')
+        print(f"Export to {self.globalState['maysonFile']}")
         json.dump(data, fn, default = lambda obj: obj.__dict__)
         fn.close()
-        self.ensureSynFile()
 
-    def ensureSynFile(self):
-        synfile = self.getInfo('title') + '.syn'
-        if not path.exists(synfile):
-            copyfile(self.defaultSynFile, synfile)
-            print(f"Copied {self.defaultSynFile} to {synfile}. For future reference.")
+    def ensureSynFile(self, copySynFile = None):
+        synFile = self.state['title'] + '.syn'
+        if copySynFile is not None:
+            if not path.exists(copySynFile):
+                copySynFile = defaultSynFile
+                # TODO: prompt whether to overwrite
+                copyfile(copySynFile, synFile)
+                print(f"Copied {copySynFile} to {synFile}.")
+        else:
+            if not path.exists(synFile):
+                copyfile(defaultSynFile, synFile)
+                print(f"Copied {defaultSynFile} to {synFile}.")
 
     def getTitleAndSynFromMayson(self, maysonFile):
         synFile = '.'.join(maysonFile.split('.')[:-1]) + '.syn'
@@ -339,7 +433,11 @@ class MainWindow(QMainWindow):
 
 
     def setModelsFromData(self, data):
-        tracks, patterns, synths, drumkit = self.decodeMaysonData(data)
+        if data is not None:
+            tracks, patterns, synths, drumkit = self.decodeMaysonData(data)
+        else:
+            tracks, patterns, synths, drumkit = [Track()], [Pattern()], [], []
+
         self.trackModel.setTracks(tracks)
         self.patternModel.setPatterns(patterns)
         self.synthModel.setStringList(synths)
@@ -408,6 +506,30 @@ class MainWindow(QMainWindow):
     def openSettingsDialog(self):
         pass
 
+    def updateRenderRange(self, keepLength = False):
+        self.beatOffsetSpinBox.setRange(0, self.trackModel.totalLength() - 1)
+        self.beatStopSpinBox.setRange(self.beatOffsetSpinBox.value() + 1, self.trackModel.totalLength())
+        # TODO: with this enabled, beatStopSpinBox is static O.o why.
+        # if keepLength:
+        #     self.beatStopSpinBox.setValue(self.beatOffsetSpinBox.value() + self.state['renderLength'])
+
+        useOffset = self.beatOffsetCheckBox.isChecked()
+        self.beatOffsetSpinBox.setEnabled(useOffset)
+        self.beatStopCheckBox.setEnabled(useOffset)
+        self.info['B_offset'] = self.beatOffsetSpinBox.value() if useOffset else 0
+        if self.info['B_offset'] > 0:
+            self.trackWidget.addMarker('OFFSET', self.info['B_offset'], unique = True)
+
+        useStop = self.beatStopCheckBox.isChecked()
+        self.beatStopSpinBox.setEnabled(useStop)
+        self.info['B_stop'] = self.beatStopSpinBox.value() if useStop else 0
+        if self.info['B_stop'] > self.info['B_offset']:
+            self.trackWidget.addMarker('STOP', self.info['B_stop'], unique = True)
+
+        self.state['useOffset'] = useOffset
+        self.state['useStop'] = useStop
+
+        self.trackWidget.update()
 
 ############################### HELPERS ############################
 
@@ -432,10 +554,6 @@ class MainWindow(QMainWindow):
 
     def getModulePatternHash(self):
         return self.getModule().patternHash if self.getModule() else None
-
-#    def getModuleTranspose(self):       return self.getModule().transpose if self.getModule() else 0
-#    def getInfo(self, key):             return self.info[key] if key in self.info else None
-#    def setInfo(self, key, value):      self.info[key] = value
 
 #    def getPatternLen(self, offset=0):  return self.getPattern(offset).length if self.getPattern(offset) else None
 #    def getPatternName(self):           return self.getPattern().name if self.getPattern() else 'None'

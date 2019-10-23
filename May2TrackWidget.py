@@ -7,7 +7,7 @@ from copy import deepcopy
 
 from may2Objects import Track, Module
 from may2TrackModel import TrackModel
-from may2Utils import drawText, quantize
+from may2Utils import drawText, drawTextDoubleInX, quantize
 from SynthDialog import SynthDialog
 from PatternDialog import PatternDialog
 import may2Style
@@ -17,7 +17,7 @@ colorBG = QColor(*may2Style.group_bgcolor)
 PAD_L = 10
 PAD_R = 20
 PAD_T = 9
-PAD_B = -12
+PAD_B = -7
 
 
 class May2TrackWidget(QWidget):
@@ -43,6 +43,7 @@ class May2TrackWidget(QWidget):
         self.dragModuleTrack = None
 
         self.model = None
+        self.markerList = []
         self.trackSolo = None
         self.copyOfLastSelectedModule = None
 
@@ -60,6 +61,7 @@ class May2TrackWidget(QWidget):
             self.drawGrid(qp)
             self.drawModules(qp)
             self.drawTrackInfo(qp)
+            self.drawMarkers(qp)
         qp.end()
 
     def setGeometry(self, event):
@@ -163,6 +165,33 @@ class May2TrackWidget(QWidget):
             elif track == self.trackSolo:
                 label = f'SOLO {label}'
             drawText(qp, self.R, y, Qt.AlignRight | Qt.AlignTop, label)
+
+    def drawMarkers(self, qp):
+        font = qp.font()
+        font.setPointSize(self.fontSizeSmall)
+        qp.setFont(font)
+
+        pen = qp.pen()
+        for m in self.markerList:
+            markerPos = m['pos'] - self.offsetH
+            if markerPos < 0 or markerPos >= self.numberBeatsVisible: continue
+
+            x = self.gridX + markerPos * self.beatW
+
+            if m['style'] == 'BPM':
+                lineBottom = self.endY + 10
+                lineTop = self.endY
+                pen.setColor(QColor(77, 77, 180, 180)) # HARDCODE
+                markerText = m['label'][3:]
+            else:
+                lineBottom = self.endY
+                lineTop = self.Y
+                pen.setColor(QColor(210, 50, 50, 180))
+                markerText = m['label']
+            pen.setWidthF(1.5)
+            qp.setPen(pen)
+            qp.drawLine(x, lineBottom, x, lineTop)
+            drawTextDoubleInX(qp, x, lineBottom + self.fontSizeSmall + 6, Qt.AlignHCenter | Qt.AlignTop, markerText, 0.5)
 
 
     def getPosOfModule(self, module):
@@ -354,3 +383,17 @@ class May2TrackWidget(QWidget):
 
     def addPattern(self, pattern, clone = False):
         self.parent.addPattern(pattern, clone)
+
+
+    def addMarker(self, label, position, style = '', unique = False):
+        if unique:
+            self.removeMarkersContaining(label)
+        self.markerList.append({'label': label, 'pos': position, 'style': style})
+        markersToRemove = [m for m in self.markerList if m['pos']<0]
+        for m in markersToRemove:
+            self.markerList.remove(m)
+
+    def removeMarkersContaining(self, label):
+        markersToRemove = [m for m in self.markerList if label in m['label']]
+        for m in markersToRemove:
+            self.markerList.remove(m)
