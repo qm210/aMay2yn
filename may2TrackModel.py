@@ -54,7 +54,7 @@ class TrackModel(QAbstractListModel):
     def totalLength(self):
         return max(t.getLastModuleOff() for t in self.tracks)
 
-########################## HELPFUL HELPERS ############################
+########################## TRACK FUNCTIONALITY ############################
 
     def track(self, index):
         if not self.tracks or index is None:
@@ -82,3 +82,9 @@ class TrackModel(QAbstractListModel):
             row = self.currentTrackIndex
         self.removeRow(row)
 
+    def transposeModule(self, inc):
+        track = self.currentTrack()
+        module = track.getModule() if track is not None else None
+        if module is None:
+            return
+        module.transpose += inc

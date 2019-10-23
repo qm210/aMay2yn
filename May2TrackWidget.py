@@ -7,7 +7,7 @@ from copy import deepcopy
 
 from may2Objects import Track, Module
 from may2TrackModel import TrackModel
-from may2Utils import drawText, drawTextDoubleInX, quantize
+from may2Utils import drawText, drawTextDoubleInX, quantize, GLfloat
 from SynthDialog import SynthDialog
 from PatternDialog import PatternDialog
 import may2Style
@@ -168,9 +168,6 @@ class May2TrackWidget(QWidget):
 
     def drawMarkers(self, qp):
         font = qp.font()
-        font.setPointSize(self.fontSizeSmall)
-        qp.setFont(font)
-
         pen = qp.pen()
         for m in self.markerList:
             markerPos = m['pos'] - self.offsetH
@@ -179,19 +176,22 @@ class May2TrackWidget(QWidget):
             x = self.gridX + markerPos * self.beatW
 
             if m['style'] == 'BPM':
-                lineBottom = self.endY + 10
-                lineTop = self.endY
+                lineBottom = self.endY + 25
+                lineTop = self.endY + 17
                 pen.setColor(QColor(77, 77, 180, 180)) # HARDCODE
                 markerText = m['label'][3:]
+                font.setPointSize(self.fontSizeSmall * self.fontSizeSmallerScale)
             else:
-                lineBottom = self.endY
+                lineBottom = self.endY + self.fontSizeSmall + 4
                 lineTop = self.Y
                 pen.setColor(QColor(210, 50, 50, 180))
                 markerText = m['label']
+                font.setPointSize(self.fontSizeSmall)
             pen.setWidthF(1.5)
             qp.setPen(pen)
             qp.drawLine(x, lineBottom, x, lineTop)
-            drawTextDoubleInX(qp, x, lineBottom + self.fontSizeSmall + 6, Qt.AlignHCenter | Qt.AlignTop, markerText, 0.5)
+            qp.setFont(font)
+            drawTextDoubleInX(qp, x, lineBottom + 2, Qt.AlignHCenter | Qt.AlignTop, markerText, 0.5)
 
 
     def getPosOfModule(self, module):
@@ -268,14 +268,18 @@ class May2TrackWidget(QWidget):
         self.update()
 
     def wheelEvent(self, event):
-        if self.parent.shiftPressed:
-            xScroll = -event.angleDelta().y() / 60
-            yScroll = 0
+        if self.parent.ctrlPressed:
+            transpose = 12 if event.angleDelta().y() > 0 else -12
+            self.model.currentTrack().transposeModule(transpose)
         else:
-            xScroll = event.angleDelta().x() / 15
-            yScroll = event.angleDelta().y() / 30
-        self.offsetV = int(clip(self.offsetV - yScroll, 0, self.model.rowCount() - self.numberTracksVisible))
-        self.offsetH = int(clip(self.offsetH - xScroll, 0, self.model.totalLength() - .5 * self.numberBeatsVisible))
+            if self.parent.shiftPressed:
+                xScroll = -event.angleDelta().y() / 60
+                yScroll = 0
+            else:
+                xScroll = event.angleDelta().x() / 15
+                yScroll = event.angleDelta().y() / 30
+            self.offsetV = int(clip(self.offsetV - yScroll, 0, self.model.rowCount() - self.numberTracksVisible))
+            self.offsetH = int(clip(self.offsetH - xScroll, 0, self.model.totalLength() - .5 * self.numberBeatsVisible))
         self.repaint()
 
     def activate(self):
@@ -397,3 +401,13 @@ class May2TrackWidget(QWidget):
         markersToRemove = [m for m in self.markerList if label in m['label']]
         for m in markersToRemove:
             self.markerList.remove(m)
+
+    def updateBpmList(self, bpmListString):
+        bpmList = bpmListString.split()
+        bpmDict = {float(pair[0]):float(pair[1]) for pair in [pair.split(':') for pair in bpmList]}
+        self.removeMarkersContaining('BPM')
+        for beat in bpmDict:
+            markerLabel = 'BPM' + GLfloat(bpmDict[beat])
+            if markerLabel[-1] == '.':
+                markerLabel = markerLabel[:-1]
+            self.addMarker(markerLabel, beat, style = 'BPM')

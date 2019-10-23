@@ -66,6 +66,6 @@ class PatternModel(QAbstractListModel):
 
     def createFilteredModel(self, typeFilter):
         filteredModel = PatternModel()
-        filteredModel.patterns = [pattern for pattern in self.patterns if pattern.synth_type == typeFilter]
+        filteredModel.patterns = [pattern for pattern in self.patterns if pattern.synthType == typeFilter]
         return filteredModel
 

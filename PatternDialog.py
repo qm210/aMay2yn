@@ -190,5 +190,5 @@ class NewPatternDialog(QtWidgets.QDialog):
         return may2Objects.Pattern(
             name = self.nameEdit.text(),
             length = self.lengthSpin.value(),
-            synth_type = self.synthType
+            synthType = self.synthType
         )

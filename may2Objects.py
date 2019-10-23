@@ -21,13 +21,13 @@ class Track:
         return ','.join(str(i) for i in [self.name, self.synthName, self.synthType, self.modules, self.currentModuleIndex])
 
     # helpers...
-    def getModule(self, offset=0):
-        return self.modules[(self.currentModuleIndex + offset) % len(self.modules)] if isinstance(self.currentModuleIndex, int) and self.modules else None
-    def getModuleOn(self, offset=0):
+    def getModule(self, offset = 0):
+        return self.modules[(self.currentModuleIndex + offset) % len(self.modules)] if self.modules else None
+    def getModuleOn(self, offset = 0):
         return self.getModule(offset).mod_on
-    def getModuleLen(self, offset=0):
+    def getModuleLen(self, offset = 0):
         return self.getModule(offset).patternLength
-    def getModuleOff(self, offset=0):
+    def getModuleOff(self, offset = 0):
         return self.getModule(offset).getModuleOff()
     def getFirstModule(self):
         return self.modules[0]  if len(self.modules) > 0 else None
@@ -43,8 +43,6 @@ class Track:
         return f'{self.synthType}_{self.synthName}'
     def isDrumTrack(self):
         return self.synthType == DRUMTYPE
-    def getVolume(self):
-        return self.volume
     def isEmpty(self):
         return (self.modules == [])
 
@@ -228,24 +226,24 @@ class Module:
 
 class Pattern:
 
-    def __init__(self, name = 'NJU', length = 1, synth_type = '_', max_note = 0, _hash = None):
+    def __init__(self, name = 'NJU', length = 1, synthType = '_', max_note = 0, _hash = None):
         self._hash = _hash or hash(self)
         self.name = name
         self.notes = []
         self.length = length if length and length > 0 else 1
         self.currentNoteIndex = 0
         self.currentGap = 0
-        self.setTypeParam(synth_type = synth_type, max_note = max_note if max_note > 0 else 88)
+        self.setTypeParam(synthType = synthType, max_note = max_note if max_note > 0 else 88)
 
     def __repr__(self):
-        return ','.join(str(i) for i in [self.name, self.notes, self.length, self.currentNoteIndex, self.synth_type])
+        return ','.join(str(i) for i in [self.name, self.notes, self.length, self.currentNoteIndex, self.synthType])
 
     def isDuplicateOf(self, other):
         return len(self.notes) == len(other.notes) and all(nS == nO for nS, nO in zip(self.notes, other.notes))
 
-    def setTypeParam(self, synth_type = None, max_note = None):
-        if synth_type:
-            self.synth_type = synth_type
+    def setTypeParam(self, synthType = None, max_note = None):
+        if synthType:
+            self.synthType = synthType
         if max_note:
             self.max_note = max_note
             for n in self.notes:
@@ -258,7 +256,7 @@ class Pattern:
         self.length = other.length
         self.currentNoteIndex = other.currentNote
         self.currentGap = other.currentGap
-        self.synth_type = other.synth_type
+        self.synthType = other.synthType
         self.max_note = other.max_note
         print("[DEBUG] WHEN IS THIS CALLED? NEED TO FIGURE OUT WHAT TO DO WITH HASH")
         quit()
@@ -279,7 +277,7 @@ class Pattern:
     def isEmpty(self):
         return False if self.notes else True
     def getDrumIndex(self):
-        return self.getNote().note_pitch if self.getNote() and self.synth_type == DRUMTYPE else None
+        return self.getNote().note_pitch if self.getNote() and self.synthType == DRUMTYPE else None
 
     def selectFirstTaggedNoteAndUntag(self):
         self.currentNoteIndex = self.getFirstTaggedNoteIndex()
@@ -369,7 +367,7 @@ class Pattern:
             if self.currentNoteIndex > 0:
                 self.currentNoteIndex = min(self.currentNoteIndex-1, len(self.notes)-1)
 
-            if self.synth_type == DRUMTYPE:
+            if self.synthType == DRUMTYPE:
                 for n in self.notes[old_note:] + self.notes[0:old_note-1]:
                     if n.note_pitch == old_pitch:
                         n.tag()
@@ -408,7 +406,7 @@ class Pattern:
             self.getNote().note_pitch = (self.getNote().note_pitch + inc) % self.max_note
 
     def shiftAllNotes(self, inc):
-        notes = self.notes if not self.synth_type == DRUMTYPE else [n for n in self.notes if n.note_pitch == self.getNote().note_pitch]
+        notes = self.notes if not self.synthType == DRUMTYPE else [n for n in self.notes if n.note_pitch == self.getNote().note_pitch]
         if notes:
             for n in notes:
                 n.note_pitch = (n.note_pitch + inc) % self.max_note
@@ -489,7 +487,7 @@ class Pattern:
                 break
 
     def updateDrumkit(self, old_drumkit, new_drumkit):
-        if not self.synth_type == DRUMTYPE or not self.notes:
+        if not self.synthType == DRUMTYPE or not self.notes:
             return
         for n in self.notes:
             try:
@@ -674,7 +672,7 @@ def encodePattern(obj):
         objDict = {
             'name': obj.name,
             'length': obj.length,
-            'synth_type': obj.synth_type,
+            'synthType': obj.synthType,
             'max_note': obj.max_note,
             '_hash': obj._hash,
             'notes': json.dumps(obj.notes, default = (lambda note: note.__dict__)),
@@ -688,7 +686,7 @@ def decodePattern(pDict):
     pattern = Pattern(
         name = pDict.get('name', Pattern().name),
         length = pDict.get('length', Pattern().length),
-        synth_type = pDict.get('synth_type', Pattern().synth_type),
+        synthType = pDict.get('synthType', pDict.get('synth_type', Pattern().synthType)),
         max_note = pDict.get('max_note', Pattern().max_note),
         _hash = pDict.get('_hash', None)
     )

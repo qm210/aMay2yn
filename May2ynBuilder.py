@@ -1,3 +1,4 @@
+#pylint: disable=anomalous-backslash-in-string
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt, QByteArray
 from struct import pack, unpack
@@ -82,7 +83,7 @@ class May2ynBuilder:
             = synatize(self.synFile, stored_randoms = self.stored_randoms, reshuffle_randoms = reshuffle_randoms)
 
         def_synths = ['D_Drums', 'G_GFX', '__None']
-        self.synths = ['I_' + m['id'] for m in self.synatize_main_list if m['type']=='main']
+        self.synths = ['I_' + m['id'] for m in self.synatize_main_list if m['type'] == 'main']
         self.synths.extend(def_synths)
 
         def_drumkit = ['SideChn']
@@ -144,58 +145,60 @@ class May2ynBuilder:
 
 ############################################### BUILD #####################################################
 
-    def patternIndex(self, module_pattern, pattern_list):
-        for index, pattern in enumerate(pattern_list):
-            if pattern.name == module_pattern.name:
-                return index
-        print(f"pattern with name {module_pattern.name} not found in pattern list:\n", pattern_list)
+    def patternIndex(self, module):
+        for i,p in enumerate(self.patterns):
+            if p._hash == module.patternHash:
+                return i
+        print(f"pattern with name {module.patternName} not found in patterns:\n", self.patterns)
+        print(module.patternHash)
+        print([p._hash for p in self.patterns])
         raise ValueError
+
+    def synthIndex(self, track):
+        return self.synths.index(track.getSynthFullName())
 
     def build(self, tracks, patterns, renderWAV = False):
         if not self.aMay2ynFileExists():
             print(f"Tried to build GLSL without valid aMaySyn-File ({self.synFile}). No can't do.\n")
             raise FileNotFoundError
 
-        offset = self.info.get('B_offset', 0)
-        stop = self.info.get('B_stop', 0)
-        reducedTracks = []
+        B_offset = self.info.get('B_offset', 0)
+        B_stop = self.info.get('B_stop', 0)
+        self.tracks = []
         actuallyUsedPatternHashs = []
-        for t in tracks:
+        for track in tracks:
+            t = deepcopy(track)
             if t.modules and not t.mute:
-                t.modules = [m for m in t.modules if m.getModuleOff() > offset and m.getModuleOn() < stop]
+                t.modules = [m for m in t.modules if m.getModuleOff() > B_offset and (m.getModuleOn() < B_stop or B_stop == 0)]
                 if t.modules:
-                    reducedTracks.append(t)
+                    self.tracks.append(t)
                     for m in t.modules:
                         if m.patternHash not in actuallyUsedPatternHashs:
-                            actuallyUsedPatternHashs.append(m.patternName)
+                            actuallyUsedPatternHashs.append(m.patternHash)
 
-        actuallyUsedPatterns = [p for p in patterns if p._hash in actuallyUsedPatternHashs]
+        self.patterns = [p for p in patterns if p._hash in actuallyUsedPatternHashs]
 
-        tracks = reducedTracks
-        patterns = actuallyUsedPatterns
-        for p in patterns:
-            print(p.name)
+        if len(self.tracks) == 0:
+            print("Nothing to play.. No tracks!")
+            return None
+        if len(self.patterns) == 0:
+            print("Nothing to play.. No patterns!")
+            return None
+        if len(self.synths) == 0:
+            print("Nothing to play.. No synths!")
+            return None
 
-        if len(tracks) == 0:
-            print("Nothing to play..!")
-            return 'Empty track :P'
+        max_mod_off = max(t.getLastModuleOff() for t in self.tracks)
+        if B_stop > 0 and B_stop < max_mod_off:
+            max_mod_off = B_stop
 
-        print(self.synths)
-        print(len(tracks))
-        trackSynthIndex = [self.synths.index(track.getSynthFullName()) for track in tracks]
-        print(trackSynthIndex)
-        quit()
-
-        #tracks = [t for t in self.tracks if t.modules and not t.mute]
-        max_mod_off = min(max(t.getLastModuleOff() for t in tracks), self.getInfo('B_stop')) # TODO. this min() should be redundant, check again
-        loop_mode = self.getInfo('loop')
+        # loop_mode = self.getInfo('loop')
+        loop_mode = 'none' # TODO: do I still need this loop mode..??
 
         filename = self.getInfo('title') + '.glsl'
 
-        #print('\nUSE TRACKS: ', tracks, '\nUSE PATTERNS: ', patterns, '\n')
-
         # TODO: after several changes, I'm not sure whether this is now still required or makes any sense at all, even..!
-        self.module_shift = offset
+        self.module_shift = B_offset
         if self.module_shift > 0:
             for part in self.getInfo('BPM').split():
                 bpm_point = float(part.split(':')[0])
@@ -210,38 +213,38 @@ class May2ynBuilder:
         if self.MODE_headless:
             loop_mode = 'full'
 
-        track_sep = [0] + list(accumulate([len(t.modules) for t in tracks]))
-        pattern_sep = [0] + list(accumulate([len(p.notes) for p in patterns]))
+        self.track_sep = [0] + list(accumulate([len(t.modules) for t in self.tracks]))
+        self.pattern_sep = [0] + list(accumulate([len(p.notes) for p in self.patterns]))
 
         print('BPM LIST:', bpm_list)
 
-        nT  = str(len(tracks))
-        nM  = str(track_sep[-1])
-        nP  = str(len(patterns))
-        nN  = str(pattern_sep[-1])
+        nT  = str(len(self.tracks))
+        nM  = str(self.track_sep[-1])
+        nP  = str(len(self.patterns))
+        nN  = str(self.pattern_sep[-1])
 
-        print("track_sep =", track_sep)
-        print("pattern_sep =", pattern_sep)
+        print("track_sep =", self.track_sep)
+        print("pattern_sep =", self.pattern_sep)
 
         gf = open(self.templateFile)
         glslcode = gf.read()
         gf.close()
 
         self.aMaySynatize(self.synFile)
-        actually_used_synths = set(t.synthName for t in tracks if not t.synthType == may2Objects.NONETYPE)
-        actually_used_drums = set(n.note_pitch for p in patterns if p.synth_type == may2Objects.DRUMTYPE for n in p.notes)
+        actuallyUsedSynths = set(t.synthName for t in self.tracks if not t.synthType == may2Objects.NONETYPE)
+        actuallyUsedDrums = set(n.note_pitch for p in self.patterns if p.synthType == may2Objects.DRUMTYPE for n in p.notes)
 
-        if self.MODE_debug: print("ACTUALLY USED:", actually_used_synths, actually_used_drums)
+        if self.MODE_debug: print("ACTUALLY USED:", actuallyUsedSynths, actuallyUsedDrums)
 
         self.synatized_code_syn, self.synatized_code_drum, paramcode, filtercode, self.last_synatized_forms = \
-            synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, actually_used_synths, actually_used_drums)
+            synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, actuallyUsedSynths, actuallyUsedDrums)
 
         self.file_extra_information = ''
         if self.MODE_headless:
-            print("ACTUALLY USED SYNTHS:", actually_used_synths)
-            names_of_actually_used_drums = [self.drumkit[d] for d in actually_used_drums]
+            print("ACTUALLY USED SYNTHS:", actuallyUsedSynths)
+            names_of_actually_used_drums = [self.drumkit[d] for d in actuallyUsedDrums]
             print("ACTUALLY USED DRUMS:", names_of_actually_used_drums)
-            if len(actually_used_drums) == 1:
+            if len(actuallyUsedDrums) == 1:
                 self.file_extra_information += names_of_actually_used_drums[0] + '_'
 
         # get release and predraw times
@@ -257,7 +260,7 @@ class May2ynBuilder:
             if m['type'] == 'main':
                 syn_rel.append(rel)
                 syn_pre.append(pre)
-                if m['id'] in actually_used_synths:
+                if m['id'] in actuallyUsedSynths:
                     max_rel = max(max_rel, rel)
             elif m['type'] == 'maindrum':
                 drum_rel.append(rel)
@@ -304,12 +307,12 @@ class May2ynBuilder:
         if loop_mode == 'full':
             self.song_length = self.getTimeOfBeat(max_mod_off + max_rel, bpm_list)
 
-        time_offset = self.getTimeOfBeat(offset, bpm_list)
+        time_offset = self.getTimeOfBeat(B_offset, bpm_list)
         self.song_length -= time_offset
 
         loopcode = ('time = mod(time, ' + GLfloat(self.song_length) + ');\n' + 4*' ') if loop_mode != 'none' else ''
 
-        if offset != 0:
+        if B_offset != 0:
             loopcode += f'time += {GLfloat(time_offset)};\n    '
         if self.extra_time_shift > 0:
             loopcode += f'time += {GLfloat(self.extra_time_shift)};\n    '
@@ -317,37 +320,37 @@ class May2ynBuilder:
         print("SONG LENGTH: ", self.song_length)
 
         # check for unused features
-        if all(n.note_pan == 0 for p in patterns for n in p.notes):
+        if all(n.note_pan == 0 for p in self.patterns for n in p.notes):
             print("HINT: you didn't use any note_pan, might want to remove manually")
-        if all(n.note_vel == 100 for p in patterns for n in p.notes):
+        if all(n.note_vel == 100 for p in self.patterns for n in p.notes):
             print("HINT: you didn't use any note_vel (other than 1.0), might want to remove manually")
-        if all(n.note_slide == 0 for p in patterns for n in p.notes):
+        if all(n.note_slide == 0 for p in self.patterns for n in p.notes):
             print("HINT: you didn't use any note_slide, might want to remove manually")
-        if all(n.note_aux == 0 for p in patterns for n in p.notes):
+        if all(n.note_aux == 0 for p in self.patterns for n in p.notes):
             print("HINT: you didn't use any note_aux, might want to remove manually")
 
         print("START TEXTURE")
 
         fmt = '@e'
         tex = b''
-        tex += b''.join(pack(fmt, float(s)) for s in track_sep)
-        tex += b''.join(pack(fmt, float(t.getSynthIndex()+1)) for t in tracks)
-        tex += b''.join(pack(fmt, float(t.getNorm())) for t in tracks)
-        tex += b''.join(pack(fmt, float(syn_rel[t.getSynthIndex()])) for t in tracks)
-        tex += b''.join(pack(fmt, float(syn_pre[t.getSynthIndex()])) for t in tracks)
-        tex += b''.join(pack(fmt, float(syn_slide[t.getSynthIndex()])) for t in tracks)
-        tex += b''.join(pack(fmt, float(m.mod_on)) for t in tracks for m in t.modules)
-        tex += b''.join(pack(fmt, float(m.getModuleOff())) for t in tracks for m in t.modules)
-        tex += b''.join(pack(fmt, float(self.patternIndex(m.pattern, patterns))) for t in tracks for m in t.modules)
-        tex += b''.join(pack(fmt, float(m.transpose)) for t in tracks for m in t.modules)
-        tex += b''.join(pack(fmt, float(s)) for s in pattern_sep)
-        tex += b''.join(pack(fmt, float(n.note_on)) for p in patterns for n in p.notes)
-        tex += b''.join(pack(fmt, float(n.note_off)) for p in patterns for n in p.notes)
-        tex += b''.join(pack(fmt, float(n.note_pitch)) for p in patterns for n in p.notes)
-        tex += b''.join(pack(fmt, float(n.note_pan * .01)) for p in patterns for n in p.notes)
-        tex += b''.join(pack(fmt, float(n.note_vel * .01)) for p in patterns for n in p.notes)
-        tex += b''.join(pack(fmt, float(n.note_slide)) for p in patterns for n in p.notes)
-        tex += b''.join(pack(fmt, float(n.note_aux)) for p in patterns for n in p.notes)
+        tex += b''.join(pack(fmt, float(s)) for s in self.track_sep)
+        tex += b''.join(pack(fmt, float(self.synthIndex(t)+1)) for t in self.tracks)
+        tex += b''.join(pack(fmt, float(t.volume)) for t in self.tracks)
+        tex += b''.join(pack(fmt, float(syn_rel[self.synthIndex(t)])) for t in self.tracks)
+        tex += b''.join(pack(fmt, float(syn_pre[self.synthIndex(t)])) for t in self.tracks)
+        tex += b''.join(pack(fmt, float(syn_slide[self.synthIndex(t)])) for t in self.tracks)
+        tex += b''.join(pack(fmt, float(m.mod_on)) for t in self.tracks for m in t.modules)
+        tex += b''.join(pack(fmt, float(m.getModuleOff())) for t in self.tracks for m in t.modules)
+        tex += b''.join(pack(fmt, float(self.patternIndex(m))) for t in self.tracks for m in t.modules)
+        tex += b''.join(pack(fmt, float(m.transpose)) for t in self.tracks for m in t.modules)
+        tex += b''.join(pack(fmt, float(s)) for s in self.pattern_sep)
+        tex += b''.join(pack(fmt, float(n.note_on)) for p in self.patterns for n in p.notes)
+        tex += b''.join(pack(fmt, float(n.note_off)) for p in self.patterns for n in p.notes)
+        tex += b''.join(pack(fmt, float(n.note_pitch)) for p in self.patterns for n in p.notes)
+        tex += b''.join(pack(fmt, float(n.note_pan * .01)) for p in self.patterns for n in p.notes)
+        tex += b''.join(pack(fmt, float(n.note_vel * .01)) for p in self.patterns for n in p.notes)
+        tex += b''.join(pack(fmt, float(n.note_slide)) for p in self.patterns for n in p.notes)
+        tex += b''.join(pack(fmt, float(n.note_aux)) for p in self.patterns for n in p.notes)
         tex += b''.join(pack(fmt, float(d)) for d in drum_rel)
 
         while len(tex) % 4 != 0:
