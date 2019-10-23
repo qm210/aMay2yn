@@ -29,6 +29,7 @@ class May2ynBuilder:
 
         self.useSequenceTexture = True # if this is True: ignore 'shader' completely and use [self.fragment_shader, self.sequence]
 
+        self.file_extra_information = ''
         self.MODE_debug = False
         self.MODE_headless = False
         self.MODE_renderwav = kwargs.pop('renderWAV') if 'renderWAV' in kwargs else False

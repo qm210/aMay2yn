@@ -150,10 +150,14 @@ class May2PatternWidget(QWidget):
             drawText(qp, x, self.B + 1, Qt.AlignHCenter | Qt.AlignTop, f'{(b+1)/4 + self.offsetH : .2f}')
 
         # END SEGMENT
-        qp.fillRect(x, self.B, self.R - x, self.T - self.B, QColor(0, 0, 0, 75)) # HARDCODE
-        qp.setPen(Qt.black)
-        qp.pen().setWidthF(2) # doesntwork
-        qp.drawLine(x, self.B, x, self.T)
+        endX = self.X + self.pianoW + self.beatW * (self.pattern.length - self.offsetH)
+        if endX > 0 and endX < self.R:
+            qp.fillRect(endX, self.B, self.R - endX, self.T - self.B, QColor(0, 0, 0, 75)) # HARDCODE
+            pen = qp.pen()
+            pen.setColor(Qt.black)
+            pen.setWidthF(2)
+            qp.setPen(pen)
+            qp.drawLine(endX, self.B, endX, self.T)
 
 
     def drawNotes(self, qp):
@@ -267,7 +271,7 @@ class May2PatternWidget(QWidget):
                 xScroll = -event.angleDelta().y() / 120
                 yScroll = 0
             else:
-                xScroll = event.angleDelta().x() / 30
+                xScroll = event.angleDelta().x() / 120
                 yScroll = event.angleDelta().y() / 30
             self.offsetV = int(clip(self.offsetV + yScroll, -24, self.pattern.max_note - self.numberKeysVisible))
             self.offsetH = .25 * int(4 * clip(self.offsetH - xScroll, 0, self.pattern.length - self.numberBeatsVisible))
