@@ -1,0 +1,20 @@
+float resolpTEMPLATE(float time, float f, float tL, float vel, float fa, float reso) // CHEERS TO metabog https://www.shadertoy.com/view/XljSD3 - thanks for letting me steal
+{
+    int maxTaps = 128;
+    fa = sqrt(fa*Tsample);
+    float c = pow(0.5, (128.0-fa*128.0)  / 16.0);
+    float r = 1. - c*pow(0.5, (reso*128.0+24.0) / 16.0);
+    
+    float v0 = 0.;
+    float v1 = 0.;
+    
+    for(int i = 0; i < maxTaps; i++)
+    {
+          float _TIME = time - float(maxTaps-i)*Tsample;
+          //float Bprog = _TIME * BPS; //do I need that?
+          float inp = INSTANCE;
+          v0 = r*v0 - c*v1 + c*inp;
+          v1 = r*v1 + c*v0;
+    }
+    return v1;
+}
