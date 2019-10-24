@@ -131,8 +131,8 @@ class SFXGLWidget(QOpenGLWidget):
         self.iBlockOffsetLocation = glGetUniformLocation(self.program, 'iBlockOffset')
         self.iSampleRateLocation = glGetUniformLocation(self.program, 'iSampleRate')
         if useSequenceTexture:
-            self.sfx_sequence_texture_location = glGetUniformLocation(self.program, 'iSequence');
-            self.sfx_sequence_texture_width_location = glGetUniformLocation(self.program, 'iSequenceWidth');
+            self.sfx_sequence_texture_location = glGetUniformLocation(self.program, 'iSequence')
+            self.sfx_sequence_texture_width_location = glGetUniformLocation(self.program, 'iSequenceWidth')
 
 
         self.uniformLocation = {}

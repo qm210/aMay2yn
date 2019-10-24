@@ -34,7 +34,7 @@ class SynthDialog(QtWidgets.QDialog):
 
         self.drumCheckBox = QtWidgets.QCheckBox('Drum Track', self)
         self.drumCheckBox.stateChanged.connect(self.toggleDrumTrack)
-        self.drumCheckBox.setEnabled(track.isEmpty())
+        self.drumCheckBox.setEnabled(track is None or track.isEmpty())
         self.layout.addWidget(self.drumCheckBox)
 
         self.synthList = QtWidgets.QListView(self)
@@ -50,7 +50,7 @@ class SynthDialog(QtWidgets.QDialog):
         self.buttonGrid.addWidget(self.randomizeParametersButton, 0, 1)
 
         self.previewModuleButton = QtWidgets.QPushButton('Preview Module', self)
-        self.previewModuleButton.setEnabled(not track.isEmpty())
+        self.previewModuleButton.setEnabled(track is not None and not track.isEmpty())
         self.buttonGrid.addWidget(self.previewModuleButton, 1, 1)
 
         self.hardCopySynthButton = QtWidgets.QPushButton('HardCopy Synth', self)

@@ -297,14 +297,18 @@ class May2PatternWidget(QWidget):
                 or self.dragNote.note_pitch < self.offsetV or self.dragNote.note_pitch >= self.offsetV + self.numberKeysVisible:
                     self.dragNoteTo(self.dragOrigin)
             else:
-                self.patternChanged.emit()
+                self.finalizePatternChangeAndEmit()
         if self.stretchNote is not None:
             if self.stretchNote.note_off > self.pattern.length:
                 self.moveNoteOff(self.pattern.length)
             if self.stretchNote.note_len < 0:
                 self.stretchNoteTo(self.stretchOrigin)
             else:
-                self.patternChanged.emit()
+                self.finalizePatternChangeAndEmit()
+
+    def finalizePatternChangeAndEmit(self):
+        self.pattern.ensureOrder()
+        self.patternChanged.emit()
 
     def insertNote(self, notePrototype, pos, copyParameters = False, initDrag = False):
         if notePrototype is None:
@@ -319,11 +323,11 @@ class May2PatternWidget(QWidget):
         self.pattern.addNote(newNote)
         if initDrag:
             self.initDragNote(self.pattern.getNote(), pos)
-        self.patternChanged.emit()
+        self.finalizePatternChangeAndEmit()
 
     def deleteNote(self, note):
         self.pattern.delNote(note)
-        self.patternChanged.emit()
+        self.finalizePatternChangeAndEmit()
 
     def debugOutput(self):
         print("=== PATTERN ===")

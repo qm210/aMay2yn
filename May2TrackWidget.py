@@ -339,7 +339,7 @@ class May2TrackWidget(QWidget):
     ############ BASIC FUNCTIONALITY ###############
 
     def selectTrack(self, inc):
-        index = self.getTrackIndex() + inc
+        index = self.model.currentTrackIndex + inc
         self.select(self.model.track(index))
         print(inc)
 

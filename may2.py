@@ -50,6 +50,7 @@ class MainWindow(QMainWindow):
         self.initAMay2yn()
         self.initAudio()
 
+
         self.show()
 
         self.shiftPressed = False
@@ -173,6 +174,9 @@ class MainWindow(QMainWindow):
         self.writeWavCheckBox = QCheckBox('Write .WAV', self)
         self.toolBar.addWidget(self.writeWavCheckBox)
 
+        self.useSequenceCheckBox = QCheckBox('Use Sequence', self)
+        self.toolBar.addWidget(self.useSequenceCheckBox)
+
 
     def initSignals(self):
         self.trackWidget.moduleSelected.connect(self.loadModule)
@@ -187,6 +191,7 @@ class MainWindow(QMainWindow):
         self.beatStopSpinBox.valueChanged.connect(self.updateRenderRange)
 
         self.writeWavCheckBox.stateChanged.connect(self.updateWriteWav)
+        self.useSequenceCheckBox.stateChanged.connect(self.updateUseSequence)
 
     def initModelView(self):
         self.trackModel = TrackModel()
@@ -207,6 +212,7 @@ class MainWindow(QMainWindow):
             'autoRender': False,
             'lastRendered': '',
             'writeWAV': False,
+            'useSequence': True,
             'extraTimeShift': 0,
             'useOffset': False,
             'useStop': False,
@@ -263,9 +269,15 @@ class MainWindow(QMainWindow):
         self.updateRenderRange()
 
         self.writeWavCheckBox.setChecked(self.state['writeWAV'])
+        self.useSequenceCheckBox.setChecked(self.state['useSequence'])
 
     def updateWriteWav(self, state):
-        self.state['writeWAV'] = state == Qt.Checked
+        self.state['writeWAV'] = (state == Qt.Checked)
+
+    def updateUseSequence(self, state):
+        self.state['useSequence'] = (state == Qt.Checked)
+        if self.amaysyn is not None:
+            self.amaysyn.useSequenceTexture = self.state['useSequence']
 
     def toggleActivated(self, activateTrack = False, activatePattern = False, activateSynth = False):
         self.trackGroup.setObjectName('activated' if activateTrack else '')
@@ -279,6 +291,13 @@ class MainWindow(QMainWindow):
         self.synthGroup.setObjectName('activated' if activatePattern else '')
         self.synthWidget.active = activateSynth
         self.synthGroup.style().polish(self.synthGroup)
+
+        if activateTrack:
+            self.trackWidget.setFocus()
+        elif activatePattern:
+            self.patternWidget.setFocus()
+        elif activateSynth:
+            self.synthWidget.setFocus()
 
 
     def newSong(self):
@@ -314,7 +333,9 @@ class MainWindow(QMainWindow):
         if maysonData == {}:
             return
 
-        self.state = maysonData['state']
+        for key in maysonData['state']:
+            self.state.update({key: maysonData['state'][key]})
+
         self.info = maysonData['info']
         if 'title' not in self.state or 'synFile' not in self.state:
             self.state['title'], self.state['synFile'] = self.getTitleAndSynFromMayson(self.globalState['maysonFile'])
@@ -403,19 +424,22 @@ class MainWindow(QMainWindow):
             self.synthWidget.debugOutput()
 
         if self.trackWidget.active:
-            if key == Qt.Key_D:
-                self.trackWidget.openSynthDialog()
-            elif key == Qt.Key_M:
-                self.trackWidget.toggleMute()
-            elif key == Qt.Key_N:
-                self.trackWidget.toggleSolo()
 
-            elif key == Qt.Key_Down:
-                self.trackWidget.selectTrack(+1)
-            elif key == Qt.Key_Up:
-                self.trackWidget.selectTrack(-1)
+            if not self.ctrlPressed and not self.shiftPressed:
 
-            if self.ctrlPressed:
+                if key == Qt.Key_D:
+                    self.trackWidget.openSynthDialog()
+                elif key == Qt.Key_M:
+                    self.trackWidget.toggleMute()
+                elif key == Qt.Key_N:
+                    self.trackWidget.toggleSolo()
+
+                elif key == Qt.Key_Down:
+                    self.trackWidget.selectTrack(+1)
+                elif key == Qt.Key_Up:
+                    self.trackWidget.selectTrack(-1)
+
+            elif self.ctrlPressed and not self.shiftPressed:
 
                 if key == Qt.Key_Plus:
                     self.trackModel.addTrack()
@@ -424,12 +448,12 @@ class MainWindow(QMainWindow):
                 elif key == Qt.Key_Minus:
                     self.trackModel.deleteTrack()
 
-            if self.ctrlPressed and self.shiftPressed:
+            elif self.ctrlPressed and self.shiftPressed:
 
                 if key == Qt.Key_Up:
-                    self.trackModel.transposeModel(+12)
+                    self.trackModel.transposeModule(+12)
                 elif key == Qt.Key_Down:
-                    self.trackModel.transposeModel(-12)
+                    self.trackModel.transposeModule(-12)
 
             self.trackWidget.update()
 
@@ -672,6 +696,7 @@ class MainWindow(QMainWindow):
 
     def initAMay2yn(self):
         self.amaysyn = May2ynBuilder(self, self.state['synFile'], self.info)
+        self.amaysyn.useSequenceTexture = self.state['useSequence']
 
     def initAudio(self):
         # HARDCODE, make these configurable!

@@ -496,6 +496,14 @@ class Pattern:
                 pass
         self.max_note = len(new_drumkit)
 
+    def ensureOrder(self):
+        if self.notes:
+            self.getNote().tag()
+            self.notes.sort(key = lambda n: (n.note_on, n.note_pitch))
+            self.currentNoteIndex = self.getFirstTaggedNoteIndex()
+            self.untagAllNotes()
+
+
     ### DEBUG ###
     def printNoteList(self):
         for n in self.notes:

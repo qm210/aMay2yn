@@ -28,7 +28,7 @@ class May2ynBuilder:
         self.synFile = synFile
         self.info = info
 
-        self.useSequenceTexture = True # if this is True: ignore 'shader' completely and use [self.fragment_shader, self.sequence]
+        self.useSequenceTexture = False # if this is True: ignore 'shader' completely and use [self.fragment_shader, self.sequence]
 
         self.file_extra_information = ''
         self.MODE_debug = False
