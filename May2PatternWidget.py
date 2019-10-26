@@ -39,8 +39,8 @@ class May2PatternWidget(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-
         self.active = False
+        self.numberInput = ''
 
         self.offsetV = 12
         self.offsetH = 0
@@ -74,6 +74,7 @@ class May2PatternWidget(QWidget):
         qp.fillRect(self.X - PAD_L, self.Y - PAD_T, self.W + PAD_L + PAD_R, self.H + PAD_T + PAD_B, colorBG)
         self.drawBackground(qp)
         self.drawGrid(qp)
+        self.drawNumberInput(qp)
         if self.pattern is not None:
             self.drawNotes(qp)
         qp.end()
@@ -91,6 +92,7 @@ class May2PatternWidget(QWidget):
 
         self.fontSize = 9 * min(self.scaleH, self.scaleV)
         self.fontSizeParameters = self.fontSize * sqrt(self.scaleH)
+        self.fontSizeNumberInput = 1.4 * self.fontSize
         self.barW = 48 * self.scaleH
         self.beatW = self.barsPerBeat * self.barW
 
@@ -159,20 +161,53 @@ class May2PatternWidget(QWidget):
             qp.setPen(pen)
             qp.drawLine(endX, self.B, endX, self.T)
 
+    def drawNumberInput(self, qp):
+        font = qp.font()
+        font.setPointSize(self.fontSizeNumberInput)
+        qp.setFont(font)
+        qp.setPen(QColor(255, 0, 255, 230))
+        boxW = len(self.numberInput) * .763 * self.fontSizeNumberInput + 2
+        boxH = 1.6 * self.fontSizeNumberInput
+        qp.fillRect(self.R, self.B, -boxW, -boxH, colorBG)
+        drawText(qp, self.R, self.B, Qt.AlignRight, self.numberInput)
+
 
     def drawNotes(self, qp):
         if self.pattern is None:
             return
+        font = qp.font()
+        color = self.parent.getPatternColor(self.pattern._hash)
+
         for note in self.pattern.notes:
             note_on = note.note_on - self.offsetH
             L, R, T, B = self.getRectOfNote(note)
             if note_on < 0 or L > self.R or T < self.T:
                 continue
-            qp.fillRect(L + 1, T, R - L - 1, B - T - 1, QColor(*self.parent.getPatternColor(self.pattern._hash), 140))
+            qp.fillRect(L + 1, T, R - L - 1, B - T - 1, QColor(*color, 140))
             if note == self.pattern.getNote():
                 qp.fillRect(L + 1, T, R - L - 1, B - T - 1, QColor(255, 255, 255, 150))
                 if self.pattern.currentGap:
                     qp.fillRect(R - 1, T + self.keyH / 2, self.beatW * self.pattern.currentGap, self.keyH / 4, QColor(255, 255, 255, 100))
+
+            font.setPointSize(self.fontSizeParameters - (1 if note.note_len >= .125 else 2))
+            qp.setFont(font)
+
+            if note.note_pan != 0:
+                qp.setPen(QColor(*(mixcolor((255, 255, 255), color))))
+                drawText(qp, R, B - 2, Qt.AlignTop | Qt.AlignRight, strfloat(note.note_pan))
+
+            vel_and_aux_info = ''
+            if note.note_aux != 0:
+                vel_and_aux_info = f"({strfloat(note.note_aux)})"
+            if any(n.note_vel != 100 for n in self.pattern.notes):
+                vel_and_aux_info += strfloat(note.note_vel)
+            if vel_and_aux_info != '':
+                qp.setPen(QColor(*(mixcolor((0, 0, 0), color) if note == self.pattern.getNote() else mixcolor((255, 255, 255), color))))
+                drawText(qp, R, B + 1, Qt.AlignBottom | Qt.AlignRight, vel_and_aux_info)
+
+            if note.note_slide != 0:
+                qp.setPen(QColor(*(mixcolor((1,1,1), color))))
+                drawText(qp, R, T, Qt.AlignBottom | Qt.AlignRight, strfloat(note.note_slide))
 
 
     def getRectOfNote(self, note):
@@ -234,6 +269,7 @@ class May2PatternWidget(QWidget):
     def mousePressEvent(self, event):
         if not self.active:
             self.activate()
+            return
 
         corrNote = self.findCorrespondingNote(event.pos().x(), event.pos().y())
         if corrNote is None:
@@ -328,6 +364,10 @@ class May2PatternWidget(QWidget):
     def deleteNote(self, note):
         self.pattern.delNote(note)
         self.finalizePatternChangeAndEmit()
+
+    def setNumberInput(self, numberInput):
+        self.numberInput = numberInput
+        self.update()
 
     def debugOutput(self):
         print("=== PATTERN ===")

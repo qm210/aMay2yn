@@ -24,10 +24,10 @@
 #
 
 from PyQt5.QtWidgets import QOpenGLWidget
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from OpenGL.GL import *
-from OpenGL.GLU import *
+from PyQt5.QtWidgets import * #pylint: disable=unused-wildcard-import
+from PyQt5.QtCore import * #pylint: disable=unused-wildcard-import
+from OpenGL.GL import * #pylint: disable=unused-wildcard-import
+from OpenGL.GLU import * #pylint: disable=unused-wildcard-import
 from math import ceil, floor, sqrt
 from struct import pack, unpack
 import numpy as np
@@ -77,8 +77,8 @@ class SFXGLWidget(QOpenGLWidget):
         print("Teximage2D returned.")
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self.texture, 0)
 
@@ -94,8 +94,8 @@ class SFXGLWidget(QOpenGLWidget):
         print("Bound texture with id", self.sequence_texture_handle, "(for sequence)")
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self.sequence_texture_size, self.sequence_texture_size, 0, GL_RGBA, GL_UNSIGNED_BYTE, self.sequence_texture)
 
 

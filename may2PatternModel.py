@@ -40,6 +40,11 @@ class PatternModel(QAbstractListModel):
         self.patterns.insert(row, pattern)
         self.endInsertRows()
 
+    def replaceDataFromModel(self, otherModel):
+        self.beginResetModel(QModelIndex(), 0, self.rowCount() - 1)
+        self.patterns = otherModel.patterns
+        self.endResetModel(QModelIndex(), 0, self.rowCount() - 1)
+
     def getPatternOfHash(self, hash):
         return next(p for p in self.patterns if p._hash == hash)
 

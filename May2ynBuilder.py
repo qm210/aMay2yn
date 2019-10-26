@@ -23,10 +23,11 @@ class May2ynBuilder:
 
     outdir = './out/'
 
-    def __init__(self, parent, synFile = None, info = None, **kwargs):
+    def __init__(self, parent, synFile = None, info = None, title = None, **kwargs):
         self.parent = parent
         self.synFile = synFile
         self.info = info
+        self.title = None
 
         self.useSequenceTexture = False # if this is True: ignore 'shader' completely and use [self.fragment_shader, self.sequence]
 
@@ -38,6 +39,7 @@ class May2ynBuilder:
             self.initWavOut()
 
         self.synths = None
+        self.synthNames = None
         self.drumkit = None
         self.synatize_form_list = None
         self.synatize_main_list = None
@@ -53,7 +55,9 @@ class May2ynBuilder:
         # debug stuff
         self.extra_time_shift = 0
 
-    def updateState(self, info = None, synFile = None, stored_randoms = None, extra_time_shift = None):
+    def updateState(self, title = None, info = None, synFile = None, stored_randoms = None, extra_time_shift = None):
+        if title is not None:
+            self.title = title
         if info is not None:
             self.info = info
         if synFile is not None:
@@ -71,7 +75,7 @@ class May2ynBuilder:
         if not path.isdir('./' + self.outdir):
             mkdir(self.outdir)
 
-    def aMaySynatize(self, synFile = None,  reshuffle_randoms = False):
+    def aMaySynatize(self, synFile = None, reshuffle_randoms = False):
         if synFile is not None:
             self.synFile = synFile
         if not self.aMay2ynFileExists():
@@ -82,9 +86,10 @@ class May2ynBuilder:
         self.synatize_form_list, self.synatize_main_list, drumkit, self.stored_randoms, self.synatize_param_list \
             = synatize(self.synFile, stored_randoms = self.stored_randoms, reshuffle_randoms = reshuffle_randoms)
 
+        self.synthNames = [m['id'] for m in self.synatize_main_list if m['type'] == 'main']
+
         def_synths = ['D_Drums', 'G_GFX', '__None']
-        self.synths = ['I_' + m['id'] for m in self.synatize_main_list if m['type'] == 'main']
-        self.synths.extend(def_synths)
+        self.synths = ['I_' + synthName for synthName in self.synthNames] + def_synths
 
         def_drumkit = ['SideChn']
         self.drumkit = def_drumkit + drumkit
@@ -98,6 +103,8 @@ class May2ynBuilder:
 ##################################### REQUIRED FUNCTION PORTS ###########################################
 
     def getInfo(self, key):
+        if key == 'title':
+            return self.title
         try:
             info = self.info[key]
         except:
@@ -310,7 +317,10 @@ class May2ynBuilder:
         time_offset = self.getTimeOfBeat(B_offset, bpm_list)
         self.song_length -= time_offset
 
-        loopcode = ('time = mod(time, ' + GLfloat(self.song_length) + ');\n' + 4*' ') if loop_mode != 'none' else ''
+        if loop_mode == 'none':
+            loopcode = ('time = mod(time, ' + GLfloat(self.song_length) + ');\n' + 4*' ')
+        else:
+            loopcode = ('if (time > ' + GLfloat(self.song_length) + ') return vec2(0);\n' + 4*' ')
 
         if B_offset != 0:
             loopcode += f'time += {GLfloat(time_offset)};\n    '
@@ -357,13 +367,20 @@ class May2ynBuilder:
             tex += bytes(1)
         texlength = int(len(tex))
 
+        print('TEX LEN',texlength)
+
         tex_s = int(ceil(sqrt(float(texlength)/4.)))
         tex_n = int(ceil(texlength/2))
+
+        # TODO: we try to stay away from the edge. but I can't manage this right now.
+        # tex_s += 1
+        # tex = bytes(tex_s) + tex
+        # tex_n += tex_s
 
         # Generate output header file
         array = []
         arrayf = []
-        for i in range(int(ceil(texlength/2))):
+        for i in range(tex_n):
             array += unpack('@H', tex[2*i:2*i+2])
             arrayf += unpack(fmt, tex[2*i:2*i+2])
 

@@ -12,7 +12,7 @@ from copy import deepcopy
 from functools import partial
 from os import path
 from time import sleep
-from random import uniform
+from random import uniform, choice
 from numpy import clip
 from shutil import move, copyfile
 import json
@@ -23,11 +23,12 @@ from May2PatternWidget import May2PatternWidget
 from May2SynthWidget import May2SynthWidget
 from may2TrackModel import TrackModel
 from may2PatternModel import PatternModel
-from may2Objects import Track, Pattern, decodeTrack, decodePattern
+from may2Objects import Track, Pattern, decodeTrack, decodePattern, SYNTHTYPE
 from May2ynatizer import synatize, synatize_build
 from May2ynBuilder import May2ynBuilder
 from SFXGLWidget import SFXGLWidget
 from SettingsDialog import SettingsDialog
+from PatternDialogs import ImportPatternDialog
 from may2Style import notACrime
 
 globalStateFile = 'global.state'
@@ -49,7 +50,6 @@ class MainWindow(QMainWindow):
 
         self.initAMay2yn()
         self.initAudio()
-
 
         self.show()
 
@@ -100,6 +100,7 @@ class MainWindow(QMainWindow):
         self.toolBar.setMovable(False)
 
         newAction = QAction(QIcon.fromTheme('document-new'), 'New', self)
+        newAction.setShortcut('Ctrl+N')
         loadAction = QAction(QIcon.fromTheme('document-open'), 'Load .mayson', self)
         loadAction.setShortcut('Ctrl+L')
         saveAction = QAction(QIcon.fromTheme('document-save'), 'Save .mayson', self)
@@ -117,6 +118,8 @@ class MainWindow(QMainWindow):
         renderSongAction.setShortcut('Ctrl+Enter')
         stopPlaybackAction = QAction(QIcon.fromTheme('media-playback-stop'), 'Stop Playback', self)
         stopPlaybackAction.setShortcut('Enter')
+        importPatternAction = QAction(QIcon('./icon_lmms_import.png'), 'Import LMMS Patterns', self)
+        importPatternAction.setShortcut('Ctrl+I')
 
         newAction.triggered.connect(self.newSong)
         loadAction.triggered.connect(self.loadAndImportMayson)
@@ -128,7 +131,9 @@ class MainWindow(QMainWindow):
         renderModuleAction.triggered.connect(self.renderModule)
         renderSongAction.triggered.connect(self.renderSong)
         stopPlaybackAction.triggered.connect(self.stopPlayback)
+        importPatternAction.triggered.connect(self.openImportPatternDialog)
 
+        self.toolBar.addAction(newAction)
         self.toolBar.addAction(loadAction)
         self.toolBar.addAction(saveAction)
         self.toolBar.addAction(saveAsAction)
@@ -177,6 +182,8 @@ class MainWindow(QMainWindow):
         self.useSequenceCheckBox = QCheckBox('Use Sequence', self)
         self.toolBar.addWidget(self.useSequenceCheckBox)
 
+        self.toolBar.addSeparator()
+        self.toolBar.addAction(importPatternAction)
 
     def initSignals(self):
         self.trackWidget.moduleSelected.connect(self.loadModule)
@@ -216,7 +223,13 @@ class MainWindow(QMainWindow):
             'extraTimeShift': 0,
             'useOffset': False,
             'useStop': False,
+            'numberInputMode': False,
+            'numberInput': '',
+            'lastNumberInput': '',
+            'lastImportPatternFilename': '',
+            'lastImportPatternFilter': '',
         }
+        # TODO: store Synatize output in self.state? C=
         self.info = {}
         self.patterns = []
         self.synths = []
@@ -304,7 +317,8 @@ class MainWindow(QMainWindow):
         newTitle, ok = QInputDialog.getText(self, 'New Song', 'Title:', QLineEdit.Normal, '')
         if ok:
             self.setModelsFromData(None)
-            self.state['title'] = newTitle
+            self.shufflePatternColors()
+            self.state['title'] = newTitle or 'QoolMusic'
             self.state['synFile'] = None # f"{self.globalState['lastDirectory']}/{newTitle}"
             self.globalState['maysonFile'] = None
 
@@ -337,11 +351,12 @@ class MainWindow(QMainWindow):
             self.state.update({key: maysonData['state'][key]})
 
         self.info = maysonData['info']
+        if 'title' in self.info:
+            self.state['title'] = self.info.pop('title')
         if 'title' not in self.state or 'synFile' not in self.state:
             self.state['title'], self.state['synFile'] = self.getTitleAndSynFromMayson(self.globalState['maysonFile'])
-        self.info.update({'title': self.state['title']})
         if self.amaysyn is not None:
-            self.amaysyn.updateState(info = self.info)
+            self.amaysyn.updateState(title = self.state['title'], info = self.info)
 
         self.setModelsFromData(maysonData)
         self.shufflePatternColors()
@@ -357,7 +372,8 @@ class MainWindow(QMainWindow):
 
     def exportMayson(self, saveAs = False):
         if saveAs:
-            filename, _ = QFileDialog.getSaveFileName(self, 'Save new MAYSON file', '', 'aMaySyn *.mayson(*.mayson)')
+            suggestFileName = self.globalState['maysonFile'] or f"{self.state['title']}.mayson"
+            filename, _ = QFileDialog.getSaveFileName(self, 'Save new MAYSON file', suggestFileName, 'aMaySyn *.mayson(*.mayson)')
             if filename == '':
                 return
             self.globalState['maysonFile'] = filename
@@ -400,6 +416,12 @@ class MainWindow(QMainWindow):
         title = '.'.join(path.basename(maysonFile).split('.')[:-1])
         return title, synFile
 
+    def reloadSynFile(self):
+        self.amaysyn.updateState(title = self.state['title'], synFile = self.state['synFile'])
+        self.amaysyn.aMaySynatize()
+        self.synthModel.setStringList(self.amaysyn.synthNames)
+        self.drumModel.setStringList(self.amaysyn.drumkit)
+
     def autoSave(self):
         self.autoSaveGlobals()
         print("fully implement autosave.... yet to do")
@@ -412,10 +434,13 @@ class MainWindow(QMainWindow):
 
     def keyPressEvent(self, event):
         key = event.key()
+        keytext = event.text()
         self.setModifiers(event)
 
         if key == Qt.Key_Escape:
             self.close()
+        elif key == Qt.Key_F5:
+            self.reloadSynFile()
         elif key == Qt.Key_F9:
             self.trackWidget.debugOutput()
         elif key == Qt.Key_F10:
@@ -429,6 +454,8 @@ class MainWindow(QMainWindow):
 
                 if key == Qt.Key_D:
                     self.trackWidget.openSynthDialog()
+                elif key == Qt.Key_F:
+                    self.setRandomSynth()
                 elif key == Qt.Key_M:
                     self.trackWidget.toggleMute()
                 elif key == Qt.Key_N:
@@ -458,7 +485,23 @@ class MainWindow(QMainWindow):
             self.trackWidget.update()
 
         elif self.patternWidget.active:
-            pass
+
+            if not self.shiftPressed and not self.ctrlPressed:
+
+                if key == Qt.Key_V:
+                    self.setParameterFromNumberInput('vel')
+                elif key == Qt.Key_P:
+                    self.setParameterFromNumberInput('pan')
+                elif key == Qt.Key_G:
+                    self.setParameterFromNumberInput('slide')
+                elif key == Qt.Key_X:
+                    self.setParameterFromNumberInput('aux')
+
+                if keytext:
+                    if keytext.isdigit() or keytext in ['.', '-']:
+                        self.setNumberInput(keytext)
+                    else:
+                        self.setNumberInput()
 
         # elif self.synthWidget.active:
         #     pass
@@ -488,7 +531,14 @@ class MainWindow(QMainWindow):
         if data is not None:
             tracks, patterns, synths, drumkit = self.decodeMaysonData(data)
         else:
-            tracks, patterns, synths, drumkit = [Track()], [Pattern()], [], []
+            tracks = [Track()]
+            patterns = [Pattern()]
+
+            self.initAMay2yn()
+            self.amaysyn.aMaySynatize(defaultSynFile)
+            synths = [synth[2:] for synth in self.amaysyn.synths if synth[0] == SYNTHTYPE]
+            drumkit = self.amaysyn.drumkit
+            print("init the shit and we have", synths, drumkit)
 
         self.trackModel.setTracks(tracks)
         self.patternModel.setPatterns(patterns)
@@ -522,7 +572,14 @@ class MainWindow(QMainWindow):
                         module.setPattern(pattern)
             tracks.append(track)
 
-        synths = [synthName[2:] for synthName in data['synths'] if synthName[0] == 'I']
+        synths = []
+        for synthName in data['synths']:
+            if synthName[1] == '_':
+                if synthName[0] == SYNTHTYPE:
+                    synths.append(synthName[2:])
+            else:
+                synths.append(synthName)
+
         drumkit = data['drumkit']
         return tracks, patterns, synths, drumkit
 
@@ -561,6 +618,14 @@ class MainWindow(QMainWindow):
             self.info['bpm'] = settingsDialog.bpmList()
             self.trackWidget.updateBpmList(self.info['bpm'])
 
+    def openImportPatternDialog(self):
+        importPatternDialog = ImportPatternDialog(self, filename = self.state['lastImportPatternFilename'], filter = self.state['lastImportPatternFilter'])
+        if importPatternDialog.exec_():
+            for pattern in importPatternDialog.parsedPatterns:
+                self.addPattern(pattern)
+        self.state['lastImportPatternFilename'] = importPatternDialog.xmlFilename
+        self.state['lastImportPatternFilter'] = importPatternDialog.filter
+        # self.autosave()
 
     def updateRenderRange(self):
         self.beatOffsetSpinBox.setRange(0, self.trackModel.totalLength())
@@ -621,7 +686,6 @@ class MainWindow(QMainWindow):
 #    def getNote(self):                  return self.getPattern().getNote() if self.getPattern() else None
 #    def existsPattern(self, pattern):   return pattern in self.patterns
 
-
     # THE MOST IMPORTANT FUNCTION!
     def randomColor(self):
         colorHSV = QColor()
@@ -652,6 +716,36 @@ class MainWindow(QMainWindow):
         if 'currentNoteIndex' in self.state:
             self.getModulePattern().currentNoteIndex = self.state['currentNoteIndex']
 
+    def setNumberInput(self, keytext = ''):
+        if not keytext:
+            self.state['numberInputMode'] = False
+        if not self.state['numberInputMode']:
+            self.state['numberInput'] = ''
+            self.state['numberInputMode'] = True
+
+        if keytext.isdigit():
+            self.state['numberInput'] += keytext
+        elif keytext == '.' and '.' not in self.state['numberInput']:
+            self.state['numberInput'] += keytext
+        elif keytext == '-':
+            self.state['numberInput'] = ('-' + self.state['numberInput']).replace('--', '')
+
+        self.patternWidget.setNumberInput(self.state['numberInput'])
+
+    def setParameterFromNumberInput(self, parameter):
+        if self.state['numberInput']:
+            self.state['lastNumberInput'] = self.state['numberInput']
+        self.getModulePattern().getNote().setParameter(parameter, self.state['lastNumberInput'])
+
+    def setRandomSynth(self):
+        track = self.getTrack()
+        if track:
+            track.setSynth(type = track.synthType, name = self.getRandomSynthName(track.synthType))
+
+    def getRandomSynthName(self, type):
+        if type != SYNTHTYPE or self.synthModel.rowCount() == 0:
+            return type
+        return choice(self.synthModel.stringList())
 
 ###################### MODEL FUNCTIONALITY ########################
 
@@ -669,7 +763,8 @@ class MainWindow(QMainWindow):
             print(f"wtf? something went wrong with trying to load module {module.patternName} ({module.patternHash}), sanityCheck = {sanityCheck}")
 
     def trackChanged(self):
-        self.pushUndoStack()
+        if not self.getTrack().isEmpty():
+            self.pushUndoStack()
 
     def patternChanged(self):
         self.pushUndoStack()
@@ -731,10 +826,10 @@ class MainWindow(QMainWindow):
         modInfo = deepcopy(self.info)
         modInfo['B_offset'] = self.getModule().getModuleOn()
         modInfo['B_stop'] = self.getModule().getModuleOff()
-        self.amaysyn.info = modInfo
+        self.amaysyn.updateState(title = self.state['title'], info = modInfo)
         self.amaysyn.extra_time_shift = self.state.get('extraTimeShift', 0) # THIS HAS SOME DEBUGGING REASONS
         shader = self.amaysyn.build(tracks = [track], patterns = [self.getModulePattern()])
-        self.amaysyn.info = self.info
+        self.amaysyn.updateState(info = self.info)
         self.executeShader(shader)
 
     def renderTrack(self):
@@ -743,6 +838,7 @@ class MainWindow(QMainWindow):
         restoreMute = track.mute
         track.mute = False
         self.amaysyn.extra_time_shift = self.state.get('extraTimeShift', 0)
+        self.amaysyn.updateState(title = self.state['title'], info = self.info)
         shader = self.amaysyn.build(tracks = [track], patterns = self.patternModel.patterns)
         track.mute = restoreMute
         self.executeShader(shader)
@@ -750,7 +846,7 @@ class MainWindow(QMainWindow):
     def renderSong(self):
         self.state['lastRendered'] = 'song'
         self.amaysyn.extra_time_shift = self.state.get('extraTimeShift', 0)
-        self.amaysyn.info = self.info
+        self.amaysyn.updateState(title = self.state['title'], info = self.info)
         shader = self.amaysyn.build(tracks = self.trackModel.tracks, patterns = self.patternModel.patterns)
         self.executeShader(shader)
 

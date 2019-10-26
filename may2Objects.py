@@ -159,10 +159,16 @@ class Track:
         if fullName is not None:
             self.synthType = fullName[0]
             self.synthName = fullName[2:]
-        if name is not None:
-            self.synthName = name
-        if type is not None:
-            self.synthType = type
+        else:
+            if type is not None:
+                self.synthType = type
+            if name is not None:
+                if type == SYNTHTYPE:
+                    self.synthName = name
+                elif type == DRUMTYPE:
+                    self.synthName = 'Drums'
+                else:
+                    self.synthName = 'None'
 
     def setParameters(self, volume = None, mute = None):
         if volume is not None:

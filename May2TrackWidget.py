@@ -5,11 +5,12 @@ from math import sqrt, floor
 from numpy import clip
 from copy import deepcopy
 
-from may2Objects import Track, Module
+from may2Objects import Track, Module, SYNTHTYPE, DRUMTYPE
 from may2TrackModel import TrackModel
 from may2Utils import drawText, drawTextDoubleInX, quantize, GLfloat
 from SynthDialog import SynthDialog
-from PatternDialog import PatternDialog
+from PatternDialogs import PatternDialog
+from TrackDialogs import TrackTypeDialog
 import may2Style
 
 colorBG = QColor(*may2Style.group_bgcolor)
@@ -226,6 +227,8 @@ class May2TrackWidget(QWidget):
     def mousePressEvent(self, event):
         if not self.active:
             self.activate()
+            return
+
         eventX = event.pos().x()
         eventY = event.pos().y()
         corrTrack, corrModule = self.findCorrespondingTrackAndModule(eventX, eventY)
@@ -240,6 +243,7 @@ class May2TrackWidget(QWidget):
             else:
                 beat = self.getBeatAtX(eventX)
                 if event.button() == Qt.LeftButton and self.parent.ctrlPressed:
+                    self.queryTrackType(corrTrack)
                     self.openPatternDialog(corrTrack, beat = beat)
                 elif event.button() == Qt.MiddleButton:
                     self.insertModule(corrTrack, self.copyOfLastSelectedModule, beat)
@@ -268,7 +272,7 @@ class May2TrackWidget(QWidget):
         self.update()
 
     def wheelEvent(self, event):
-        if self.parent.ctrlPressed:
+        if self.parent.ctrlPressed and self.parent.shiftPressed:
             transpose = 12 if event.angleDelta().y() > 0 else -12
             self.model.currentTrack().transposeModule(transpose)
         else:
@@ -279,7 +283,8 @@ class May2TrackWidget(QWidget):
                 xScroll = event.angleDelta().x() / 15
                 yScroll = event.angleDelta().y() / 30
             self.offsetV = int(clip(self.offsetV - yScroll, 0, self.model.rowCount() - self.numberTracksVisible))
-            self.offsetH = int(clip(self.offsetH - xScroll, 0, self.model.totalLength() - .5 * self.numberBeatsVisible))
+            self.offsetH = int(clip(self.offsetH - xScroll, 0, max(0, self.model.totalLength() - .5 * self.numberBeatsVisible)))
+            print("scrolling", self.offsetH, self.model.totalLength() - .5 * self.numberBeatsVisible)
         self.repaint()
 
     def activate(self):
@@ -330,6 +335,10 @@ class May2TrackWidget(QWidget):
 
     ################# HELPERS ##############
 
+    def repaintChangeAndEmit(self):
+        self.repaint()
+        self.trackChanged.emit()
+
     def debugOutput(self):
         print("=== TRACK MODEL ===")
         print("MODEL CONTENT:", self.model.rowCount(), "ENTRIES")
@@ -361,22 +370,31 @@ class May2TrackWidget(QWidget):
         if track is None:
             track = self.model.currentTrack()
         # TODO: separate DrumkitDialog for drum tracks... None Type: open Window --> choose Synth / Drum
-        synthDialog = SynthDialog(self.parent, self.parent.synthModel, track)
-        if synthDialog.exec_():
-            track.setSynth(name = synthDialog.synthName())
-            self.trackChanged.emit()
+        if track.synthType == SYNTHTYPE:
+            synthDialog = SynthDialog(self.parent, self.parent.synthModel, track)
+            if synthDialog.exec_():
+                track.setSynth(name = synthDialog.synthName())
+                self.repaintChangeAndEmit()
+        else:
+            self.queryTrackType(track)
+
+    def queryTrackType(self, track):
+        if track.isEmpty():
+            trackTypeDialog = TrackTypeDialog(self.parent)
+            if trackTypeDialog.exec_():
+                track.setSynth(type = trackTypeDialog.chosenType, name = self.parent.getRandomSynthName(trackTypeDialog.chosenType))
+                self.repaintChangeAndEmit()
 
     def openPatternDialog(self, track, beat = None, module = None):
         self.parent.setModifiers()
-        filteredModel = self.parent.patternModel.createFilteredModel(track.synthType)
         if module is None:
-            patternDialog = PatternDialog(self.parent, filteredModel, track = track, pattern = self.parent.getModulePattern(), beat = beat)
+            patternDialog = PatternDialog(self.parent, track = track, pattern = self.parent.getModulePattern(), beat = beat)
             if patternDialog.exec_():
                 track.addModule(patternDialog.module)
                 self.select(track, patternDialog.module)
                 self.trackChanged.emit()
         else:
-            patternDialog = PatternDialog(self.parent, filteredModel, track = track, module = module)
+            patternDialog = PatternDialog(self.parent, track = track, module = module)
             status = patternDialog.exec_()
             if status:
                 pattern = patternDialog.getPattern()
