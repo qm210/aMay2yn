@@ -332,9 +332,7 @@ class May2PatternWidget(QWidget):
 
         if self.parent.ctrlPressed:
             if event.button() == Qt.MiddleButton:
-                self.scaleH = 1
-                self.scaleV = 1
-                self.repaint()
+                self.setScale(H = 1, V = 1)
             return
 
         corrNote = self.findCorrespondingNote(event.pos().x(), event.pos().y())
@@ -369,8 +367,7 @@ class May2PatternWidget(QWidget):
 
     def wheelEvent(self, event):
         if self.parent.ctrlPressed:
-            self.scaleH = max(self.scaleH + event.angleDelta().y() / 1200, 0.1)
-            self.repaint()
+            self.setScale(deltaH = event.angleDelta().y() / 1200)
         else:
             if self.pattern:
                 if self.parent.shiftPressed:
@@ -387,6 +384,19 @@ class May2PatternWidget(QWidget):
     def activate(self):
         self.active = True
         self.activated.emit()
+
+    def setScale(self, H = None, V = None, deltaH = None, deltaV = None):
+        if H is not None:
+            self.scaleH = H
+        if deltaH is not None:
+            self.scaleH += deltaH
+        if V is not None:
+            self.scaleV = V
+        if deltaV is not None:
+            self.scaleV += deltaV
+        self.scaleH = max(self.scaleH, 0.1)
+        self.scaleV = max(self.scaleV, 0.1)
+        self.repaint()
 
     def select(self, note):
         note.tag()

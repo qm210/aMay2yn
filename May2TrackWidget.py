@@ -78,8 +78,8 @@ class May2TrackWidget(QWidget):
         self.rowH = self.trackH + self.gapH
         self.beatW = 20 * self.scaleH
 
-        self.fontSize = 13 * sqrt(self.scaleV)
-        self.fontSizeSmall = 8 * min(self.scaleH, self.scaleV)
+        self.fontSize = max(13 * sqrt(self.scaleV), 5)
+        self.fontSizeSmall = max(8 * min(self.scaleH, self.scaleV), 5)
         self.fontSizeSmallerScale = .9
 
         self.charW = 10
@@ -230,6 +230,11 @@ class May2TrackWidget(QWidget):
             self.activate()
             return
 
+        if self.parent.ctrlPressed:
+            if event.button() == Qt.MiddleButton:
+                self.setScale(H = 1, V = 1)
+            return
+
         eventX = event.pos().x()
         eventY = event.pos().y()
         corrTrack, corrModule = self.findCorrespondingTrackAndModule(eventX, eventY)
@@ -274,7 +279,9 @@ class May2TrackWidget(QWidget):
         self.update()
 
     def wheelEvent(self, event):
-        if self.parent.ctrlPressed and self.parent.shiftPressed:
+        if self.parent.ctrlPressed:
+            self.setScale(deltaH = event.angleDelta().y() / 1200)
+        elif self.parent.altPressed:
             transpose = 12 if event.angleDelta().y() > 0 else -12
             self.model.currentTrack().transposeModule(transpose)
         else:
@@ -291,6 +298,19 @@ class May2TrackWidget(QWidget):
     def activate(self):
         self.active = True
         self.activated.emit()
+
+    def setScale(self, H = None, V = None, deltaH = None, deltaV = None):
+        if H is not None:
+            self.scaleH = H
+        if deltaH is not None:
+            self.scaleH += deltaH
+        if V is not None:
+            self.scaleV = V
+        if deltaV is not None:
+            self.scaleV += deltaV
+        self.scaleH = max(self.scaleH, 0.1)
+        self.scaleV = max(self.scaleV, 0.1)
+        self.repaint()
 
     def initDragModule(self, track, module, origin):
         if self.dragModule is None:
