@@ -82,6 +82,7 @@ class PatternDialog(QtWidgets.QDialog):
         self.layout.addLayout(self.buttonGrid)
 
         self.importPatternButton = QtWidgets.QPushButton('Import LMMS patterns', self)
+        self.importPatternButton.setVisible(self.synthType == may2Objects.SYNTHTYPE)
         self.layout.addWidget(self.importPatternButton)
 
         self.layout.addWidget(self.buttonBox)
@@ -161,8 +162,7 @@ class PatternDialog(QtWidgets.QDialog):
 
     def openImportPatternDialog(self):
         self.parent.openImportPatternDialog()
-        print('u here')
-        self.patternModel.replaceDataFromModel(self.createFilteredModel())
+        self.patternModel.setPatternsFromModel(self.createFilteredModel())
 
     def cancel(self):
         self.reset()

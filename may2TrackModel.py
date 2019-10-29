@@ -64,6 +64,9 @@ class TrackModel(QAbstractListModel):
     def currentTrack(self):
         return self.track(self.currentTrackIndex)
 
+    def currentTrackType(self):
+        return self.currentTrack().synthType if self.currentTrack() is not None else None
+
     def setCurrentTrack(self, track):
         self.currentTrackIndex = self.tracks.index(track) if track in self.tracks else None
 

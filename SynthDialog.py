@@ -8,18 +8,18 @@ class SynthDialog(QtWidgets.QDialog):
     WIDTH = 400
     HEIGHT = 600
 
-    def __init__(self, parent, synthModel, track = None, *args, **kwargs):
+    def __init__(self, parent, track = None, *args, **kwargs):
         super(SynthDialog, self).__init__(parent, *args, **kwargs)
         self.setWindowTitle('Synth Dialog')
         self.setGeometry(parent.x() + 0.5 * (parent.width() - self.WIDTH), parent.y() + 0.5 * (parent.height() - self.HEIGHT), self.WIDTH, self.HEIGHT)
         self.parent = parent
         self.track = track
-        self.synthModel = synthModel
+        self.synthModel = parent.synthModel
         self.synthType = track.synthType if track is not None else may2Objects.NONETYPE
 
-        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout()
 
-        self.nameLayout = QtWidgets.QHBoxLayout(self)
+        self.nameLayout = QtWidgets.QHBoxLayout()
         self.nameEdit = QtWidgets.QLineEdit(self)
         self.nameEdit.setPlaceholderText('Synth Name')
         self.renameButton = QtWidgets.QPushButton('rename',self)
@@ -41,7 +41,7 @@ class SynthDialog(QtWidgets.QDialog):
         self.synthList.setModel(self.synthModel)
         self.layout.addWidget(self.synthList)
 
-        self.buttonGrid = QtWidgets.QGridLayout(self)
+        self.buttonGrid = QtWidgets.QGridLayout()
 
         self.randomSynthButton = QtWidgets.QPushButton('Random Synth', self)
         self.buttonGrid.addWidget(self.randomSynthButton, 0, 0)

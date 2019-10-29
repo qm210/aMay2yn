@@ -28,13 +28,11 @@ PAD_B = 16
 CLICK_PRECISION = 1.03
 
 
-class May2PatternWidget(QWidget):
+class May2DrumPatternWidget(QWidget):
 
     noteSelected = pyqtSignal(int)
     patternChanged = pyqtSignal()
     activated = pyqtSignal()
-
-    claviature = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
     def __init__(self, parent):
         super().__init__()
@@ -42,7 +40,7 @@ class May2PatternWidget(QWidget):
         self.active = False
         self.numberInput = ''
 
-        self.offsetV = 12
+        self.offsetV = 0
         self.offsetH = 0
         self.scaleV = 1
         self.scaleH = 1
@@ -82,7 +80,7 @@ class May2PatternWidget(QWidget):
         self.H = event.rect().height() - PAD_T - PAD_B
         self.R = self.X + self.W
         self.B = self.Y + self.H
-        self.keyH = 10 * self.scaleV
+        self.keyH = 30 * self.scaleV
         self.keyW = 32 * self.scaleH
         self.pianoW = 34 * self.scaleH
 
@@ -95,8 +93,9 @@ class May2PatternWidget(QWidget):
         self.rollX = self.X + self.pianoW
         self.rollW = self.R - self.rollX
 
-        self.numberKeysVisible = int(self.H / self.keyH)
-        self.T = self.B - self.keyH * (self.numberKeysVisible)
+        self.numberDrums = len(self.parent.drumkit)
+        self.numberDrumsVisible = min(int(self.H / self.keyH), self.numberDrums)
+        self.T = self.B - self.keyH * (self.numberDrumsVisible)
 
         self.maxNumberBars = (self.W - self.pianoW) / self.barW
         self.numberBarsVisible = 0 if not self.pattern else int(clip(self.barsPerBeat() * (self.pattern.length - self.offsetH), 0, self.maxNumberBars))
@@ -104,21 +103,43 @@ class May2PatternWidget(QWidget):
 
     def drawBackground(self, qp):
 
-        isKeyWhite = lambda key: '#' not in self.claviature[key % 12]
+        isRowWhite = lambda row: row % 2 == 0
 
-        for c in range(self.numberKeysVisible):
+        font = qp.font()
+
+        for c in range(self.numberDrumsVisible):
             key = self.offsetV + c
             y = self.B - (c + 1) * self.keyH
 
-            qp.fillRect(self.X, y, self.keyW, (self.keyH - 1) + 0.7 * isKeyWhite(key), colorWhiteKeys if isKeyWhite(key) else colorBlackKeys)
+            qp.fillRect(self.X, y, self.keyW, (self.keyH - 1) + 0.7 * isRowWhite(key), colorWhiteKeys if isRowWhite(key) else colorBlackKeys)
 
-            if self.pattern and self.pattern.notes and key == (self.pattern.getNote().note_pitch) % 100:
-                qp.fillRect(self.X, y, self.keyW, (self.keyH - 1) + 0.7 * isKeyWhite(key), colorSelectedKey)
+            if self.pattern and self.pattern.notes and key == (self.pattern.getNote().note_pitch) % self.numberDrums:
+                qp.fillRect(self.X, y, self.keyW, (self.keyH - 1) + 0.7 * isRowWhite(key), colorSelectedKey)
 
-            qp.setPen(colorWhiteKeyText if isKeyWhite(key) else colorBlackKeyText)
-            drawTextDoubleInY(qp, self.X + 2, y - 2.5, Qt.AlignLeft | Qt.AlignTop, self.claviature[key % 12] + str(key // 12), .5)
+            qp.setPen(colorWhiteKeyText if isRowWhite(key) else colorBlackKeyText)
+            drumName = self.parent.drumkit[key]
+            if len(drumName) < 5:
+                font.setPointSize(self.fontSize)
+                qp.setFont(font)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5, Qt.AlignLeft | Qt.AlignTop, drumName[0:4], .5)
+            elif len(drumName) < 9:
+                font.setPointSize(self.fontSize)
+                qp.setFont(font)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5, Qt.AlignLeft | Qt.AlignTop, drumName[0:4], .5)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5, Qt.AlignLeft | Qt.AlignTop, drumName[4:8], .5)
+            elif len(drumName) < 11:
+                font.setPointSize(self.fontSize - 1)
+                qp.setFont(font)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5, Qt.AlignLeft | Qt.AlignTop, drumName[0:5], .5)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5 - self.fontSize, Qt.AlignLeft | Qt.AlignTop, drumName[5:10], .5)
+            else:
+                font.setPointSize(self.fontSize - 1)
+                qp.setFont(font)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5, Qt.AlignLeft | Qt.AlignTop, drumName[0:5], .5)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5 - self.fontSize, Qt.AlignLeft | Qt.AlignTop, drumName[5:10], .5)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5 - 2*self.fontSize, Qt.AlignLeft | Qt.AlignTop, drumName[10:15], .5)
 
-            qp.fillRect(self.rollX, y, self.rollW, self.keyH - 1, colorWhiteBG if isKeyWhite(key) else colorBlackBG)
+            qp.fillRect(self.rollX, y, self.rollW, self.keyH - 1, colorWhiteBG if isRowWhite(key) else colorBlackBG)
 
 
     def drawGrid(self, qp):
@@ -195,7 +216,7 @@ class May2PatternWidget(QWidget):
 
             if note.note_pan != 0:
                 qp.setPen(QColor(*(mixcolor((255, 255, 255), color))))
-                drawText(qp, R, B - 2, Qt.AlignTop | Qt.AlignRight, strfloat(note.note_pan))
+                drawText(qp, R, B - 2, Qt.AlignTop | Qt.AlignRight, strfloat(note.note_pan)) # TODO: shift into box
 
             vel_and_aux_info = ''
             if note.note_aux != 0:
@@ -254,8 +275,8 @@ class May2PatternWidget(QWidget):
     def dragNoteTo(self, pos):
         noteDistance = self.getDistanceInNoteUnits(pos.x() - self.dragOrigin.x(), pos.y() - self.dragOrigin.y())
         if not self.parent.shiftPressed:
-            self.dragNote.moveNoteOn(quantize(self.dragNoteOrigin[0] + noteDistance[0], self.beatQuantum()))
-        self.dragNote.note_pitch = quantize(self.dragNoteOrigin[1] + noteDistance[1], 1)
+            self.dragNote.moveNoteOn(self.dragNoteOrigin[0] + quantize(noteDistance[0], self.beatQuantum()))
+        self.dragNote.note_pitch = self.dragNoteOrigin[1] + quantize(noteDistance[1], 1)
 
     def initStretchNote(self, note, origin):
         if self.stretchNote is None:
@@ -265,7 +286,7 @@ class May2PatternWidget(QWidget):
 
     def stretchNoteTo(self, pos):
         noteDistance = self.getDistanceInNoteUnits(pos.x() - self.stretchOrigin.x(), 0)
-        self.stretchNote.note_len = quantize(max(self.stretchNoteOrigin + noteDistance[0], self.beatQuantum()), self.beatQuantum())
+        self.stretchNote.note_len = self.stretchNoteOrigin + quantize(noteDistance[0], self.beatQuantum())
 
     def mousePressEvent(self, event):
         if not self.active:
@@ -310,7 +331,7 @@ class May2PatternWidget(QWidget):
             else:
                 xScroll = event.angleDelta().x() / 120
                 yScroll = event.angleDelta().y() / 30
-            self.offsetV = int(clip(self.offsetV + yScroll, -24, self.pattern.max_note - self.numberKeysVisible))
+            self.offsetV = int(clip(self.offsetV + yScroll, 0, self.numberDrums - self.numberDrumsVisible))
             self.offsetH = .25 * int(4 * clip(self.offsetH - xScroll, 0, self.pattern.length - self.numberBeatsVisible))
             self.repaint()
 
@@ -331,7 +352,7 @@ class May2PatternWidget(QWidget):
         if self.dragNote is not None:
             if self.dragNote.note_on < self.offsetH or self.dragNote.note_on > self.offsetH + self.numberBeatsVisible + 1 \
                 or self.dragNote.note_off > self.pattern.length \
-                or self.dragNote.note_pitch < self.offsetV or self.dragNote.note_pitch >= self.offsetV + self.numberKeysVisible:
+                or self.dragNote.note_pitch < self.offsetV or self.dragNote.note_pitch >= self.offsetV + self.numberDrumsVisible:
                     self.dragNoteTo(self.dragOrigin)
             else:
                 self.finalizePatternChangeAndEmit()

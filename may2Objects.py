@@ -163,9 +163,9 @@ class Track:
             if type is not None:
                 self.synthType = type
             if name is not None:
-                if type == SYNTHTYPE:
+                if self.synthType == SYNTHTYPE:
                     self.synthName = name
-                elif type == DRUMTYPE:
+                elif self.synthType == DRUMTYPE:
                     self.synthName = 'Drums'
                 else:
                     self.synthName = 'None'

@@ -4,7 +4,8 @@
 #########################################################################
 
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QVBoxLayout, QGroupBox, QSplitter, QFileDialog, QDoubleSpinBox, QCheckBox, QLabel,QInputDialog, QLineEdit, QMessageBox
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QVBoxLayout, QGroupBox, QSplitter, QFileDialog, \
+    QDoubleSpinBox, QCheckBox, QLabel,QInputDialog, QLineEdit, QMessageBox, QStackedLayout
 from PyQt5.QtCore import Qt, pyqtSignal, QItemSelectionModel, QFile, QTextStream, QStringListModel, QBuffer, QIODevice
 from PyQt5.QtGui import QFontDatabase, QIcon, QColor
 from PyQt5.QtMultimedia import QAudioOutput, QAudioFormat, QAudioDeviceInfo, QAudio
@@ -20,10 +21,11 @@ import re
 
 from May2TrackWidget import May2TrackWidget
 from May2PatternWidget import May2PatternWidget
+from May2DrumPatternWidget import May2DrumPatternWidget
 from May2SynthWidget import May2SynthWidget
 from may2TrackModel import TrackModel
 from may2PatternModel import PatternModel
-from may2Objects import Track, Pattern, decodeTrack, decodePattern, SYNTHTYPE
+from may2Objects import Track, Pattern, decodeTrack, decodePattern, SYNTHTYPE, DRUMTYPE
 from May2ynatizer import synatize, synatize_build
 from May2ynBuilder import May2ynBuilder
 from SFXGLWidget import SFXGLWidget
@@ -68,9 +70,12 @@ class MainWindow(QMainWindow):
         self.trackGroup = QGroupBox()
         self.trackGroup.setLayout(self.trackGroupLayout)
 
-        self.patternWidget = May2PatternWidget(self)
-        self.patternGroupLayout = QVBoxLayout()
-        self.patternGroupLayout.addWidget(self.patternWidget)
+        self.synthPatternWidget = May2PatternWidget(self)
+        self.drumPatternWidget = May2DrumPatternWidget(self)
+        self.patternWidget = self.synthPatternWidget
+        self.patternGroupLayout = QStackedLayout()
+        self.patternGroupLayout.addWidget(self.synthPatternWidget)
+        self.patternGroupLayout.addWidget(self.drumPatternWidget)
         self.patternGroup = QGroupBox()
         self.patternGroup.setLayout(self.patternGroupLayout)
 
@@ -112,6 +117,7 @@ class MainWindow(QMainWindow):
         redoAction = QAction(QIcon.fromTheme('edit-redo'), 'Redo', self)
         redoAction.setShortcut('Shift+Ctrl+Z')
         settingsAction = QAction(QIcon.fromTheme('preferences-system'), 'Settings', self)
+        settingsAction.setShortcut('F3')
         renderModuleAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderModule', self)
         renderModuleAction.setShortcut('Ctrl+T')
         renderSongAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderSong', self)
@@ -188,6 +194,7 @@ class MainWindow(QMainWindow):
     def initSignals(self):
         self.trackWidget.moduleSelected.connect(self.loadModule)
         self.trackWidget.trackChanged.connect(self.trackChanged)
+        self.trackWidget.trackTypeChanged.connect(self.trackTypeChanged)
         self.trackWidget.activated.connect(partial(self.toggleActivated, activateTrack = True))
         self.patternWidget.activated.connect(partial(self.toggleActivated, activatePattern = True))
         self.patternWidget.patternChanged.connect(self.patternChanged)
@@ -230,7 +237,18 @@ class MainWindow(QMainWindow):
             'lastImportPatternFilter': '',
         }
         # TODO: store Synatize output in self.state? C=
-        self.info = {}
+        self.defaultInfo = {
+            'BPM': '0:32',
+            'B_offset': 0,
+            'B_stop': 0,
+            'loop': 'none',
+            'stereo_delay': 2e-4,
+            'level_syn': .5,
+            'level_drum': .666,
+            'barsPerBeat': 4,
+            'beatQuantum': 1/16,
+        }
+        self.info = deepcopy(self.defaultInfo)
         self.patterns = []
         self.synths = []
         self.drumkit = []
@@ -301,7 +319,7 @@ class MainWindow(QMainWindow):
         self.patternWidget.active = activatePattern
         self.patternGroup.style().polish(self.patternGroup)
 
-        self.synthGroup.setObjectName('activated' if activatePattern else '')
+        self.synthGroup.setObjectName('activated' if activateSynth else '')
         self.synthWidget.active = activateSynth
         self.synthGroup.style().polish(self.synthGroup)
 
@@ -321,6 +339,9 @@ class MainWindow(QMainWindow):
             self.state['title'] = newTitle or 'QoolMusic'
             self.state['synFile'] = None # f"{self.globalState['lastDirectory']}/{newTitle}"
             self.globalState['maysonFile'] = None
+            self.info = deepcopy(self.defaultInfo)
+            self.patternWidget.setPattern(None)
+            self.updateUIfromState()
 
     def loadAndImportMayson(self):
         name, _ = QFileDialog.getOpenFileName(self, 'Load MAYSON file', '', 'aMaySyn *.mayson(*.mayson)')
@@ -350,7 +371,9 @@ class MainWindow(QMainWindow):
         for key in maysonData['state']:
             self.state.update({key: maysonData['state'][key]})
 
-        self.info = maysonData['info']
+        for key in maysonData['info']:
+            self.info.update({key: maysonData['info'][key]})
+
         if 'title' in self.info:
             self.state['title'] = self.info.pop('title')
         if 'title' not in self.state or 'synFile' not in self.state:
@@ -617,6 +640,9 @@ class MainWindow(QMainWindow):
         if settingsDialog.exec_():
             self.info['bpm'] = settingsDialog.bpmList()
             self.trackWidget.updateBpmList(self.info['bpm'])
+            self.info['level_syn'], self.info['level_drum'] = settingsDialog.getLevels()
+            self.info['beatQuantum'] = 1/float(settingsDialog.beatQuantumDenominatorSpinBox.value())
+            self.info['barsPerBeat'] = settingsDialog.barsPerBeatSpinBox.value()
 
     def openImportPatternDialog(self):
         importPatternDialog = ImportPatternDialog(self, filename = self.state['lastImportPatternFilename'], filter = self.state['lastImportPatternFilter'])
@@ -765,6 +791,14 @@ class MainWindow(QMainWindow):
     def trackChanged(self):
         if not self.getTrack().isEmpty():
             self.pushUndoStack()
+
+    def trackTypeChanged(self):
+        synthType = self.trackWidget.model.currentTrackType()
+        if synthType == DRUMTYPE:
+            self.patternWidget = self.drumPatternWidget
+        else:
+            self.patternWidget = self.synthPatternWidget
+        self.patternGroupLayout.setCurrentWidget(self.patternWidget)
 
     def patternChanged(self):
         self.pushUndoStack()

@@ -90,7 +90,7 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
                 form['value'] = stored_random_values[form['id']]
             else:
                 form['value'] = round(float(form['min']) + (float(form['max'])-float(form['min'])) * random(),int(form['digits']))
-                print('RANDOM CHOICE:', form['id'], 'in', '['+str(form['min'])+'..'+str(form['max'])+']', '-->', str(form['value']))
+                # print('RANDOM CHOICE:', form['id'], 'in', '['+str(form['min'])+'..'+str(form['max'])+']', '-->', str(form['value']))
                 stored_randoms.append(form)
 
             stored_random_values.update({form['id']: form['value']})

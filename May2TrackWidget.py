@@ -25,6 +25,7 @@ class May2TrackWidget(QWidget):
 
     moduleSelected = pyqtSignal(Module)
     trackChanged = pyqtSignal()
+    trackTypeChanged = pyqtSignal()
     activated = pyqtSignal()
 
     def __init__(self, parent):
@@ -232,6 +233,8 @@ class May2TrackWidget(QWidget):
         eventX = event.pos().x()
         eventY = event.pos().y()
         corrTrack, corrModule = self.findCorrespondingTrackAndModule(eventX, eventY)
+        if corrTrack is None:
+            return
 
         self.select(corrTrack, corrModule)
         if corrModule is None:
@@ -247,18 +250,17 @@ class May2TrackWidget(QWidget):
                     self.openPatternDialog(corrTrack, beat = beat)
                 elif event.button() == Qt.MiddleButton:
                     self.insertModule(corrTrack, self.copyOfLastSelectedModule, beat)
-            return
-
-        if event.button() == Qt.LeftButton:
-            if self.parent.ctrlPressed:
-                self.openPatternDialog(corrTrack, module = corrModule)
-            else:
-                self.initDragModule(corrTrack, corrModule, event.pos())
-        elif event.button() == Qt.RightButton:
-            pass
-            #self.openModuleSelector(module) # window to choose Pattern and Transpose, and exact Position
-        elif event.button() == Qt.MiddleButton:
-            self.deleteModule(corrTrack, corrModule)
+        else:
+            if event.button() == Qt.LeftButton:
+                if self.parent.ctrlPressed:
+                    self.openPatternDialog(corrTrack, module = corrModule)
+                else:
+                    self.initDragModule(corrTrack, corrModule, event.pos())
+            elif event.button() == Qt.RightButton:
+                pass
+                #self.openModuleSelector(module) # window to choose Pattern and Transpose, and exact Position
+            elif event.button() == Qt.MiddleButton:
+                self.deleteModule(corrTrack, corrModule)
 
 
     def mouseMoveEvent(self, event):
@@ -284,7 +286,6 @@ class May2TrackWidget(QWidget):
                 yScroll = event.angleDelta().y() / 30
             self.offsetV = int(clip(self.offsetV - yScroll, 0, self.model.rowCount() - self.numberTracksVisible))
             self.offsetH = int(clip(self.offsetH - xScroll, 0, max(0, self.model.totalLength() - .5 * self.numberBeatsVisible)))
-            print("scrolling", self.offsetH, self.model.totalLength() - .5 * self.numberBeatsVisible)
         self.repaint()
 
     def activate(self):
@@ -311,7 +312,11 @@ class May2TrackWidget(QWidget):
                 self.trackChanged.emit()
 
     def select(self, track, module = None):
-        self.model.setCurrentTrack(track)
+        if track is not None:
+            currentSynthType = self.model.currentTrackType()
+            self.model.setCurrentTrack(track)
+            if track.synthType != currentSynthType:
+                self.trackTypeChanged.emit()
         if module is not None:
             module.tag()
             self.model.currentTrack().selectFirstTaggedModuleAndUntag()
@@ -371,7 +376,7 @@ class May2TrackWidget(QWidget):
             track = self.model.currentTrack()
         # TODO: separate DrumkitDialog for drum tracks... None Type: open Window --> choose Synth / Drum
         if track.synthType == SYNTHTYPE:
-            synthDialog = SynthDialog(self.parent, self.parent.synthModel, track)
+            synthDialog = SynthDialog(self.parent, track)
             if synthDialog.exec_():
                 track.setSynth(name = synthDialog.synthName())
                 self.repaintChangeAndEmit()

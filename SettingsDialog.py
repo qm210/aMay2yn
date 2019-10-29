@@ -28,6 +28,38 @@ class SettingsDialog(QtWidgets.QDialog):
         self.layout.addWidget(self.bpmListCorrectLabel)
         self.layout.addWidget(self.bpmListIncorrectLabel)
 
+        self.line1 = QtWidgets.QFrame(self)
+        self.line1.setFrameShape(QtWidgets.QFrame.HLine)
+        self.layout.addWidget(self.line1)
+
+        self.formLayout = QtWidgets.QFormLayout()
+
+        self.levelSynSpinBox = QtWidgets.QDoubleSpinBox(self)
+        self.levelSynSpinBox.setRange(0, 9.999)
+        self.levelSynSpinBox.setDecimals(2)
+        self.levelSynSpinBox.setStepType(QtWidgets.QAbstractSpinBox.AdaptiveDecimalStepType)
+        self.levelSynSpinBox.setValue(self.parent.info['level_syn'])
+        self.formLayout.addRow(QtWidgets.QLabel('Global Synth Level: '), self.levelSynSpinBox)
+
+        self.levelDrumSpinBox = QtWidgets.QDoubleSpinBox(self)
+        self.levelDrumSpinBox.setRange(0, 9.999)
+        self.levelDrumSpinBox.setDecimals(2)
+        self.levelDrumSpinBox.setStepType(QtWidgets.QAbstractSpinBox.AdaptiveDecimalStepType)
+        self.levelDrumSpinBox.setValue(self.parent.info['level_drum'])
+        self.formLayout.addRow(QtWidgets.QLabel('Global Drum Level: '), self.levelDrumSpinBox)
+
+        self.beatQuantumDenominatorSpinBox = QtWidgets.QSpinBox(self)
+        self.beatQuantumDenominatorSpinBox.setValue(int(1/self.parent.info['beatQuantum']))
+        self.beatQuantumDenominatorSpinBox.setRange(1, 256)
+        self.formLayout.addRow(QtWidgets.QLabel('Beat Quantum: 1/'), self.beatQuantumDenominatorSpinBox)
+
+        self.barsPerBeatSpinBox = QtWidgets.QSpinBox(self)
+        self.barsPerBeatSpinBox.setRange(1, 16)
+        self.barsPerBeatSpinBox.setValue(self.parent.info['barsPerBeat'])
+        self.formLayout.addRow(QtWidgets.QLabel('Bars Per Beat: '), self.barsPerBeatSpinBox)
+
+        self.layout.addLayout(self.formLayout)
+
         self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, self)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
@@ -60,3 +92,6 @@ class SettingsDialog(QtWidgets.QDialog):
         self.bpmListIncorrectLabel.setVisible(not valid)
         self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(valid)
         return valid
+
+    def getLevels(self):
+        return (self.levelSynSpinBox.value(), self.levelDrumSpinBox.value())
