@@ -14,7 +14,6 @@ class SynthDialog(QtWidgets.QDialog):
         self.setGeometry(parent.x() + 0.5 * (parent.width() - self.WIDTH), parent.y() + 0.5 * (parent.height() - self.HEIGHT), self.WIDTH, self.HEIGHT)
         self.parent = parent
         self.track = track
-        self.synthModel = parent.synthModel
         self.synthType = track.synthType if track is not None else may2Objects.NONETYPE
 
         self.layout = QtWidgets.QVBoxLayout()
@@ -38,7 +37,7 @@ class SynthDialog(QtWidgets.QDialog):
         self.layout.addWidget(self.drumCheckBox)
 
         self.synthList = QtWidgets.QListView(self)
-        self.synthList.setModel(self.synthModel)
+        self.synthList.setModel(self.parent.synthModel)
         self.layout.addWidget(self.synthList)
 
         self.buttonGrid = QtWidgets.QGridLayout()
@@ -73,18 +72,18 @@ class SynthDialog(QtWidgets.QDialog):
         isDrumTrack = self.track.isDrumTrack()
         self.drumCheckBox.setChecked(isDrumTrack)
         if not isDrumTrack:
-            synthIndex = self.synthModel.stringList().index(self.track.synthName)
+            synthIndex = self.parent.synthModel.stringList().index(self.track.synthName)
             self.selectSynth(synthIndex)
 
     def synthName(self):
         index = self.synthList.selectedIndexes()[0].row()
-        return self.synthModel.stringList()[index]
+        return self.parent.synthModel.stringList()[index]
 
     def selectSynth(self, index):
-        self.synthList.setCurrentIndex(self.synthModel.createIndex(index, 0))
+        self.synthList.setCurrentIndex(self.parent.synthModel.createIndex(index, 0))
 
     def selectRandomSynth(self):
-        self.selectSynth(randint(0, self.synthModel.rowCount() - 1))
+        self.selectSynth(randint(0, self.parent.synthModel.rowCount() - 1))
 
     def toggleDrumTrack(self, state):
         self.isDrumTrack = state

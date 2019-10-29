@@ -317,6 +317,8 @@ class May2TrackWidget(QWidget):
             self.model.setCurrentTrack(track)
             if track.synthType != currentSynthType:
                 self.trackTypeChanged.emit()
+        if module is None and track.modules:
+            module = track.modules[0]
         if module is not None:
             module.tag()
             self.model.currentTrack().selectFirstTaggedModuleAndUntag()

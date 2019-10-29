@@ -21,7 +21,6 @@ import re
 
 from May2TrackWidget import May2TrackWidget
 from May2PatternWidget import May2PatternWidget
-from May2DrumPatternWidget import May2DrumPatternWidget
 from May2SynthWidget import May2SynthWidget
 from may2TrackModel import TrackModel
 from may2PatternModel import PatternModel
@@ -71,7 +70,7 @@ class MainWindow(QMainWindow):
         self.trackGroup.setLayout(self.trackGroupLayout)
 
         self.synthPatternWidget = May2PatternWidget(self)
-        self.drumPatternWidget = May2DrumPatternWidget(self)
+        self.drumPatternWidget = May2PatternWidget(self, drumMode = True)
         self.patternWidget = self.synthPatternWidget
         self.patternGroupLayout = QStackedLayout()
         self.patternGroupLayout.addWidget(self.synthPatternWidget)
@@ -250,8 +249,6 @@ class MainWindow(QMainWindow):
         }
         self.info = deepcopy(self.defaultInfo)
         self.patterns = []
-        self.synths = []
-        self.drumkit = []
         self.amaysyn = None
         self.patternColors = {}
 
@@ -779,14 +776,11 @@ class MainWindow(QMainWindow):
         patternHash = module.patternHash if module is not None else self.getModulePatternHash()
         if patternHash is None:
             return
-        sanityCheck = 0
         for pattern in self.patternModel.patterns:
             if pattern._hash == patternHash:
                 self.patternWidget.setPattern(pattern)
                 self.patternWidget.update()
-                sanityCheck += 1
-        if sanityCheck != 1:
-            print(f"wtf? something went wrong with trying to load module {module.patternName} ({module.patternHash}), sanityCheck = {sanityCheck}")
+                return
 
     def trackChanged(self):
         if not self.getTrack().isEmpty():

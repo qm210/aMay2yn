@@ -36,13 +36,14 @@ class May2PatternWidget(QWidget):
 
     claviature = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
-    def __init__(self, parent):
+    def __init__(self, parent, drumMode = False):
         super().__init__()
         self.parent = parent
         self.active = False
         self.numberInput = ''
+        self.drumMode = drumMode
 
-        self.offsetV = 12
+        self.offsetV = 12 if not drumMode else 0
         self.offsetH = 0
         self.scaleV = 1
         self.scaleH = 1
@@ -82,13 +83,14 @@ class May2PatternWidget(QWidget):
         self.H = event.rect().height() - PAD_T - PAD_B
         self.R = self.X + self.W
         self.B = self.Y + self.H
-        self.keyH = 10 * self.scaleV
+        self.keyBaseH = 10 if not self.drumMode else 30
+        self.keyH = self.keyBaseH * self.scaleV
         self.keyW = 32 * self.scaleH
         self.pianoW = 34 * self.scaleH
 
-        self.fontSize = 9 * min(self.scaleH, self.scaleV)
-        self.fontSizeParameters = self.fontSize * sqrt(self.scaleH)
-        self.fontSizeNumberInput = 1.4 * self.fontSize
+        self.fontSize = max(9 * min(self.scaleH, self.scaleV), 5)
+        self.fontSizeParameters = max(self.fontSize * sqrt(self.scaleH), 5)
+        self.fontSizeNumberInput = 13
         self.barW = 48 * self.scaleH
         self.beatW = self.barsPerBeat() * self.barW
 
@@ -102,7 +104,23 @@ class May2PatternWidget(QWidget):
         self.numberBarsVisible = 0 if not self.pattern else int(clip(self.barsPerBeat() * (self.pattern.length - self.offsetH), 0, self.maxNumberBars))
         self.numberBeatsVisible = self.numberBarsVisible / self.barsPerBeat()
 
+        if self.drumMode:
+            self.numberDrums = self.parent.drumModel.rowCount()
+            self.numberDrumsVisible = min(self.numberKeysVisible, self.numberDrums)
+            self.minOffsetV = 0
+            self.maxOffsetV = self.numberDrums - self.numberDrumsVisible
+        else:
+            self.minOffsetV = -24
+            self.maxOffsetV = self.pattern.max_note - self.numberKeysVisible
+
+
     def drawBackground(self, qp):
+        if self.drumMode:
+            self.drawDrumBackground(qp)
+        else:
+            self.drawSynthBackground(qp)
+
+    def drawSynthBackground(self, qp):
 
         isKeyWhite = lambda key: '#' not in self.claviature[key % 12]
 
@@ -119,6 +137,46 @@ class May2PatternWidget(QWidget):
             drawTextDoubleInY(qp, self.X + 2, y - 2.5, Qt.AlignLeft | Qt.AlignTop, self.claviature[key % 12] + str(key // 12), .5)
 
             qp.fillRect(self.rollX, y, self.rollW, self.keyH - 1, colorWhiteBG if isKeyWhite(key) else colorBlackBG)
+
+    def drawDrumBackground(self, qp):
+
+        isRowWhite = lambda row: row % 2 == 0
+
+        font = qp.font()
+
+        for c in range(self.numberDrumsVisible):
+            key = self.offsetV + c
+            y = self.B - (c + 1) * self.keyH
+
+            qp.fillRect(self.X, y, self.keyW, (self.keyH - 1) + 0.7 * isRowWhite(key), colorWhiteKeys if isRowWhite(key) else colorBlackKeys)
+
+            if self.pattern and self.pattern.notes and key == (self.pattern.getNote().note_pitch) % self.numberDrums:
+                qp.fillRect(self.X, y, self.keyW, (self.keyH - 1) + 0.7 * isRowWhite(key), colorSelectedKey)
+
+            qp.setPen(colorWhiteKeyText if isRowWhite(key) else colorBlackKeyText)
+            drumName = self.parent.drumModel.stringList()[key]
+            if len(drumName) < 5:
+                font.setPointSize(self.fontSize)
+                qp.setFont(font)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5, Qt.AlignLeft | Qt.AlignTop, drumName[0:4], .5)
+            elif len(drumName) < 9:
+                font.setPointSize(self.fontSize)
+                qp.setFont(font)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5, Qt.AlignLeft | Qt.AlignTop, drumName[0:4], .5)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5 + self.fontSize, Qt.AlignLeft | Qt.AlignTop, drumName[4:8], .5)
+            elif len(drumName) < 11:
+                font.setPointSize(self.fontSize - 1)
+                qp.setFont(font)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5, Qt.AlignLeft | Qt.AlignTop, drumName[0:5], .5)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5 + self.fontSize, Qt.AlignLeft | Qt.AlignTop, drumName[5:10], .5)
+            else:
+                font.setPointSize(self.fontSize - 1)
+                qp.setFont(font)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5, Qt.AlignLeft | Qt.AlignTop, drumName[0:5], .5)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5 + self.fontSize, Qt.AlignLeft | Qt.AlignTop, drumName[5:10], .5)
+                drawTextDoubleInY(qp, self.X + 2, y - 2.5 + self.fontSize * 2, Qt.AlignLeft | Qt.AlignTop, drumName[10:15], .5)
+
+            qp.fillRect(self.rollX, y, self.rollW, self.keyH - 1, colorWhiteBG if isRowWhite(key) else colorBlackBG)
 
 
     def drawGrid(self, qp):
@@ -272,6 +330,13 @@ class May2PatternWidget(QWidget):
             self.activate()
             return
 
+        if self.parent.ctrlPressed:
+            if event.button() == Qt.MiddleButton:
+                self.scaleH = 1
+                self.scaleV = 1
+                self.repaint()
+            return
+
         corrNote = self.findCorrespondingNote(event.pos().x(), event.pos().y())
         if corrNote is None:
             if event.button() == Qt.LeftButton:
@@ -303,16 +368,20 @@ class May2PatternWidget(QWidget):
         # TODO: re-sort notes upon drop
 
     def wheelEvent(self, event):
-        if self.pattern:
-            if self.parent.shiftPressed:
-                xScroll = -event.angleDelta().y() / 120
-                yScroll = 0
-            else:
-                xScroll = event.angleDelta().x() / 120
-                yScroll = event.angleDelta().y() / 30
-            self.offsetV = int(clip(self.offsetV + yScroll, -24, self.pattern.max_note - self.numberKeysVisible))
-            self.offsetH = .25 * int(4 * clip(self.offsetH - xScroll, 0, self.pattern.length - self.numberBeatsVisible))
+        if self.parent.ctrlPressed:
+            self.scaleH = max(self.scaleH + event.angleDelta().y() / 1200, 0.1)
             self.repaint()
+        else:
+            if self.pattern:
+                if self.parent.shiftPressed:
+                    xScroll = -event.angleDelta().y() / 120
+                    yScroll = 0
+                else:
+                    xScroll = event.angleDelta().x() / 120
+                    yScroll = event.angleDelta().y() / 30
+                self.offsetV = int(clip(self.offsetV + yScroll, self.minOffsetV, self.maxOffsetV))
+                self.offsetH = .25 * int(4 * clip(self.offsetH - xScroll, 0, self.pattern.length - self.numberBeatsVisible))
+                self.repaint()
 
 
     def activate(self):
