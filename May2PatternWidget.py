@@ -111,7 +111,7 @@ class May2PatternWidget(QWidget):
             self.maxOffsetV = self.numberDrums - self.numberDrumsVisible
         else:
             self.minOffsetV = -24
-            self.maxOffsetV = self.pattern.max_note - self.numberKeysVisible
+            self.maxOffsetV = 0 if not self.pattern else (self.pattern.max_note - self.numberKeysVisible)
 
 
     def drawBackground(self, qp):

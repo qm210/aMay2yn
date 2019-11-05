@@ -230,9 +230,8 @@ class May2TrackWidget(QWidget):
             self.activate()
             return
 
-        if self.parent.ctrlPressed:
-            if event.button() == Qt.MiddleButton:
-                self.setScale(H = 1, V = 1)
+        if event.button() == Qt.MiddleButton and self.parent.ctrlPressed:
+            self.setScale(H = 1, V = 1)
             return
 
         eventX = event.pos().x()
@@ -242,30 +241,30 @@ class May2TrackWidget(QWidget):
             return
 
         self.select(corrTrack, corrModule)
-        if corrModule is None:
-            if eventX < self.synthX:
-                if event.button() == Qt.RightButton:
-                    self.toggleMute(corrTrack)
-            elif eventX < self.gridX:
-                self.openSynthDialog(corrTrack)
-            else:
+        if eventX < self.synthX:
+            if event.button() == Qt.RightButton:
+                self.toggleMute(corrTrack)
+        elif eventX < self.gridX:
+            self.openSynthDialog(corrTrack)
+        else:
+            if corrModule is None:
                 beat = self.getBeatAtX(eventX)
                 if event.button() == Qt.LeftButton and self.parent.ctrlPressed:
                     self.queryTrackType(corrTrack)
                     self.openPatternDialog(corrTrack, beat = beat)
                 elif event.button() == Qt.MiddleButton:
                     self.insertModule(corrTrack, self.copyOfLastSelectedModule, beat)
-        else:
-            if event.button() == Qt.LeftButton:
-                if self.parent.ctrlPressed:
-                    self.openPatternDialog(corrTrack, module = corrModule)
-                else:
-                    self.initDragModule(corrTrack, corrModule, event.pos())
-            elif event.button() == Qt.RightButton:
-                pass
-                #self.openModuleSelector(module) # window to choose Pattern and Transpose, and exact Position
-            elif event.button() == Qt.MiddleButton:
-                self.deleteModule(corrTrack, corrModule)
+            else:
+                if event.button() == Qt.LeftButton:
+                    if self.parent.ctrlPressed:
+                        self.openPatternDialog(corrTrack, module = corrModule)
+                    else:
+                        self.initDragModule(corrTrack, corrModule, event.pos())
+                elif event.button() == Qt.RightButton:
+                    pass
+                    #self.openModuleSelector(module) # window to choose Pattern and Transpose, and exact Position
+                elif event.button() == Qt.MiddleButton:
+                    self.deleteModule(corrTrack, corrModule)
 
 
     def mouseMoveEvent(self, event):

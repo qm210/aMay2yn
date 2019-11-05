@@ -64,8 +64,9 @@ class SynthDialog(QtWidgets.QDialog):
 
     def init(self):
         self.nameEdit.setText(self.track.synthName)
-        synthIndex = self.parent.synthModel.synthList().index(self.track.synthName)
-        self.selectSynth(synthIndex)
+        if self.track.synthName in self.parent.synthModel.synthList():
+            synthIndex = self.parent.synthModel.synthList().index(self.track.synthName)
+            self.selectSynth(synthIndex)
 
     def synthName(self):
         index = self.synthList.selectedIndexes()[0].row()

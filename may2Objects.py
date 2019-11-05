@@ -3,7 +3,6 @@ from numpy import clip
 import random
 import json
 
-
 SYNTHTYPE, DRUMTYPE, NONETYPE = ['I', 'D', '_']
 
 class Track:
@@ -623,90 +622,3 @@ class Note:
             self.note_aux = min(999, max(-999, float(value)))
         except:
             self.note_aux = 0
-
-################### EN/DECODING FUNCTIONALITY #####################
-# have to include some processing for migration between parameters
-
-def encodeTrack(obj):
-    if isinstance(obj, Track):
-        objDict = {
-            'name': obj.name,
-            'modules': json.dumps(obj.modules, default = (lambda mod: mod.__dict__)),
-            'synthName': obj.synthName,
-            'synthType': obj.synthType,
-            'volume': obj.volume,
-            'mute': obj.mute,
-        }
-        return objDict
-    return super().default(obj)
-
-def decodeTrack(tDict):
-    synthName = None
-    synthType = None
-    if 'synths' in tDict and 'current_synth' in tDict:
-        synth = tDict['synths'][tDict['current_synth']]
-        synthType = synth[0]
-        synthName = synth[2:]
-    track = Track(
-        name = tDict.get('name', ''),
-        synthName = tDict.get('synthName', synthName),
-        synthType = tDict.get('synthType', synthType)
-    )
-    for m in tDict['modules']:
-        module = Module(
-            mod_on = m.get('mod_on', 0),
-            transpose = m.get('transpose', 0)
-        )
-        if 'pattern' in m:
-            module.setPattern(decodePattern(m.get('pattern', None)))
-        else:
-            module.patternHash = m.get('patternHash', None)
-            module.patternName = m.get('patternName', None)
-            module.patternLength = m.get('patternLength', None)
-        track.modules.append(module)
-    track.volume = tDict.get('volume', tDict.get('par_norm', track.volume))
-    track.mute = tDict.get('mute', track.mute)
-    track.currentModuleIndex = tDict.get('currentModuleIndex', track.currentModuleIndex)
-    return track
-
-def encodePattern(obj):
-    if isinstance(obj, Pattern):
-        objDict = {
-            'name': obj.name,
-            'length': obj.length,
-            'synthType': obj.synthType,
-            'max_note': obj.max_note,
-            '_hash': obj._hash,
-            'notes': json.dumps(obj.notes, default = (lambda note: note.__dict__)),
-            'currentNoteIndex': obj.currentNoteIndex,
-            'currentGap': obj.currentGap,
-        }
-        return objDict
-    return super().default(obj)
-
-def decodePattern(pDict):
-    pattern = Pattern(
-        name = pDict.get('name', Pattern().name),
-        length = pDict.get('length', Pattern().length),
-        synthType = pDict.get('synthType', pDict.get('synth_type', Pattern().synthType)),
-        max_note = pDict.get('max_note', Pattern().max_note),
-        _hash = pDict.get('_hash', None)
-    )
-    pattern.notes = [Note(
-        note_on = n.get('note_on', Note().note_on),
-        note_len = n.get('note_len', Note().note_len),
-        note_pitch = n.get('note_pitch', Note().note_pitch),
-        note_pan = n.get('note_pan', Note().note_pan),
-        note_vel = n.get('note_vel', Note().note_vel),
-        note_slide = n.get('note_slide', Note().note_slide),
-        note_aux = n.get('note_aux', Note().note_aux)
-        ) for n in pDict['notes']]
-    pattern.currentNoteIndex = pDict.get('currentNoteIndex', pattern.currentNoteIndex)
-    pattern.currentGap = pDict.get('currentGap', pattern.currentGap)
-    return pattern
-
-
-######################### TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-def encodeUndoObject(obj):
-    return obj.__dict__

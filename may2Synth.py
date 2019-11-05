@@ -33,6 +33,13 @@ class Synth:
         for error in self.nodeTree.errorStack:
             print(error)
 
+    def isEmpty(self):
+        return not self.mainSrc
+
+    def isUnparsed(self):
+        return self.nodeTree.src == None
+
+
 class SynthRoot:
 
     def __init__(self, id):
@@ -49,11 +56,14 @@ class SynthRoot:
     def __repr__(self):
         return f"{self.src}"
 
+    def setFormList(self, formList):
+        self.formList = formList
+        self.formIDs = {form['id'] for form in formList}
+
     def parse(self, formList, mainSrc):
         self.countSubID = 0
         if formList is not None:
-            self.formList = formList
-            self.formIDs = {form['id'] for form in formList}
+            self.setFormList(formList)
         if self.formList is None:
             print("ERROR! tried to parse nodeTree without given formList!")
             raise ValueError
