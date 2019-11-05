@@ -24,7 +24,8 @@ from May2PatternWidget import May2PatternWidget
 from May2SynthWidget import May2SynthWidget
 from may2TrackModel import TrackModel
 from may2PatternModel import PatternModel
-from may2Objects import Track, Pattern, decodeTrack, decodePattern, SYNTHTYPE, DRUMTYPE
+from may2SynthModel import SynthModel
+from may2Objects import * #pylint: disable=unused-wildcard-import
 from May2ynatizer import synatize, synatize_build
 from May2ynBuilder import May2ynBuilder
 from SFXGLWidget import SFXGLWidget
@@ -209,7 +210,7 @@ class MainWindow(QMainWindow):
     def initModelView(self):
         self.trackModel = TrackModel()
         self.patternModel = PatternModel()
-        self.synthModel = QStringListModel()
+        self.synthModel = SynthModel()
         self.drumModel = QStringListModel()
 
         self.trackWidget.setTrackModel(self.trackModel)
@@ -410,7 +411,7 @@ class MainWindow(QMainWindow):
             'info': self.info,
             'tracks': self.trackModel.tracks,
             'patterns': self.patternModel.patterns,
-            'synths': self.synthModel.stringList(),
+            'synths': self.synthModel.synths,
             'drumkit': self.drumModel.stringList(),
         }
         fn = open(self.globalState['maysonFile'], 'w')
@@ -439,7 +440,7 @@ class MainWindow(QMainWindow):
     def reloadSynFile(self):
         self.amaysyn.updateState(title = self.state['title'], synFile = self.state['synFile'])
         self.amaysyn.aMaySynatize()
-        self.synthModel.setStringList(self.amaysyn.synthNames)
+        self.synthModel.setSynths(self.amaysyn.synths)
         self.drumModel.setStringList(self.amaysyn.drumkit)
 
     def autoSave(self):
@@ -467,6 +468,8 @@ class MainWindow(QMainWindow):
             self.patternWidget.debugOutput()
         elif key == Qt.Key_F11:
             self.synthWidget.debugOutput()
+        elif key == Qt.Key_F12:
+            self.debugOutput()
 
         if self.trackWidget.active:
 
@@ -562,7 +565,7 @@ class MainWindow(QMainWindow):
 
         self.trackModel.setTracks(tracks)
         self.patternModel.setPatterns(patterns)
-        self.synthModel.setStringList(synths)
+        self.synthModel.setSynths(synths)
         self.drumModel.setStringList(drumkit)
 
         self.trackModel.layoutChanged.emit()
@@ -618,10 +621,10 @@ class MainWindow(QMainWindow):
             'info': self.info,
             'tracks': self.trackModel.tracks,
             'patterns': self.patternModel.patterns,
-            'synths': self.synthModel.stringList(),
+            'synths': self.synthModel.synths,
             'drumkit': self.drumModel.stringList()
         }
-        self.undoStack.append(json.dumps(undoObject, default = lambda obj: obj.__dict__))
+        self.undoStack.append(json.dumps(undoObject, default = encodeUndoObject))
 
     def loadUndoStep(self, relativeStep):
         maxUndoStep = len(self.undoStack) - 1
@@ -768,7 +771,7 @@ class MainWindow(QMainWindow):
     def getRandomSynthName(self, type):
         if type != SYNTHTYPE or self.synthModel.rowCount() == 0:
             return type
-        return choice(self.synthModel.stringList())
+        return choice(self.synthModel.synthList())
 
 ###################### MODEL FUNCTIONALITY ########################
 
@@ -892,6 +895,20 @@ class MainWindow(QMainWindow):
         self.audiobuffer.open(QIODevice.ReadOnly)
         self.audiooutput.stop()
         self.audiooutput.start(self.audiobuffer)
+
+###################################################################
+
+    def debugOutput(self):
+        print('\n\n')
+        print("TRACK NAME:", self.getTrack().name)
+        print("TRACK TYPE:", self.getTrack().synthType)
+        if self.getTrack().synthType == SYNTHTYPE:
+            synthObj = self.amaysyn.getSynthObject(self.getTrack().synthName)
+            synthObj.parseNodeTreeFromSrc(None, None, verbose = True)
+            print("TRACK SYNTH:")
+            synthObj.printNodeTree()
+            print("USED PARAMS:", synthObj.nodeTree.usedParams)
+            print("USED RANDOMS:", synthObj.nodeTree.usedRandoms)
 
 ###################################################################
 

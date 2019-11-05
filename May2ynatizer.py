@@ -3,7 +3,7 @@ from random import random
 from re import sub
 
 from May2ynatizerDefaults import set_remaining_defaults
-from may2Utils import GLfloat, GLstr, inquotes, split_if_not_quoted
+from may2Utils import GLfloat, GLstr, inQuotes, split_if_not_quoted
 
 newlineindent = '\n' + 4*' '
 newlineplus = '\n' + 6*' ' + '+'
@@ -79,8 +79,8 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
 
         if cmd == 'main' or cmd == 'maindrum' or (cmd == 'form' and form['op'] == 'mix'):
             try:
-                if not inquotes(form['src']):
-                    form['src'] = sub('(?<![*+])-','+-',form['src']).replace('+',',')
+                if not inQuotes(form['src']):
+                    form['src'] = sub('(?<![*+])-','+-',form['src']).replace(',','+')
             except KeyError:
                 print('PARSING - ERROR IN LINE (src not given)\n', l)
                 quit()
@@ -158,7 +158,7 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                 form = form.copy()
                 form.update(mod)
 
-            if inquotes(ID):
+            if inQuotes(ID):
                 return '('+ID[1:-1]+')'
 
             elif '+' in ID:
@@ -192,7 +192,7 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
 
             elif form['type']=='form':
                 if form['op'] == 'mix':
-                    return '(' + '+'.join([instance(f) for f in form['src'].split(',')]) + ')'
+                    return '(' + '+'.join([instance(f) for f in form['src'].split('+')]) + ')'
                 elif form['op'] == 'define': # actually pretty similar to mix, but I keep it.
                     return instance(form['src'])
                 elif form['op'] == 'detune':
@@ -584,7 +584,7 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
         syncode = 'if(syn == 0){amaysynL = _sin(f*_t); amaysynR = _sin(f*_t2);}\n' + 20*' '
         for form_main in main_list:
             if form_main['type']!='main': continue
-            sources = split_if_not_quoted(form_main['src'], ',')
+            sources = split_if_not_quoted(form_main['src'], '+')
             if actually_used_synths is None or form_main['id'] in actually_used_synths:
                 synatized_src = ''
                 syncodeL = ''
@@ -611,8 +611,8 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
         drumsyncode = ''
         for form_main in main_list:
             if form_main['type']!='maindrum': continue
-            sourcesL = split_if_not_quoted(form_main['src'], ',')
-            sourcesR = sourcesL if form_main['srcr'] == '' else split_if_not_quoted(form_main['srcr'], ',')
+            sourcesL = split_if_not_quoted(form_main['src'], '+')
+            sourcesR = sourcesL if form_main['srcr'] == '' else split_if_not_quoted(form_main['srcr'], '+')
             if actually_used_drums is None or drumcount in actually_used_drums:
                 synatized_srcL = ''
                 synatized_srcR =  ''

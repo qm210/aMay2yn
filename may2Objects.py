@@ -255,18 +255,6 @@ class Pattern:
             for n in self.notes:
                 n.note_pitch = n.note_pitch % max_note
 
-    def replaceWith(self, other):
-        if not other: return
-        self.name = other.name
-        self.notes = other.notes
-        self.length = other.length
-        self.currentNoteIndex = other.currentNote
-        self.currentGap = other.currentGap
-        self.synthType = other.synthType
-        self.max_note = other.max_note
-        print("[DEBUG] WHEN IS THIS CALLED? NEED TO FIGURE OUT WHAT TO DO WITH HASH")
-        quit()
-
     # helpers...
     def getNote(self, offset=0):
         return self.notes[(self.currentNoteIndex + offset) % len(self.notes)] if self.notes else None
@@ -716,3 +704,9 @@ def decodePattern(pDict):
     pattern.currentNoteIndex = pDict.get('currentNoteIndex', pattern.currentNoteIndex)
     pattern.currentGap = pDict.get('currentGap', pattern.currentGap)
     return pattern
+
+
+######################### TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+def encodeUndoObject(obj):
+    return obj.__dict__

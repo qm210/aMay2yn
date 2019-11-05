@@ -14,6 +14,7 @@ import numpy as np
 from May2ynatizer import synatize, synatize_build
 from SFXGLWidget import SFXGLWidget
 from may2Utils import GLfloat
+from may2Synth import Synth
 import may2Objects
 
 class May2ynBuilder:
@@ -41,6 +42,8 @@ class May2ynBuilder:
         self.synths = None
         self.synthNames = None
         self.drumkit = None
+        self.synthObjects = []
+        self.drumObjects = []
         self.synatize_form_list = None
         self.synatize_main_list = None
         self.synatize_param_list = None
@@ -97,8 +100,23 @@ class May2ynBuilder:
         # TODO: might also require some exception handling, we'll see
         _, _, _, _, self.last_synatized_forms = synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, self.synths, self.drumkit)
 
+        self.createSynthObjects()
+
     def aMay2ynFileExists(self):
         return self.synFile is not None and path.exists(self.synFile)
+
+    def createSynthObjects(self):
+        for main in self.synatize_main_list:
+            if main['type'] == 'main':
+                synth = Synth(name = main['id'])
+                for key in main.keys():
+                    if key not in ['id', 'type']:
+                        synth.args[key] = main[key]
+                synth.parseNodeTreeFromSrc(main['src'], self.synatize_form_list)
+                self.synthObjects.append(synth)
+
+    def getSynthObject(self, synthName):
+        return next((obj for obj in self.synthObjects if obj.name == synthName), None)
 
 ##################################### REQUIRED FUNCTION PORTS ###########################################
 
