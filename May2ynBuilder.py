@@ -49,8 +49,8 @@ class May2ynBuilder:
         self.synatize_param_list = None
         self.last_synatized_forms = None
         self.stored_randoms = []
-        if self.aMay2ynFileExists():
-            self.aMaySynatize()
+        if self.validSynFile():
+            self.tokenizeSynFile()
 
         self.fragment_shader = None
         self.sequence = []
@@ -78,12 +78,14 @@ class May2ynBuilder:
         if not path.isdir('./' + self.outdir):
             mkdir(self.outdir)
 
-    def aMaySynatize(self, synFile = None, reshuffle_randoms = False):
+    def validSynFile(self):
+        return self.synFile is not None and path.exists(self.synFile)
+
+    def tokenizeSynFile(self, synFile = None, reshuffle_randoms = False):
         if synFile is not None:
             self.synFile = synFile
-        if not self.aMay2ynFileExists():
-            print(f"Don't have a valid aMaySyn-File ({self.synFile}). No can't do.\n")
-            raise FileNotFoundError
+        if not self.validSynFile():
+            raise FileNotFoundError(f"Don't have a valid aMaySyn-File ({self.synFile}). No can't do.")
 
         # TODO: Exception Handling instead of just quitting!!
         self.synatize_form_list, self.synatize_main_list, drumkit, self.stored_randoms, self.synatize_param_list \
@@ -97,23 +99,22 @@ class May2ynBuilder:
         def_drumkit = ['SideChn']
         self.drumkit = def_drumkit + drumkit
 
-        # TODO: might also require some exception handling, we'll see
-        _, _, _, _, self.last_synatized_forms = synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, self.synths, self.drumkit)
+        # TODO: WE STILL NEED THIS? -- might also require some exception handling, we'll see
+        # _, _, _, _, self.last_synatized_forms = synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, self.synths, self.drumkit)
 
-        self.createSynthObjects()
-
-    def aMay2ynFileExists(self):
-        return self.synFile is not None and path.exists(self.synFile)
-
-    def createSynthObjects(self):
+    def parseSynthObjects(self, skipExisting = True):
+        skipIDs = [synth.name for synth in self.synthObjects if not synth.isEmpty() and not synth.isUnparsed()] if skipExisting else []
         for main in self.synatize_main_list:
             if main['type'] == 'main':
-                synth = Synth(name = main['id'])
-                for key in main.keys():
-                    if key not in ['id', 'type']:
-                        synth.args[key] = main[key]
-                synth.parseNodeTreeFromSrc(main['src'], self.synatize_form_list)
-                self.synthObjects.append(synth)
+                if main['id'] not in skipIDs:
+                    synth = Synth(name = main['id'])
+                    for key in main.keys():
+                        if key not in ['id', 'type']:
+                            synth.args[key] = main[key]
+                    synth.parseNodeTreeFromSrc(main['src'], self.synatize_form_list)
+                    self.synthObjects.append(synth)
+                else:
+                    print(f"skipped {main['id']}")
 
     def getSynthObject(self, synthName):
         return next((obj for obj in self.synthObjects if obj.name == synthName), None)
@@ -183,7 +184,7 @@ class May2ynBuilder:
         return self.synths.index(track.getSynthFullName())
 
     def build(self, tracks, patterns, renderWAV = False):
-        if not self.aMay2ynFileExists():
+        if not self.validSynFile():
             print(f"Tried to build GLSL without valid aMaySyn-File ({self.synFile}). No can't do.\n")
             raise FileNotFoundError
 
@@ -255,7 +256,7 @@ class May2ynBuilder:
         glslcode = gf.read()
         gf.close()
 
-        self.aMaySynatize(self.synFile)
+        self.tokenizeSynFile(self.synFile)
         actuallyUsedSynths = set(t.synthName for t in self.tracks if not t.synthType == may2Objects.NONETYPE)
         actuallyUsedDrums = set(n.note_pitch for p in self.patterns if p.synthType == may2Objects.DRUMTYPE for n in p.notes)
 

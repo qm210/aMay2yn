@@ -344,7 +344,6 @@ class MainWindow(QMainWindow):
             title, proceed = QInputDialog.getText(self, 'New Song', 'Title:', QLineEdit.Normal, '')
         if proceed:
             self.state['title'] = title or 'QoolMusic'
-        self.state['synFile'] = None # f"{self.globalState['lastDirectory']}/{newTitle}"
         self.globalState['maysonFile'] = f"{self.state['title']}.mayson"
         self.info = deepcopy(self.defaultInfo)
         self.ensureSynFile()
@@ -356,6 +355,8 @@ class MainWindow(QMainWindow):
     def loadAndImportMayson(self):
         name, _ = QFileDialog.getOpenFileName(self, 'Load MAYSON file', '', 'aMaySyn *.mayson(*.mayson)')
         if name == '':
+            if self.state.get('title', None) is None:
+                self.newSong()
             return
         self.globalState['maysonFile'] = name
         self.globalState['lastDirectory'] = path.dirname(name)
@@ -435,7 +436,9 @@ class MainWindow(QMainWindow):
         fn.close()
 
     def ensureSynFile(self, copySynFile = None):
-        synFile = f"{self.state['title']}.syn"
+        synFile = f"{self.globalState['lastDirectory']}/{self.state['title']}.syn"
+        self.state['synFile'] = synFile
+
         if copySynFile is not None:
             if not path.exists(copySynFile):
                 copySynFile = defaultSynFile
@@ -453,8 +456,9 @@ class MainWindow(QMainWindow):
         return title, synFile
 
     def reloadSynFile(self):
+        print(self.state['title'], self.state['synFile'])
         self.amaysyn.updateState(title = self.state['title'], synFile = self.state['synFile'])
-        self.amaysyn.aMaySynatize()
+        self.amaysyn.tokenizeSynFile()
         self.synthModel.setSynths(self.amaysyn.synths)
         self.drumModel.setStringList(self.amaysyn.drumkit)
 
@@ -574,10 +578,9 @@ class MainWindow(QMainWindow):
             patterns = [Pattern()]
 
             self.initAMay2yn()
-            self.amaysyn.aMaySynatize(defaultSynFile)
+            self.amaysyn.tokenizeSynFile(defaultSynFile)
             synths = self.amaysyn.synthObjects
             drumkit = self.amaysyn.drumkit
-            print("init the shit and we have", synths, drumkit)
 
         self.trackModel.setTracks(tracks)
         self.patternModel.setPatterns(patterns)
