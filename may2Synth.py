@@ -12,21 +12,32 @@ class Synth:
         self.amaysynL = ''
         self.amaysynR = ''
         self.args = {}
-        self.nodeTree = SynthRoot(id = name)
         self.overwrites = {}
         self.mainSrc = None
+        # TODO: allow for mainSrcR (e.g. allow for a list of two, then also two nodeTrees, or one with two sources? don't know yet.)
+        self.nodeTree = SynthRoot(id = name)
+        self.usedParams = self.nodeTree.usedParams
+        self.usedRandoms = self.nodeTree.usedRandoms
 
     def __repr__(self):
         return f"{self.__dict__}"
 
     def usesAnyRandoms(self):
-        return len(self.nodeTree.usedRandoms) > 0
+        return len(self.usedRandoms) > 0
+
+    def usedRandomIDs(self):
+        return [rnd for rnd in self.usedRandoms]
 
     def parseNodeTreeFromSrc(self, mainSrc, formList, verbose = False):
         if mainSrc is not None:
             self.mainSrc = mainSrc
         self.nodeTree.verbose = verbose
         self.nodeTree.parse(formList, self.mainSrc)
+
+    def resetNodeTree(self):
+        self.nodeTree = SynthRoot(id = self.name)
+        self.usedParams = self.nodeTree.usedParams
+        self.usedRandoms = self.nodeTree.usedRandoms
 
     def printNodeTree(self):
         self.nodeTree.printWhole()

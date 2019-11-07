@@ -38,8 +38,6 @@ class Track:
         return self.getLastModule().getModuleOff() if self.getLastModule() else 0
     def getFirstTaggedModuleIndex(self):
         return next(i for i in range(len(self.modules)) if self.modules[i].tagged)
-    def getSynthFullName(self):
-        return f'{self.synthType}_{self.synthName}'
     def isDrumTrack(self):
         return self.synthType == DRUMTYPE
     def isEmpty(self):

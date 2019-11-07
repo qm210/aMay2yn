@@ -7,7 +7,7 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QVBoxLayout, QGroupBox, QSplitter, QFileDialog, \
     QDoubleSpinBox, QCheckBox, QLabel,QInputDialog, QLineEdit, QMessageBox, QStackedLayout
 from PyQt5.QtCore import Qt, pyqtSignal, QItemSelectionModel, QFile, QTextStream, QStringListModel, QBuffer, QIODevice
-from PyQt5.QtGui import QFontDatabase, QIcon, QColor
+from PyQt5.QtGui import QFontDatabase, QIcon, QColor, QPainter
 from PyQt5.QtMultimedia import QAudioOutput, QAudioFormat, QAudioDeviceInfo, QAudio
 from copy import deepcopy
 from functools import partial
@@ -32,7 +32,7 @@ from May2ynBuilder import May2ynBuilder
 from SFXGLWidget import SFXGLWidget
 from SettingsDialog import SettingsDialog
 from PatternDialogs import ImportPatternDialog
-from may2Style import notACrime
+from may2Style import notACrime, deactivatedColor
 
 globalStateFile = 'global.state'
 defaultSynFile = 'default.syn'
@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
         self.initState()
         self.setStyleSheet(notACrime)
 
-        self.initAMay2yn()
+        self.initAmay2yn()
         self.initAudio()
 
         self.show()
@@ -221,7 +221,8 @@ class MainWindow(QMainWindow):
         self.globalState = {
             'maysonFile': '',
             'lastDirectory': None,
-            'givenTitle': None,
+            'argGivenTitle': None,
+            'deactivated': False,
         }
         self.state = {
             'autoReimport': False,
@@ -237,6 +238,7 @@ class MainWindow(QMainWindow):
             'lastNumberInput': '',
             'lastImportPatternFilename': '',
             'lastImportPatternFilter': '',
+            'synFileTimestamp': None,
         }
         # TODO: store Synatize output in self.state? C=
         self.defaultInfo = {
@@ -255,7 +257,7 @@ class MainWindow(QMainWindow):
         self.amaysyn = None
         self.patternColors = {}
 
-        self.globalState['argGivenTitle'] = sys.argv[1] if len(sys.argv) > 1 else None
+        self.globalState['argGivenTitle'] = sys.argv[1].split('.')[0] if len(sys.argv) > 1 else None
 
         if self.globalState['argGivenTitle'] is not None:
             self.globalState.update({
@@ -337,6 +339,12 @@ class MainWindow(QMainWindow):
         elif activateSynth:
             self.synthWidget.setFocus()
 
+    def toggleGlobalDeactivedState(self, active = None):
+        if active is None:
+            self.globalState['deactivated'] = not self.globalState.get('deactivated', True)
+        else:
+            self.globalState['deactivated'] = not active
+        self.repaint()
 
     def newSong(self, title = None):
         proceed = title is not None
@@ -369,7 +377,7 @@ class MainWindow(QMainWindow):
         maysonData = {}
         try:
             file = open(self.globalState['maysonFile'], 'r')
-            maysonData = json.load(file)
+            maysonData = json.load(file, cls = MaysonDecoder)
         except FileNotFoundError:
             if self.globalState['argGivenTitle'] is not None:
                 self.newSong(title = self.globalState['argGivenTitle'])
@@ -382,10 +390,10 @@ class MainWindow(QMainWindow):
         if maysonData == {}:
             return
 
-        for key in maysonData['state']:
+        for key in maysonData.get('state', []):
             self.state.update({key: maysonData['state'][key]})
 
-        for key in maysonData['info']:
+        for key in maysonData.get('info', []):
             self.info.update({key: maysonData['info'][key]})
 
         if 'title' in self.info:
@@ -408,6 +416,7 @@ class MainWindow(QMainWindow):
 
 
     def exportMayson(self, saveAs = False):
+        self.toggleGlobalDeactivedState(active = False)
         if saveAs:
             suggestFileName = self.globalState['maysonFile'] or f"{self.state['title']}.mayson"
             filename, _ = QFileDialog.getSaveFileName(self, 'Save new MAYSON file', suggestFileName, 'aMaySyn *.mayson(*.mayson)')
@@ -432,8 +441,9 @@ class MainWindow(QMainWindow):
         }
         fn = open(self.globalState['maysonFile'], 'w')
         print(f"Export to {self.globalState['maysonFile']}")
-        json.dump(data, fn, default = lambda obj: obj.__dict__)
+        json.dump(data, fn, cls = MaysonEncoder)
         fn.close()
+        self.toggleGlobalDeactivedState(active = True)
 
     def ensureSynFile(self, copySynFile = None):
         synFile = f"{self.globalState['lastDirectory']}/{self.state['title']}.syn"
@@ -456,11 +466,15 @@ class MainWindow(QMainWindow):
         return title, synFile
 
     def reloadSynFile(self):
+        self.toggleGlobalDeactivedState(active = False)
         print(self.state['title'], self.state['synFile'])
         self.amaysyn.updateState(title = self.state['title'], synFile = self.state['synFile'])
         self.amaysyn.tokenizeSynFile()
+        self.amaysyn.parseSynths(skipExisting = False)
         self.synthModel.setSynths(self.amaysyn.synths)
         self.drumModel.setStringList(self.amaysyn.drumkit)
+        self.state['synFileTimestamp'] = path.getmtime(self.state['synFile'])
+        self.toggleGlobalDeactivedState(active = True)
 
     def autoSave(self):
         self.autoSaveGlobals()
@@ -565,6 +579,12 @@ class MainWindow(QMainWindow):
             self.ctrlPressed = event.modifiers() & Qt.ControlModifier == Qt.ControlModifier
             self.altPressed = event.modifiers() & Qt.AltModifier == Qt.AltModifier
 
+    def paintEvent(self, event):
+        if self.globalState['deactivated']:
+            qp = QPainter()
+            qp.begin(self)
+            qp.fillRect(event.rect().left(), event.rect().top(), event.rect().width(), event.rect().height(), deactivatedColor)
+            qp.end()
 
     def closeEvent(self, event):
         QApplication.quit()
@@ -576,10 +596,10 @@ class MainWindow(QMainWindow):
         else:
             tracks = [Track()]
             patterns = [Pattern()]
-
-            self.initAMay2yn()
+            self.initAmay2yn()
             self.amaysyn.tokenizeSynFile(defaultSynFile)
-            synths = self.amaysyn.synthObjects
+            self.amaysyn.parseSynths(skipExisting = True)
+            synths = self.amaysyn.synths
             drumkit = self.amaysyn.drumkit
 
         self.trackModel.setTracks(tracks)
@@ -640,9 +660,10 @@ class MainWindow(QMainWindow):
             'synths': self.synthModel.synths,
             'drumkit': self.drumModel.stringList()
         }
-        self.undoStack.append(json.dumps(undoObject, default = encodeUndoObject))
+        self.undoStack.append(json.dumps(undoObject, cls = MaysonEncoder))
 
     def loadUndoStep(self, relativeStep):
+        self.toggleGlobalDeactivedState(active = False)
         maxUndoStep = len(self.undoStack) - 1
         self.undoStep = clip(self.undoStep + relativeStep, 0, maxUndoStep)
         undoObject = json.loads(self.undoStack[maxUndoStep - self.undoStep])
@@ -650,6 +671,7 @@ class MainWindow(QMainWindow):
         self.info = undoObject['info']
         self.setModelsFromData(undoObject)
         self.resetWidgets()
+        self.toggleGlobalDeactivedState(active = True)
 
     def openSettingsDialog(self):
         settingsDialog = SettingsDialog(self)
@@ -836,7 +858,7 @@ class MainWindow(QMainWindow):
         print("this is heavy stuff!")
         # TODO: synatize should tell us which main forms include random content ;)
 
-    def initAMay2yn(self):
+    def initAmay2yn(self):
         self.amaysyn = May2ynBuilder(self, self.state['synFile'], self.info)
         self.amaysyn.useSequenceTexture = self.state['useSequence']
 
@@ -868,6 +890,7 @@ class MainWindow(QMainWindow):
 
     def renderModule(self):
         self.state['lastRendered'] = 'module'
+        self.toggleGlobalDeactivedState(active = False)
         track = deepcopy(self.getTrack())
         track.mute = False
         modInfo = deepcopy(self.info)
@@ -878,9 +901,11 @@ class MainWindow(QMainWindow):
         shader = self.amaysyn.build(tracks = [track], patterns = [self.getModulePattern()])
         self.amaysyn.updateState(info = self.info)
         self.executeShader(shader)
+        self.toggleGlobalDeactivedState(active = True)
 
     def renderTrack(self):
         self.state['lastRendered'] = 'track'
+        self.toggleGlobalDeactivedState(active = False)
         track = self.getTrack()
         restoreMute = track.mute
         track.mute = False
@@ -889,17 +914,20 @@ class MainWindow(QMainWindow):
         shader = self.amaysyn.build(tracks = [track], patterns = self.patternModel.patterns)
         track.mute = restoreMute
         self.executeShader(shader)
+        self.toggleGlobalDeactivedState(active = True)
 
     def renderSong(self):
         self.state['lastRendered'] = 'song'
+        self.toggleGlobalDeactivedState(active = False)
         self.amaysyn.extra_time_shift = self.state.get('extraTimeShift', 0)
         self.amaysyn.updateState(title = self.state['title'], info = self.info)
         shader = self.amaysyn.build(tracks = self.trackModel.tracks, patterns = self.patternModel.patterns)
         self.executeShader(shader)
+        self.toggleGlobalDeactivedState(active = True)
 
     def executeShader(self, shader):
         if shader is None:
-            print("Called executeShader() with a shader of None. Some stupid shit happened and I will do no more.")
+            print("Called executeShader() with a shader of None.")
             return
         sequenceLength = len(self.amaysyn.sequence) if self.amaysyn.sequence is not None else 0
         if not self.amaysyn.useSequenceTexture and sequenceLength > pow(2, 14):
@@ -922,11 +950,12 @@ class MainWindow(QMainWindow):
             print("TRACK TYPE:", self.getTrack().synthType)
             if self.getTrack().synthType == SYNTHTYPE:
                 synthObj = self.amaysyn.getSynthObject(self.getTrack().synthName)
-                synthObj.parseNodeTreeFromSrc(None, None, verbose = True)
-                print("TRACK SYNTH:")
-                synthObj.printNodeTree()
-                print("USED PARAMS:", synthObj.nodeTree.usedParams)
-                print("USED RANDOMS:", synthObj.nodeTree.usedRandoms)
+                if synthObj is not None:
+                    synthObj.parseNodeTreeFromSrc(None, None, verbose = True)
+                    print("TRACK SYNTH:")
+                    synthObj.printNodeTree()
+                    print("USED PARAMS:", synthObj.nodeTree.usedParams)
+                    print("USED RANDOMS:", synthObj.nodeTree.usedRandoms)
 
 ###################################################################
 

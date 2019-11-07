@@ -35,22 +35,17 @@ class May2ynBuilder:
         self.file_extra_information = ''
         self.MODE_debug = False
         self.MODE_headless = False
-        self.MODE_renderwav = kwargs.pop('renderWAV') if 'renderWAV' in kwargs else False
-        if self.MODE_renderwav:
-            self.initWavOut()
+        self.MODE_renderWav = kwargs.pop('renderWAV', False)
+        self.initWavOut()
 
-        self.synths = None
+        self.synths = []
         self.synthNames = None
         self.drumkit = None
-        self.synthObjects = []
-        self.drumObjects = []
         self.synatize_form_list = None
         self.synatize_main_list = None
         self.synatize_param_list = None
         self.last_synatized_forms = None
         self.stored_randoms = []
-        if self.validSynFile():
-            self.tokenizeSynFile()
 
         self.fragment_shader = None
         self.sequence = []
@@ -71,12 +66,11 @@ class May2ynBuilder:
             self.extra_time_shift = extra_time_shift
 
     def initWavOut(self, outdir = None):
-        self.MODE_renderwav = True
-        if outdir is not None:
-            self.outdir = outdir
-
-        if not path.isdir('./' + self.outdir):
-            mkdir(self.outdir)
+        if self.MODE_renderWav:
+            if outdir is not None:
+                self.outdir = outdir
+            if not path.isdir('./' + self.outdir):
+                mkdir(self.outdir)
 
     def validSynFile(self):
         return self.synFile is not None and path.exists(self.synFile)
@@ -92,9 +86,7 @@ class May2ynBuilder:
             = synatize(self.synFile, stored_randoms = self.stored_randoms, reshuffle_randoms = reshuffle_randoms)
 
         self.synthNames = [m['id'] for m in self.synatize_main_list if m['type'] == 'main']
-
-        def_synths = ['D_Drums', 'G_GFX', '__None']
-        self.synths = ['I_' + synthName for synthName in self.synthNames] + def_synths
+        self.synths = [Synth(name = synthName) for synthName in self.synthNames]
 
         def_drumkit = ['SideChn']
         self.drumkit = def_drumkit + drumkit
@@ -102,8 +94,8 @@ class May2ynBuilder:
         # TODO: WE STILL NEED THIS? -- might also require some exception handling, we'll see
         # _, _, _, _, self.last_synatized_forms = synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, self.synths, self.drumkit)
 
-    def parseSynthObjects(self, skipExisting = True):
-        skipIDs = [synth.name for synth in self.synthObjects if not synth.isEmpty() and not synth.isUnparsed()] if skipExisting else []
+    def parseSynths(self, skipExisting = True):
+        skipIDs = [synth.name for synth in self.synths if not synth.isEmpty() and not synth.isUnparsed()] if skipExisting else []
         for main in self.synatize_main_list:
             if main['type'] == 'main':
                 if main['id'] not in skipIDs:
@@ -112,12 +104,15 @@ class May2ynBuilder:
                         if key not in ['id', 'type']:
                             synth.args[key] = main[key]
                     synth.parseNodeTreeFromSrc(main['src'], self.synatize_form_list)
-                    self.synthObjects.append(synth)
+                    self.synths.append(synth)
                 else:
                     print(f"skipped {main['id']}")
 
     def getSynthObject(self, synthName):
-        return next((obj for obj in self.synthObjects if obj.name == synthName), None)
+        return next((obj for obj in self.synths if obj.name == synthName), None)
+
+    def getEmptySynthObject(self, synthName):
+        return Synth(name = synthName) if synthName in self.synthNames else None
 
 ##################################### REQUIRED FUNCTION PORTS ###########################################
 
@@ -180,8 +175,14 @@ class May2ynBuilder:
         print([p._hash for p in self.patterns])
         raise ValueError
 
+    def drumIndex(self):
+        return len(self.synths)
+
     def synthIndex(self, track):
-        return self.synths.index(track.getSynthFullName())
+        if track.synthName == 'Drums':
+            return self.drumIndex()
+        else:
+            return self.synthNames.index(track.synthName)
 
     def build(self, tracks, patterns, renderWAV = False):
         if not self.validSynFile():
@@ -296,7 +297,6 @@ class May2ynBuilder:
         syn_pre.append(0)
 
         nD = str(len(drum_rel)) # number of drums - not required right now, maybe we need to add something later
-        drum_index = str(self.synths.index('D_Drums')+1)
 
         # get slide times
         syn_slide = []
@@ -422,7 +422,7 @@ class May2ynBuilder:
             .replace("//DEFCODE", defcode)\
             .replace("//SYNCODE", self.synatized_code_syn)\
             .replace("//DRUMSYNCODE", self.synatized_code_drum)\
-            .replace("DRUM_INDEX", drum_index)\
+            .replace("DRUM_INDEX", str(self.drumIndex()))\
             .replace("//PARAMCODE", paramcode)\
             .replace("//FILTERCODE",filtercode)\
             .replace("//LOOPCODE", loopcode)\

@@ -130,7 +130,7 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
             if form['id'] == 'include':
                 pass
             else:
-                segments = form['segments'].split(',')
+                segments = form['segments'].split(',') if form['segments'] is not None else []
                 if len(segments) % 3 != 0:
                     print('PARSING - ERROR! SEGMENTS OF PARAM HAVE TO BE IN STRUCTURE <Segment>,<Start>,<End>,... AND THUS A MULTIPLE OF THREE: ', form)
                     quit()

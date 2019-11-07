@@ -165,7 +165,8 @@ class PatternDialog(QtWidgets.QDialog):
         self.patternModel.setPatternsFromModel(self.createFilteredModel())
 
     def cancel(self):
-        self.reset()
+        if self.module and self.getPattern():
+            self.reset()
         self.reject()
 
 

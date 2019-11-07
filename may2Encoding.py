@@ -1,5 +1,6 @@
 from copy import copy, deepcopy
 from numpy import clip
+from functools import partial
 import random
 import json
 
@@ -14,7 +15,7 @@ def encodeTrack(obj):
     if isinstance(obj, Track):
         objDict = {
             'name': obj.name,
-            'modules': json.dumps(obj.modules, default = (lambda mod: mod.__dict__)),
+            'modules': [module.__dict__ for module in obj.modules],
             'synthName': obj.synthName,
             'synthType': obj.synthType,
             'volume': obj.volume,
@@ -62,7 +63,7 @@ def encodePattern(obj):
             'synthType': obj.synthType,
             'max_note': obj.max_note,
             '_hash': obj._hash,
-            'notes': json.dumps(obj.notes, default = (lambda note: note.__dict__)),
+            'notes': [note.__dict__ for note in obj.notes],
             'currentNoteIndex': obj.currentNoteIndex,
             'currentGap': obj.currentGap,
         }
@@ -77,6 +78,7 @@ def decodePattern(pDict):
         max_note = pDict.get('max_note', Pattern().max_note),
         _hash = pDict.get('_hash', None)
     )
+    print("WANT TO TACKLE", pDict['notes'], type(pDict['notes']))
     pattern.notes = [Note(
         note_on = n.get('note_on', Note().note_on),
         note_len = n.get('note_len', Note().note_len),
@@ -94,20 +96,16 @@ def decodePattern(pDict):
 
 def encodeSynth(obj):
     if isinstance(obj, Synth):
-        nodeTreeDict = {
-            'usedParams': obj.nodeTree.usedParams,
-            'usedRandoms': obj.nodeTree.usedRandoms,
-            'formList': obj.nodeTree.formList,
-            'src': json.dumps(obj.nodeTree.src, cls = SynthNodeEncoder)
-        }
+        # decision: we do not save the nodeTree for now! parse when required, these are huge!
         objDict = {
             'name': obj.name,
             'type': obj.type,
             'amaysynL': obj.amaysynL,
             'amaysynR': obj.amaysynR,
             'args': obj.args,
-            'nodeTree': nodeTreeDict,
             'overwrites': obj.overwrites,
+            'usedParams': obj.nodeTree.usedParams,
+            'usedRandoms': obj.nodeTree.usedRandoms,
             'mainSrc': obj.mainSrc
         }
         return objDict
@@ -127,12 +125,11 @@ def decodeSynth(sDict):
         synth.args = sDict.get('args', {})
         synth.overwrites = sDict.get('overwrites', {})
         synth.mainSrc = sDict.get('mainSrc', None)
-        nDict = sDict['nodeTree']
-        synth.nodeTree.usedParams = nDict.get('usedParams', {})
-        synth.nodeTree.usedRandoms = nDict.get('usedRandoms', {})
-        synth.nodeTree.setFormList(nDict.get('formList', []))
-        synth.nodeTree.src = json.loads(nDict['src'], cls = SynthNodeDecoder(root = synth.nodeTree))
+        synth.usedParams.update(sDict.get('usedParams', {}))
+        synth.usedRandoms.update(sDict.get('usedRandoms', {}))
         return synth
+
+# current state: might not need SynthNodeEncoder / SynthNodeDecoder
 
 class SynthNodeEncoder(json.JSONEncoder):
 
@@ -151,36 +148,48 @@ class SynthNodeEncoder(json.JSONEncoder):
 class SynthNodeDecoder(json.JSONDecoder):
 
     def __init__(self, root, *args, **kwargs):
-        super().__init__(self, object_hook = self.object_hook, *args, **kwargs)
+        json.JSONDecoder.__init__(self, object_hook = self.object_hook, *args, **kwargs)
         self.root = root
 
     #pylint: disable=method-hidden
     def object_hook(self, objDict):
+        print("TRYING TO HOOK", objDict, type(objDict))
+        if not objDict:
+            print("... EMPTY")
+            return {}
         node = SynthNode(root = self.root, id = objDict['id'])
         node.type = objDict['type']
         node.value = objDict['value']
-        node.subNodes = json.loads(objDict['subNodes'], cls = SynthNodeDecoder(root = self.root))
+        print("SUBNODES ARE:", objDict['subNodes'], type(objDict['subNodes']))
+        node.subNodes = json.loads(objDict['subNodes'], cls = partial(SynthNodeDecoder, root = self.root))
+        print("GOT: ", node.id, node.type, node.value, node.subNodes, type(node))
         return node
 
 #########################################################
 
-def encodeUndoObject(obj):
-    if isinstance(obj, Track):
-        return encodeTrack(obj)
-    elif isinstance(obj, Pattern):
-        return encodePattern(obj)
-    elif isinstance(obj, Synth):
-        return encodeSynth(obj)
-    else:
-        return json.dumps(obj)
+class MaysonEncoder(json.JSONEncoder):
 
-def decodeUndoObject(oDict):
-    obj = {
-        'state': json.loads(oDict['state']),
-        'info': json.loads(oDict['info']),
-        'drumkit': json.loads(oDict['drumkit'])
-    }
-    obj['tracks'] = json.loads(oDict['tracks'], object_hook = decodeTrack)
-    obj['patterns'] = json.loads(oDict['patterns'], object_hook = decodePattern)
-    obj['synths'] = json.loads(oDict['synths'], object_hook = decodeSynth)
-    return obj
+    #pylint: disable=method-hidden
+    def default(self, obj):
+        if isinstance(obj, Track):
+            return encodeTrack(obj)
+        elif isinstance(obj, Pattern):
+            return encodePattern(obj)
+        elif isinstance(obj, Synth):
+            return encodeSynth(obj)
+        else:
+            return super().default(obj)
+
+class MaysonDecoder(json.JSONDecoder):
+
+    #pylint: disable=method-hidden
+    def object_hook(self, oDict):
+        obj = {
+            'state': json.loads(oDict['state']),
+            'info': json.loads(oDict['info']),
+            'drumkit': json.loads(oDict['drumkit'])
+        }
+        obj['tracks'] = json.loads(oDict['tracks'], object_hook = decodeTrack)
+        obj['patterns'] = json.loads(oDict['patterns'], object_hook = decodePattern)
+        obj['synths'] = json.loads(oDict['synths'], object_hook = decodeSynth)
+        return obj

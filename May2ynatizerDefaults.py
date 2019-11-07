@@ -174,8 +174,7 @@ def set_remaining_defaults(cid, cmd, form):
             pass
 
     elif cmd == 'param':
-        requirements.append('segments')
-        defaults.update({'default':'0'})
+        defaults.update({'segments': None, 'default':'0'})
 
     for key in defaults:
         if key not in form:

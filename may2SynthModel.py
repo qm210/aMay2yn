@@ -34,7 +34,7 @@ class SynthModel(QAbstractListModel):
         if role == Qt.DisplayRole:
             displayName = self.synths[i].name
             if self.synths[i].usesAnyRandoms():
-                displayName += ' (randoms:' + ','.join(self.synths[i].usedRandoms.keys()) + ')'
+                displayName += ' [USES RANDOMS: ' + ','.join(self.synths[i].usedRandomIDs()) + ']'
             return displayName
 
     def rowCount(self, index = None):

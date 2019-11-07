@@ -41,12 +41,6 @@ class TrackModel(QAbstractListModel):
         self.tracks.insert(row, Track())
         self.endInsertRows()
 
-    def setSynthList(self, synths):
-        print("when is this called??")
-        quit()
-        for track in self.tracks:
-            track.synths = synths
-
     def updateModulesWithChangedPattern(self, pattern):
         for track in self.tracks:
             for module in track.modules:
