@@ -103,7 +103,7 @@ class May2ynBuilder:
             if main['type'] == 'main':
                 if main['id'] not in skipIDs:
                     synth = self.getParsedSynth(main)
-                    self.appendOrUpdateSynthList(synth)
+                    self.updateSynthList(synth)
                 else:
                     print(f"skipped {main['id']}")
 
@@ -112,7 +112,7 @@ class May2ynBuilder:
         if synthMainForm is None:
             return None
         synth = self.getParsedSynth(synthMainForm)
-        self.appendOrUpdateSynthList(synth)
+        self.updateSynthList(synth)
 
     def getParsedSynth(self, mainForm):
         synth = Synth(name = mainForm['id'])
@@ -122,10 +122,11 @@ class May2ynBuilder:
         synth.parseNodeTreeFromSrc(mainForm['src'], self.synatize_form_list)
         return synth
 
-    def appendOrUpdateSynthList(self, synth):
+    def updateSynthList(self, synth):
         for index, existingSynth in enumerate(self.synths):
             if synth.name == existingSynth.name:
                 self.synths[index] = synth
+                break
         else:
             self.synths.append(synth)
 

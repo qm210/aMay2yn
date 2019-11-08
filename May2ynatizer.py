@@ -193,7 +193,7 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
             elif form['type']=='form':
                 if form['op'] == 'mix':
                     return '(' + '+'.join([instance(f) for f in form['src'].split('+')]) + ')'
-                elif form['op'] == 'define': # actually pretty similar to mix, but I keep it.
+                elif form['op'] == 'define': # actually pretty similar to mix, but I keep it. TODO: or is it identical??
                     return instance(form['src'])
                 elif form['op'] == 'detune':
                     detuned_instances = '+'.join(instance(form['src'],{'freq':instance(amt)+'*'+param(form['src'],'freq')}) for amt in form['factor'].split(','))

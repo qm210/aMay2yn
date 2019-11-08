@@ -133,17 +133,9 @@ class SynthNode:
             print(f"ERROR! TYPE ALREADY SET! in{self.root.id}: {self.id} is {self.type}, not {type}")
             raise TypeError
         self.type = type
-        if type == 'random':
-            if self.id in self.root.usedRandoms:
-                print(f"{self.root.id}: {self.id}: updating usedRandom {self.root.usedRandoms[self.id]} -> {self.value}")
-            self.root.usedRandoms.update({self.id: self.value})
-        elif type == 'param':
-            if self.id in self.root.usedParams:
-                print(f"{self.root.id}: {self.id}: updating usedParams {self.root.usedParams[self.id]} -> {self.value}")
-            self.root.usedParams.update({self.id: self.value})
 
     def parse(self, argKey, argSource):
-        self.value = argSource
+#        self.value = argSource
 
         if self.root.verbose:
             print("PARSE NOW: ID", self.id, "KEY", argKey, '=', argSource)
@@ -182,6 +174,8 @@ class SynthNode:
             self.setType(SynthNode.CONST)
             return
 
+        self.assignValue(form)
+
         subID = form.get('id', None)
         if self.root.verbose:
             print("VERBOSE: ", subID, form)
@@ -208,3 +202,21 @@ class SynthNode:
 
     def isLeaf(self):
         return self.type in [SynthNode.CONST, SynthNode.LITERAL, SynthNode.UNIFORM]
+
+    def assignValue(self, form):
+        if type == 'uniform':
+            self.value = form['id'] # todo: redundant
+        elif type == 'const':
+            self.value = form['value']
+        elif type == 'random':
+            self.value = form['value']
+            if self.id in self.root.usedRandoms:
+                print(f"{self.root.id}: {self.id}: updating usedRandom {self.root.usedRandoms[self.id]} -> {self.value}")
+            self.root.usedRandoms.update({self.id: self.value})
+        elif type in ['param']:
+            self.value = deepcopy(form) # wtf what to do with this!?? and how to treat includes? BIGTODO
+            if self.id in self.root.usedParams:
+                print(f"{self.root.id}: {self.id}: updating usedParams {self.root.usedParams[self.id]} -> {self.value}")
+            self.root.usedParams.update({self.id: self.value})
+        elif 'src' in form:
+            self.value = form['src']
