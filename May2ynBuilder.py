@@ -75,6 +75,9 @@ class May2ynBuilder:
     def validSynFile(self):
         return self.synFile is not None and path.exists(self.synFile)
 
+    def isTokenized(self):
+        return self.synatize_form_list is not None and self.synatize_main_list is not None
+
     def tokenizeSynFile(self, synFile = None, reshuffle_randoms = False):
         if synFile is not None:
             self.synFile = synFile
@@ -99,19 +102,37 @@ class May2ynBuilder:
         for main in self.synatize_main_list:
             if main['type'] == 'main':
                 if main['id'] not in skipIDs:
-                    synth = Synth(name = main['id'])
-                    for key in main.keys():
-                        if key not in ['id', 'type']:
-                            synth.args[key] = main[key]
-                    synth.parseNodeTreeFromSrc(main['src'], self.synatize_form_list)
-                    self.synths.append(synth)
+                    synth = self.getParsedSynth(main)
+                    self.appendOrUpdateSynthList(synth)
                 else:
                     print(f"skipped {main['id']}")
 
-    def getSynthObject(self, synthName):
+    def parseSingleSynth(self, name):
+        synthMainForm = next((main for main in self.synatize_main_list if main['type'] == 'main' and main['id'] == name), None)
+        if synthMainForm is None:
+            return None
+        synth = self.getParsedSynth(synthMainForm)
+        self.appendOrUpdateSynthList(synth)
+
+    def getParsedSynth(self, mainForm):
+        synth = Synth(name = mainForm['id'])
+        for key in mainForm.keys():
+            if key not in ['id', 'type']:
+                synth.args[key] = mainForm[key]
+        synth.parseNodeTreeFromSrc(mainForm['src'], self.synatize_form_list)
+        return synth
+
+    def appendOrUpdateSynthList(self, synth):
+        for index, existingSynth in enumerate(self.synths):
+            if synth.name == existingSynth.name:
+                self.synths[index] = synth
+        else:
+            self.synths.append(synth)
+
+    def getSynth(self, synthName):
         return next((obj for obj in self.synths if obj.name == synthName), None)
 
-    def getEmptySynthObject(self, synthName):
+    def getEmptySynth(self, synthName):
         return Synth(name = synthName) if synthName in self.synthNames else None
 
 ##################################### REQUIRED FUNCTION PORTS ###########################################
@@ -176,18 +197,30 @@ class May2ynBuilder:
         raise ValueError
 
     def drumIndex(self):
-        return len(self.synths)
+        return len(self.synthNames)
 
     def synthIndex(self, track):
-        if track.synthName == 'Drums':
-            return self.drumIndex()
-        else:
+        if track.synthType == may2Objects.SYNTHTYPE:
             return self.synthNames.index(track.synthName)
+        elif track.synthType == may2Objects.DRUMTYPE:
+            return self.drumIndex()
+        elif track.synthType == may2Objects.NONETYPE:
+            return 0
+        else:
+            raise ValueError("Tried to handle track {track.name} of unknown type: '{track.synthType}'")
+
+    def trackSynthValid(self, track):
+        return track.synthName in self.synthNames or track.synthType != may2Objects.SYNTHTYPE
 
     def build(self, tracks, patterns, renderWAV = False):
         if not self.validSynFile():
             print(f"Tried to build GLSL without valid aMaySyn-File ({self.synFile}). No can't do.\n")
             raise FileNotFoundError
+        if len(self.synths) == 0:
+            self.tokenizeSynFile()
+            if len(self.synths) == 0:
+                print("Nothing to play.. No synths!")
+                return None
 
         B_offset = self.info.get('B_offset', 0)
         B_stop = self.info.get('B_stop', 0)
@@ -195,7 +228,7 @@ class May2ynBuilder:
         actuallyUsedPatternHashs = []
         for track in tracks:
             t = deepcopy(track)
-            if t.modules and not t.mute:
+            if t.modules and not t.mute and self.trackSynthValid(t):
                 t.modules = [m for m in t.modules if m.getModuleOff() > B_offset and (m.getModuleOn() < B_stop or B_stop == 0)]
                 if t.modules:
                     self.tracks.append(t)
@@ -210,9 +243,6 @@ class May2ynBuilder:
             return None
         if len(self.patterns) == 0:
             print("Nothing to play.. No patterns!")
-            return None
-        if len(self.synths) == 0:
-            print("Nothing to play.. No synths!")
             return None
 
         max_mod_off = max(t.getLastModuleOff() for t in self.tracks)
@@ -297,6 +327,7 @@ class May2ynBuilder:
         syn_pre.append(0)
 
         nD = str(len(drum_rel)) # number of drums - not required right now, maybe we need to add something later
+        drum_index = str(self.drumIndex() + 1) # this +1 shift is because we define syn=0 as a pure sine wave for debugging (or None tracks)
 
         # get slide times
         syn_slide = []
@@ -357,6 +388,8 @@ class May2ynBuilder:
             print("HINT: you didn't use any note_slide, might want to remove manually")
         if all(n.note_aux == 0 for p in self.patterns for n in p.notes):
             print("HINT: you didn't use any note_aux, might want to remove manually")
+
+        print("WAIT. WE HAVE", self.drumIndex(), "and we have", syn_rel, len(syn_rel))
 
         print("START TEXTURE")
 
@@ -422,7 +455,7 @@ class May2ynBuilder:
             .replace("//DEFCODE", defcode)\
             .replace("//SYNCODE", self.synatized_code_syn)\
             .replace("//DRUMSYNCODE", self.synatized_code_drum)\
-            .replace("DRUM_INDEX", str(self.drumIndex()))\
+            .replace("DRUM_INDEX", drum_index)\
             .replace("//PARAMCODE", paramcode)\
             .replace("//FILTERCODE",filtercode)\
             .replace("//LOOPCODE", loopcode)\

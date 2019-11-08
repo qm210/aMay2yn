@@ -12,7 +12,7 @@ class SynthModel(QAbstractListModel):
         self.synths = []
 
     def setSynths(self, synths):
-        self.beginRemoveRows(QModelIndex(), self.createIndex(0,0).row(), self.createIndex(self.rowCount(),0).row())
+        self.beginResetModel()
         self.synths = []
         for item in synths:
             if isinstance(item, str):
@@ -23,8 +23,17 @@ class SynthModel(QAbstractListModel):
                 print(f"you are trying to pass object of type {type(item)} to SynthModel setSynth()...!?")
                 print(item)
                 raise TypeError
+        self.endResetModel()
         self.layoutChanged.emit()
-        self.endRemoveRows()
+
+    def updateSynth(self, synth):
+        for index, existingSynth in enumerate(self.synths):
+            if synth.name == existingSynth.name:
+                self.synths[index] = synth
+                return index
+        else:
+            self.synths.append(synth)
+            return -1
 
     def synthList(self):
         return [synth.name for synth in self.synths if synth.type == SYNTHTYPE]

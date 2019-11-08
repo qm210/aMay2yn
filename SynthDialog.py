@@ -69,8 +69,12 @@ class SynthDialog(QtWidgets.QDialog):
             self.selectSynth(synthIndex)
 
     def synthName(self):
-        index = self.synthList.selectedIndexes()[0].row()
-        return self.parent.synthModel.synthList()[index]
+        try:
+            index = self.synthList.selectedIndexes()[0].row()
+            return self.parent.synthModel.synthList()[index]
+
+        except IndexError:
+            return None
 
     def selectSynth(self, index):
         self.synthList.setCurrentIndex(self.parent.synthModel.createIndex(index, 0))

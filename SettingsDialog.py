@@ -58,6 +58,11 @@ class SettingsDialog(QtWidgets.QDialog):
         self.barsPerBeatSpinBox.setValue(self.parent.info['barsPerBeat'])
         self.formLayout.addRow(QtWidgets.QLabel('Bars Per Beat: '), self.barsPerBeatSpinBox)
 
+        self.synFileEdit = QtWidgets.QLineEdit(self)
+        self.synFileEdit.setPlaceholderText('Enter path to .syn file (if not existing, will use <title>.syn or default.syn)')
+        self.synFileEdit.setText(self.parent.state.get('synFile', ''))
+        self.formLayout.addRow(QtWidgets.QLabel('.syn File: '), self.synFileEdit)
+
         self.layout.addLayout(self.formLayout)
 
         self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, self)

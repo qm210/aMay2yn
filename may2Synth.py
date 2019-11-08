@@ -28,6 +28,9 @@ class Synth:
     def usedRandomIDs(self):
         return [rnd for rnd in self.usedRandoms]
 
+    def usedParamIDs(self):
+        return [param for param in self.usedParams]
+
     def parseNodeTreeFromSrc(self, mainSrc, formList, verbose = False):
         if mainSrc is not None:
             self.mainSrc = mainSrc
@@ -132,11 +135,11 @@ class SynthNode:
         self.type = type
         if type == 'random':
             if self.id in self.root.usedRandoms:
-                print(f"{self.id}: updating usedRandom {self.root.usedRandoms[self.id]} -> {self.value}")
+                print(f"{self.root.id}: {self.id}: updating usedRandom {self.root.usedRandoms[self.id]} -> {self.value}")
             self.root.usedRandoms.update({self.id: self.value})
         elif type == 'param':
             if self.id in self.root.usedParams:
-                print(f"{self.id}: updating usedParams {self.root.usedParams[self.id]} -> {self.value}")
+                print(f"{self.root.id}: {self.id}: updating usedParams {self.root.usedParams[self.id]} -> {self.value}")
             self.root.usedParams.update({self.id: self.value})
 
     def parse(self, argKey, argSource):

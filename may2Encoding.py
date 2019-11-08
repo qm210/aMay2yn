@@ -78,7 +78,6 @@ def decodePattern(pDict):
         max_note = pDict.get('max_note', Pattern().max_note),
         _hash = pDict.get('_hash', None)
     )
-    print("WANT TO TACKLE", pDict['notes'], type(pDict['notes']))
     pattern.notes = [Note(
         note_on = n.get('note_on', Note().note_on),
         note_len = n.get('note_len', Note().note_len),
@@ -153,16 +152,12 @@ class SynthNodeDecoder(json.JSONDecoder):
 
     #pylint: disable=method-hidden
     def object_hook(self, objDict):
-        print("TRYING TO HOOK", objDict, type(objDict))
         if not objDict:
-            print("... EMPTY")
             return {}
         node = SynthNode(root = self.root, id = objDict['id'])
         node.type = objDict['type']
         node.value = objDict['value']
-        print("SUBNODES ARE:", objDict['subNodes'], type(objDict['subNodes']))
         node.subNodes = json.loads(objDict['subNodes'], cls = partial(SynthNodeDecoder, root = self.root))
-        print("GOT: ", node.id, node.type, node.value, node.subNodes, type(node))
         return node
 
 #########################################################

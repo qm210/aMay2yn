@@ -16,6 +16,7 @@ from time import sleep
 from random import uniform, choice
 from numpy import clip
 from shutil import move, copyfile
+from datetime import datetime
 import json
 import re
 
@@ -50,8 +51,6 @@ class MainWindow(QMainWindow):
         self.initModelView()
         self.initState()
         self.setStyleSheet(notACrime)
-
-        self.initAmay2yn()
         self.initAudio()
 
         self.show()
@@ -104,6 +103,7 @@ class MainWindow(QMainWindow):
     def initToolBar(self):
         self.toolBar = self.addToolBar('Main')
         self.toolBar.setMovable(False)
+        self.toolBar.setContextMenuPolicy(Qt.PreventContextMenu)
 
         newAction = QAction(QIcon.fromTheme('document-new'), 'New', self)
         newAction.setShortcut('Ctrl+N')
@@ -239,6 +239,7 @@ class MainWindow(QMainWindow):
             'lastImportPatternFilename': '',
             'lastImportPatternFilter': '',
             'synFileTimestamp': None,
+            'forceSynFile': False,
         }
         # TODO: store Synatize output in self.state? C=
         self.defaultInfo = {
@@ -255,6 +256,7 @@ class MainWindow(QMainWindow):
         self.info = deepcopy(self.defaultInfo)
         self.patterns = []
         self.amaysyn = None
+
         self.patternColors = {}
 
         self.globalState['argGivenTitle'] = sys.argv[1].split('.')[0] if len(sys.argv) > 1 else None
@@ -350,10 +352,12 @@ class MainWindow(QMainWindow):
         proceed = title is not None
         if not proceed:
             title, proceed = QInputDialog.getText(self, 'New Song', 'Title:', QLineEdit.Normal, '')
-        if proceed:
-            self.state['title'] = title or 'QoolMusic'
+        if not proceed:
+            return
+        self.state['title'] = title or 'QoolMusic'
         self.globalState['maysonFile'] = f"{self.state['title']}.mayson"
         self.info = deepcopy(self.defaultInfo)
+        self.state['forceSynFile'] = False
         self.ensureSynFile()
         self.setModelsFromData(None)
         self.shufflePatternColors()
@@ -401,9 +405,11 @@ class MainWindow(QMainWindow):
         if 'title' not in self.state or 'synFile' not in self.state:
             self.state['title'], self.state['synFile'] = self.getTitleAndSynFromMayson(self.globalState['maysonFile'])
         if self.amaysyn is not None:
-            self.amaysyn.updateState(title = self.state['title'], info = self.info)
+            self.amaysyn.updateState(title = self.state['title'], synFile = self.state['synFile'], info = self.info)
 
+        self.updateAMay2yn()
         self.setModelsFromData(maysonData)
+        self.checkSynFileTimestamp()
         self.shufflePatternColors()
 
         self.trackWidget.activate()
@@ -446,7 +452,10 @@ class MainWindow(QMainWindow):
         self.toggleGlobalDeactivedState(active = True)
 
     def ensureSynFile(self, copySynFile = None):
-        synFile = f"{self.globalState['lastDirectory']}/{self.state['title']}.syn"
+        if self.state['forceSynFile']:
+            return
+
+        synFile = f"{self.globalState['lastDirectory']}{self.state['title']}.syn"
         self.state['synFile'] = synFile
 
         if copySynFile is not None:
@@ -460,20 +469,40 @@ class MainWindow(QMainWindow):
                 copyfile(defaultSynFile, synFile)
                 print(f"Copied {defaultSynFile} to {synFile}.")
 
+    def checkSynFileTimestamp(self):
+        actualTimestamp = self.getActualSynFileTimestamp()
+        storedTimestamp = self.state.get('synFileTimestamp', None)
+        if storedTimestamp != actualTimestamp:
+            if storedTimestamp is None:
+                question = f"Seems you never loaded this .syn file, ever.\n\nLoad {self.state['synFile']}?"
+            else:
+                stringActual = datetime.fromtimestamp(actualTimestamp).strftime("%Y/%m/%d %H:%M:%S")
+                stringStored = datetime.fromtimestamp(storedTimestamp).strftime("%Y/%m/%d %H:%M:%S")
+                question = f"Stored Timestamp: {stringStored}.\nActual Timestamp: {stringActual}\n\nReload {self.state['synFile']}?"
+            query = QMessageBox.question(self, 'Load .syn?', question, QMessageBox.Yes | QMessageBox.No)
+            if query == QMessageBox.Yes:
+                self.loadSynFile()
+                # for now, there's no way to change the syn parameters in the program. but eventually, it would go like this:
+                # store the "overwrites"
+                # when loading, parse each object anyway
+                # find the differences, especially when they collide with overwrites
+                # ask the user about them
+
     def getTitleAndSynFromMayson(self, maysonFile):
         synFile = '.'.join(maysonFile.split('.')[:-1]) + '.syn'
         title = '.'.join(path.basename(maysonFile).split('.')[:-1])
         return title, synFile
 
-    def reloadSynFile(self):
+    def loadSynFile(self):
         self.toggleGlobalDeactivedState(active = False)
-        print(self.state['title'], self.state['synFile'])
-        self.amaysyn.updateState(title = self.state['title'], synFile = self.state['synFile'])
-        self.amaysyn.tokenizeSynFile()
-        self.amaysyn.parseSynths(skipExisting = False)
+        print("LOAD:", self.state['title'], self.state['synFile'])
+        if self.amaysyn is not None:
+            self.amaysyn.updateState(title = self.state['title'], synFile = self.state['synFile'])
+            self.amaysyn.tokenizeSynFile()
+            self.amaysyn.parseSynths(skipExisting = False)
         self.synthModel.setSynths(self.amaysyn.synths)
         self.drumModel.setStringList(self.amaysyn.drumkit)
-        self.state['synFileTimestamp'] = path.getmtime(self.state['synFile'])
+        self.state['synFileTimestamp'] = self.getActualSynFileTimestamp()
         self.toggleGlobalDeactivedState(active = True)
 
     def autoSave(self):
@@ -494,7 +523,7 @@ class MainWindow(QMainWindow):
         if key == Qt.Key_Escape:
             self.close()
         elif key == Qt.Key_F5:
-            self.reloadSynFile()
+            self.loadSynFile()
         elif key == Qt.Key_F9:
             self.trackWidget.debugOutput()
         elif key == Qt.Key_F10:
@@ -559,8 +588,8 @@ class MainWindow(QMainWindow):
                     else:
                         self.setNumberInput()
 
-        # elif self.synthWidget.active:
-        #     pass
+        elif self.synthWidget.active:
+            pass
 
 
     def keyReleaseEvent(self, event):
@@ -596,8 +625,8 @@ class MainWindow(QMainWindow):
         else:
             tracks = [Track()]
             patterns = [Pattern()]
-            self.initAmay2yn()
-            self.amaysyn.tokenizeSynFile(defaultSynFile)
+            self.amaysyn.__init__(title = self.state['title'], synFile = defaultSynFile, info = self.defaultInfo)
+            self.amaysyn.tokenizeSynFile()
             self.amaysyn.parseSynths(skipExisting = True)
             synths = self.amaysyn.synths
             drumkit = self.amaysyn.drumkit
@@ -635,7 +664,10 @@ class MainWindow(QMainWindow):
             tracks.append(track)
 
         synths = []
+        forbiddenNames = ['D_Drums', 'G_GFX', '__None']
         for encodedSynth in data['synths']:
+            if encodedSynth['name'] in forbiddenNames:
+                continue
             synth = decodeSynth(encodedSynth)
             synths.append(synth)
 
@@ -681,6 +713,12 @@ class MainWindow(QMainWindow):
             self.info['level_syn'], self.info['level_drum'] = settingsDialog.getLevels()
             self.info['beatQuantum'] = 1/float(settingsDialog.beatQuantumDenominatorSpinBox.value())
             self.info['barsPerBeat'] = settingsDialog.barsPerBeatSpinBox.value()
+            settingsDialogSynFile = settingsDialog.synFileEdit.text()
+            self.state['forceSynFile'] = path.exists(settingsDialogSynFile)
+            if self.state['forceSynFile']:
+                if self.state['synFile'] != settingsDialogSynFile:
+                    self.state['synFile'] = settingsDialogSynFile
+                    self.loadSynFile()
 
     def openImportPatternDialog(self):
         importPatternDialog = ImportPatternDialog(self, filename = self.state['lastImportPatternFilename'], filter = self.state['lastImportPatternFilter'])
@@ -811,6 +849,10 @@ class MainWindow(QMainWindow):
             return type
         return choice(self.synthModel.synthList())
 
+    def getActualSynFileTimestamp(self):
+        if self.state.get('synFile', None) is not None:
+            return path.getmtime(self.state['synFile'])
+
 ###################### MODEL FUNCTIONALITY ########################
 
     def loadModule(self, module = None):
@@ -823,9 +865,24 @@ class MainWindow(QMainWindow):
                 self.patternWidget.update()
                 return
 
+    def loadSynth(self, synthName):
+        if self.getTrack().synthName == self.synthWidget.getSynthName():
+            return
+        if self.amaysyn is None:
+            print("Can't load, AMay2yn is not initialized!")
+            return
+        if not self.amaysyn.isTokenized():
+            print("Can't load, AMay2yn hasn't read a .syn file once yet!")
+            return
+        self.amaysyn.parseSingleSynth(synthName)
+        synth = self.amaysyn.getSynth(synthName)
+        self.synthModel.updateSynth(synth) # TODO: technical debt... Actually, the MayzynBuilder (self.amaysyn) shouldn't hold all the Synths as well. Remove when having some time.
+        self.synthWidget.setSynth(synth)
+
     def trackChanged(self):
         if not self.getTrack().isEmpty():
             self.pushUndoStack()
+        self.loadSynth(self.getTrack().synthName)
 
     def trackTypeChanged(self):
         synthType = self.trackWidget.model.currentTrackType()
@@ -858,8 +915,11 @@ class MainWindow(QMainWindow):
         print("this is heavy stuff!")
         # TODO: synatize should tell us which main forms include random content ;)
 
-    def initAmay2yn(self):
-        self.amaysyn = May2ynBuilder(self, self.state['synFile'], self.info)
+    def updateAMay2yn(self):
+        if self.amaysyn is None:
+            self.amaysyn = May2ynBuilder(self, title = self.state['title'], synFile = self.state['synFile'], info = self.info)
+        else:
+            self.amaysyn.updateState(title = self.state['title'], synFile = self.state['synFile'], info = self.info)
         self.amaysyn.useSequenceTexture = self.state['useSequence']
 
     def initAudio(self):
@@ -944,6 +1004,12 @@ class MainWindow(QMainWindow):
 
     def debugOutput(self):
         print('\n\n')
+        print(self.state['synFile'], self.state['synFileTimestamp'])
+        print("SYNTHS:")
+        for s in self.synthModel.synths:
+            print(s.name, s.type)
+
+        print('\n')
         print("TITLE:", self.state['title'])
         if self.getTrack() is not None:
             print("TRACK NAME:", self.getTrack().name)

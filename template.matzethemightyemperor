@@ -19,26 +19,19 @@ float pseudorandom(float x) { return fract(sin(dot(vec2(x),vec2(12.9898,78.233))
 float fhelp(float x) { return 1. + .333*x; } // 1. + .33333*x + .1*x*x + .02381*x*x*x + .00463*x*x*x*x;
 float linmix(float x, float a, float b, float y0, float y1) { return mix(y0,y1,clamp(a*x+b,0.,1.)); }
 float lofi(float time, float quant) { return floor(quant*time+.5)/quant; }
-
-#define pat4(a,b,c,d,x) mod(x,1.)<.25 ? a : mod(x,1.)<.5 ? b : mod(x,1.) < .75 ? c : d
+float s_atan(float a) { return .636 * atan(a); }
+float s_crzy(float amp) { return clamp( s_atan(amp) - 0.1*cos(0.9*amp*exp(amp)), -1., 1.); }
+float squarey(float a, float edge) { return abs(a) < edge ? a : floor(4.*a+.5)*.25; }
+float doubleslope(float t, float a, float d, float s) { return smstep(-.00001,a,t) - (1.-s) * smstep(0.,d,t-a); }
 
 //BEATHEADER
 float BPS, SPB, BT;
 
 float Tsample;
 
-const float filterthreshold = 1e-3;
+#define filterthreshold 1.e-3
 
 //TEXCODE
-
-float s_atan(float a) { return .636 * atan(a); }
-float s_crzy(float amp) { return clamp( s_atan(amp) - 0.1*cos(0.9*amp*exp(amp)), -1., 1.); }
-float squarey(float a, float edge) { return abs(a) < edge ? a : floor(4.*a+.5)*.25; }
-
-float doubleslope(float t, float a, float d, float s)
-{
-    return smstep(-.00001,a,t) - (1.-s) * smstep(0.,d,t-a);
-}
 
 float drop_phase(float time, float t1, float f0, float f1)
 {

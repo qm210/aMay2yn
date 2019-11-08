@@ -15,6 +15,10 @@ import may2Style
 
 colorBG = QColor(*may2Style.group_bgcolor)
 
+colorTrackName = Qt.white
+colorSynthName = QColor(210, 210, 210)
+colorSynthMissing = QColor(210, 50, 50)
+
 PAD_L = 10
 PAD_R = 20
 PAD_T = 9
@@ -104,11 +108,15 @@ class May2TrackWidget(QWidget):
             color = QColor(50, 50, 50) if track != self.model.currentTrack() else QColor(128, 50, 50)
             qp.fillRect(self.X, y, self.charW * self.nrCharName + 4, self.trackH, color)
 
-            qp.setPen(Qt.white)
+            qp.setPen(colorTrackName)
             drawText(qp, self.X + 1, y, Qt.AlignTop, f'{track.name[:self.nrCharName]}')
 
-            qp.setPen(QColor(210, 210, 210))
-            drawText(qp, self.synthX, y, Qt.AlignTop, f'{track.synthName[:self.nrCharSynth]}')
+            if track.synthName in self.parent.synthModel.synthList() or track.synthType != SYNTHTYPE:
+                qp.setPen(colorSynthName)
+                drawText(qp, self.synthX, y, Qt.AlignTop, f'{track.synthName[:self.nrCharSynth]}')
+            else:
+                qp.setPen(colorSynthMissing)
+                drawText(qp, self.synthX, y, Qt.AlignTop, f'!{track.synthName[:self.nrCharSynth-1]}')
 
             color = QColor(50, 50, 50) if track != self.model.currentTrack() else QColor(128, 50, 50)
             color.setAlpha(255 - 128 * track.mute)
@@ -230,10 +238,6 @@ class May2TrackWidget(QWidget):
             self.activate()
             return
 
-        if event.button() == Qt.MiddleButton and self.parent.ctrlPressed:
-            self.setScale(H = 1, V = 1)
-            return
-
         eventX = event.pos().x()
         eventY = event.pos().y()
         corrTrack, corrModule = self.findCorrespondingTrackAndModule(eventX, eventY)
@@ -241,12 +245,20 @@ class May2TrackWidget(QWidget):
             return
 
         self.select(corrTrack, corrModule)
+
         if eventX < self.synthX:
             if event.button() == Qt.RightButton:
                 self.toggleMute(corrTrack)
+
         elif eventX < self.gridX:
-            self.openSynthDialog(corrTrack)
+            if event.button() == Qt.RightButton:
+                self.openSynthDialog(corrTrack)
+
         else:
+            if event.button() == Qt.MiddleButton and self.parent.ctrlPressed:
+                self.setScale(H = 1, V = 1)
+                return
+
             if corrModule is None:
                 beat = self.getBeatAtX(eventX)
                 if event.button() == Qt.LeftButton and self.parent.ctrlPressed:
@@ -265,7 +277,6 @@ class May2TrackWidget(QWidget):
                     #self.openModuleSelector(module) # window to choose Pattern and Transpose, and exact Position
                 elif event.button() == Qt.MiddleButton:
                     self.deleteModule(corrTrack, corrModule)
-
 
     def mouseMoveEvent(self, event):
         if self.dragModule is not None:
@@ -395,7 +406,7 @@ class May2TrackWidget(QWidget):
         self.parent.setModifiers()
         if track is None:
             track = self.model.currentTrack()
-        # TODO: separate DrumkitDialog for drum tracks... None Type: open Window --> choose Synth / Drum
+        # TODO: separate DrumkitDialog for drum tracks...
         if track.synthType == SYNTHTYPE:
             synthDialog = SynthDialog(self.parent, track)
             if synthDialog.exec_():
