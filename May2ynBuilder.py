@@ -17,6 +17,7 @@ from may2Utils import GLfloat
 from may2Synth import Synth
 import may2Objects
 
+# TODO: split this into May2ynTokenizer and May2ynBuilder
 class May2ynBuilder:
 
     templateFile = "template.matzethemightyemperor"
@@ -135,6 +136,11 @@ class May2ynBuilder:
 
     def getEmptySynth(self, synthName):
         return Synth(name = synthName) if synthName in self.synthNames else None
+
+    def getNodeTreeIfMainSrcMatches(self, name, mainSrc):
+        synth = self.getSynth(name)
+        return synth.nodeTree if synth.mainSrc == mainSrc else None
+
 
 ##################################### REQUIRED FUNCTION PORTS ###########################################
 

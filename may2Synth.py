@@ -1,3 +1,4 @@
+from copy import deepcopy
 import re
 
 from may2Utils import inQuotes, isNumber
@@ -135,8 +136,6 @@ class SynthNode:
         self.type = type
 
     def parse(self, argKey, argSource):
-#        self.value = argSource
-
         if self.root.verbose:
             print("PARSE NOW: ID", self.id, "KEY", argKey, '=', argSource)
 
@@ -174,8 +173,6 @@ class SynthNode:
             self.setType(SynthNode.CONST)
             return
 
-        self.assignValue(form)
-
         subID = form.get('id', None)
         if self.root.verbose:
             print("VERBOSE: ", subID, form)
@@ -199,24 +196,26 @@ class SynthNode:
                 subNode.parse(key, form[key])
                 self.subNodes[key] = subNode
 
+        self.assignValue(form)
+
 
     def isLeaf(self):
         return self.type in [SynthNode.CONST, SynthNode.LITERAL, SynthNode.UNIFORM]
 
     def assignValue(self, form):
-        if type == 'uniform':
+        if self.type == 'uniform':
             self.value = form['id'] # todo: redundant
-        elif type == 'const':
+        elif self.type == 'const':
             self.value = form['value']
-        elif type == 'random':
+        elif self.type == 'random':
             self.value = form['value']
             if self.id in self.root.usedRandoms:
                 print(f"{self.root.id}: {self.id}: updating usedRandom {self.root.usedRandoms[self.id]} -> {self.value}")
             self.root.usedRandoms.update({self.id: self.value})
-        elif type in ['param']:
+        elif self.type in ['param']:
             self.value = deepcopy(form) # wtf what to do with this!?? and how to treat includes? BIGTODO
             if self.id in self.root.usedParams:
                 print(f"{self.root.id}: {self.id}: updating usedParams {self.root.usedParams[self.id]} -> {self.value}")
             self.root.usedParams.update({self.id: self.value})
-        elif 'src' in form:
+        elif self.value is not None and 'src' in form:
             self.value = form['src']

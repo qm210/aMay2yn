@@ -27,6 +27,7 @@ class SynthModel(QAbstractListModel):
         self.layoutChanged.emit()
 
     def updateSynth(self, synth):
+        print("OEHM", synth)
         for index, existingSynth in enumerate(self.synths):
             if synth.name == existingSynth.name:
                 self.synths[index] = synth

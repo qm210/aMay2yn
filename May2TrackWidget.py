@@ -372,7 +372,7 @@ class May2TrackWidget(QWidget):
 
     ################# HELPERS ##############
 
-    def repaintChangeAndEmit(self):
+    def repaintAndEmitTrackChanged(self):
         self.repaint()
         self.trackChanged.emit()
 
@@ -411,7 +411,7 @@ class May2TrackWidget(QWidget):
             synthDialog = SynthDialog(self.parent, track)
             if synthDialog.exec_():
                 track.setSynth(name = synthDialog.synthName())
-                self.repaintChangeAndEmit()
+                self.repaintAndEmitTrackChanged()
         else:
             self.queryTrackType(track)
 
@@ -420,7 +420,7 @@ class May2TrackWidget(QWidget):
             trackTypeDialog = TrackTypeDialog(self.parent)
             if trackTypeDialog.exec_():
                 track.setSynth(type = trackTypeDialog.chosenType, name = self.parent.getRandomSynthName(trackTypeDialog.chosenType))
-                self.repaintChangeAndEmit()
+                self.repaintAndEmitTrackChanged()
 
     def openPatternDialog(self, track, beat = None, module = None):
         self.parent.setModifiers()

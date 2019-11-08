@@ -631,6 +631,7 @@ class MainWindow(QMainWindow):
             synths = self.amaysyn.synths
             drumkit = self.amaysyn.drumkit
 
+
         self.trackModel.setTracks(tracks)
         self.patternModel.setPatterns(patterns)
         self.synthModel.setSynths(synths)
@@ -663,12 +664,19 @@ class MainWindow(QMainWindow):
                         module.setPattern(pattern)
             tracks.append(track)
 
+        self.amaysyn.tokenizeSynFile()
+
         synths = []
         forbiddenNames = ['D_Drums', 'G_GFX', '__None']
         for encodedSynth in data['synths']:
             if encodedSynth['name'] in forbiddenNames:
                 continue
             synth = decodeSynth(encodedSynth)
+            self.amaysyn.parseSingleSynth(synth.name)
+            nodeTree = self.amaysyn.getNodeTreeIfMainSrcMatches(synth.name, synth.mainSrc)
+            if nodeTree is not None:
+                synth.nodeTree = nodeTree
+                print(synth.nodeTree.id, synth.nodeTree.usedRandoms)
             synths.append(synth)
 
         drumkit = data['drumkit']
@@ -876,8 +884,9 @@ class MainWindow(QMainWindow):
             return
         self.amaysyn.parseSingleSynth(synthName)
         synth = self.amaysyn.getSynth(synthName)
-        self.synthModel.updateSynth(synth) # TODO: technical debt... Actually, the MayzynBuilder (self.amaysyn) shouldn't hold all the Synths as well. Remove when having some time.
-        self.synthWidget.setSynth(synth)
+        if synth is not None:
+            self.synthModel.updateSynth(synth) # TODO: technical debt... Actually, the MayzynBuilder (self.amaysyn) shouldn't hold all the Synths as well. Remove when having some time.
+            self.synthWidget.setSynth(synth)
 
     def trackChanged(self):
         if not self.getTrack().isEmpty():
