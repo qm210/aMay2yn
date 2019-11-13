@@ -27,7 +27,6 @@ class SynthModel(QAbstractListModel):
         self.layoutChanged.emit()
 
     def updateSynth(self, synth):
-        print("OEHM", synth)
         for index, existingSynth in enumerate(self.synths):
             if synth.name == existingSynth.name:
                 self.synths[index] = synth
@@ -44,7 +43,9 @@ class SynthModel(QAbstractListModel):
         if role == Qt.DisplayRole:
             displayName = self.synths[i].name
             if self.synths[i].usesAnyRandoms():
-                displayName += ' [USES RANDOMS: ' + ','.join(self.synths[i].usedRandomIDs()) + ']'
+                displayName += ' [RND: ' + ','.join(self.synths[i].usedRandomIDs()) + ']'
+            if self.synths[i].usesAnyParams():
+                displayName += ' [PARAM: ' + ','.join(self.synths[i].usedParamIDs()) + ']'
             return displayName
 
     def rowCount(self, index = None):

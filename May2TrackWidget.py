@@ -28,6 +28,7 @@ PAD_B = -7
 class May2TrackWidget(QWidget):
 
     moduleSelected = pyqtSignal(Module)
+    trackSelected = pyqtSignal(Track)
     trackChanged = pyqtSignal()
     trackTypeChanged = pyqtSignal()
     activated = pyqtSignal()
@@ -345,6 +346,7 @@ class May2TrackWidget(QWidget):
         if track is not None:
             currentSynthType = self.model.currentTrackType()
             self.model.setCurrentTrack(track)
+            self.trackSelected.emit(track)
             if track.synthType != currentSynthType:
                 self.trackTypeChanged.emit()
         if module is None and track.modules:

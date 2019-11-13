@@ -29,6 +29,9 @@ class Synth:
     def usedRandomIDs(self):
         return [rnd for rnd in self.usedRandoms]
 
+    def usesAnyParams(self):
+        return len(self.usedParams) > 0
+
     def usedParamIDs(self):
         return [param for param in self.usedParams]
 

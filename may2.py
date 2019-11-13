@@ -194,6 +194,7 @@ class MainWindow(QMainWindow):
 
     def initSignals(self):
         self.trackWidget.moduleSelected.connect(self.loadModule)
+        self.trackWidget.trackSelected.connect(self.trackSelected)
         self.trackWidget.trackChanged.connect(self.trackChanged)
         self.trackWidget.trackTypeChanged.connect(self.trackTypeChanged)
         self.trackWidget.activated.connect(partial(self.toggleActivated, activateTrack = True))
@@ -886,7 +887,10 @@ class MainWindow(QMainWindow):
         synth = self.amaysyn.getSynth(synthName)
         if synth is not None:
             self.synthModel.updateSynth(synth) # TODO: technical debt... Actually, the MayzynBuilder (self.amaysyn) shouldn't hold all the Synths as well. Remove when having some time.
-            self.synthWidget.setSynth(synth)
+        self.synthWidget.setSynth(synth)
+
+    def trackSelected(self, track):
+        self.loadSynth(track.synthName)
 
     def trackChanged(self):
         if not self.getTrack().isEmpty():
@@ -1024,7 +1028,7 @@ class MainWindow(QMainWindow):
             print("TRACK NAME:", self.getTrack().name)
             print("TRACK TYPE:", self.getTrack().synthType)
             if self.getTrack().synthType == SYNTHTYPE:
-                synthObj = self.amaysyn.getSynthObject(self.getTrack().synthName)
+                synthObj = self.amaysyn.getSynth(self.getTrack().synthName)
                 if synthObj is not None:
                     synthObj.parseNodeTreeFromSrc(None, None, verbose = True)
                     print("TRACK SYNTH:")

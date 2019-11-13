@@ -48,3 +48,13 @@ def GLstr(s):
 def isNumber(string):
     regex = match(r'[+-]?[\d]*[\.]?[\d]*([eE][+-]?[\d]+)?', string).group()
     return (regex == string)
+
+def findFreeSerial(self, serialPrefix, takenSerials = []):
+    count = 0
+    while True:
+        newSubID = f'{serialPrefix}{count}'
+        if newSubID not in takenSerials:
+            return newSubID
+        count += 1
+        if count > 999:
+            print(f"findFreeSerial() tries {newSubID}...")
