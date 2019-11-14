@@ -8,6 +8,7 @@ class Param:
         self.segments = []
         self.id = id or form['id']
         self.default = default or float(form.get('default', 0))
+        self.syncWithModule = ('module' in form['mode']) # think about how to implement this in a flexible way. for now: just add mode=module in the .syn file
 
         self.initSegments()
 
@@ -86,6 +87,8 @@ class ParamSegment:
     def setArgs(self, type, **kwargs):
         self.type = type
         self.args.update(kwargs)
+        for arg in self.args:
+            self.args[arg] = round(self.args[arg], 3)
 
     def length(self):
         return self.end - self.start

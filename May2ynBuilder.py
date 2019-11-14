@@ -302,10 +302,7 @@ class May2ynBuilder:
         paramOverrides = self.parent.synthModel.paramOverrides
         for index, param in enumerate(self.synatize_param_list):
             if param['id'] in paramOverrides:
-                paramOverride = deepcopy(paramOverrides[param['id']])
-                if B_offset > 0:
-                    paramOverride.shiftBy(B_offset)
-                self.synatize_param_list[index] = {'id': param['id'], 'type': 'param', 'override': paramOverride}
+                self.synatize_param_list[index] = {'id': param['id'], 'type': 'param', 'override': paramOverrides[param['id']]}
 
         self.synatized_code_syn, self.synatized_code_drum, paramcode, filtercode, self.last_synatized_forms = \
             synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, actuallyUsedSynths, actuallyUsedDrums)

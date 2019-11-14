@@ -171,13 +171,15 @@ def encodeParam(obj):
         'id': obj.id,
         'default': obj.default,
         'form': obj.form,
-        'segments': [segment.__dict__ for segment in obj.segments] # json.dumps(obj.segments, default = encodeParamSegment),
+        'segments': [segment.__dict__ for segment in obj.segments],
+        'syncWithModule': obj.syncWithModule,
     }
     return objDict
 
 def decodeParam(objDict):
     param = Param(objDict['form'], id = objDict['id'], default = objDict['default'])
     param.segments =  [decodeParamSegment(segDict) for segDict in objDict['segments']]
+    param.syncWithModule = objDict.get('syncWithModule', False)
     return param
 
 def encodeParamSegment(obj):
