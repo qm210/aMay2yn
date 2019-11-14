@@ -185,8 +185,8 @@ def encodeParamSegment(obj):
         raise TypeError(f"encodeParamSegment can't encode {obj.__class__.__name__}")
     objDict = {
         'id': obj.id,
-        'beatFrom': obj.beatFrom,
-        'beatTo': obj.beatTo,
+        'start': obj.start,
+        'end': obj.end,
         'type': obj.type,
         'args': obj.args
     }
@@ -194,8 +194,8 @@ def encodeParamSegment(obj):
 
 def decodeParamSegment(objDict):
     segment = ParamSegment(id = objDict['id'])
-    segment.beatFrom = objDict['beatFrom']
-    segment.beatTo = objDict['beatTo']
+    segment.start = objDict['start']
+    segment.end = objDict['end']
     segment.type = objDict['type']
     segment.args = objDict['args']
     return segment

@@ -262,14 +262,13 @@ class May2ynBuilder:
         filename = self.getInfo('title') + '.glsl'
 
         # TODO: after several changes, I'm not sure whether this is now still required or makes any sense at all, even..!
-        self.module_shift = B_offset
-        if self.module_shift > 0:
+        if B_offset > 0:
             for part in self.getInfo('BPM').split():
                 bpm_point = float(part.split(':')[0])
-                if bpm_point <= self.module_shift:
+                if bpm_point <= B_offset:
                     bpm_list = ['0:' + part.split(':')[1]]
                 else:
-                    bpm_list.append(str(bpm_point - self.module_shift) + ':' + part.split(':')[1])
+                    bpm_list.append(str(bpm_point - B_offset) + ':' + part.split(':')[1])
         else:
             bpm_list = self.getInfo('BPM').split()
 
@@ -303,7 +302,10 @@ class May2ynBuilder:
         paramOverrides = self.parent.synthModel.paramOverrides
         for index, param in enumerate(self.synatize_param_list):
             if param['id'] in paramOverrides:
-                self.synatize_param_list[index] = {'id': param['id'], 'type': 'param', 'override': paramOverrides[param['id']]}
+                paramOverride = deepcopy(paramOverrides[param['id']])
+                if B_offset > 0:
+                    paramOverride.shiftBy(B_offset)
+                self.synatize_param_list[index] = {'id': param['id'], 'type': 'param', 'override': paramOverride}
 
         self.synatized_code_syn, self.synatized_code_drum, paramcode, filtercode, self.last_synatized_forms = \
             synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, actuallyUsedSynths, actuallyUsedDrums)

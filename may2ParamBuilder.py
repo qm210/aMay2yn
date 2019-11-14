@@ -18,11 +18,11 @@ def buildParamFunction(param):
             segmentCode = GLstr(segment.args['value'])
 
         elif segment.type == ParamSegment.LINEAR:
-            linCoeffA = GLfloat(round(1/segment.beatLen(), 4))
-            linCoeffB = GLfloat(round(-segment.beatTo/segment.beatLen(), 4))
-            segmentCode = f"linmix(B, {linCoeffA}, {linCoeffB}, {segment.args['valueFrom']}, {segment.args['valueTo']})"
+            linCoeffA = GLfloat(round(1/segment.length(), 4))
+            linCoeffB = GLfloat(round(-segment.start/segment.length(), 4))
+            segmentCode = f"linmix(B, {linCoeffA}, {linCoeffB}, {segment.args['startValue']}, {segment.args['endValue']})"
 
-        paramCode += f"(B>={GLfloat(segment.beatFrom)} && B<{GLfloat(segment.beatTo)}) ? {segmentCode} : "
+        paramCode += f"(B>={GLfloat(segment.start)} && B<{GLfloat(segment.end)}) ? {segmentCode} : "
 
     paramCode += f"{GLfloat(param.default)};\n}}\n"
 

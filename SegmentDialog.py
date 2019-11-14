@@ -28,34 +28,34 @@ class SegmentDialog(QtWidgets.QDialog):
         self.layout.addWidget(self.nameEdit)
 
         self.rangeLayout = QtWidgets.QHBoxLayout()
-        self.fromBeatEdit = QtWidgets.QDoubleSpinBox(self)
-        self.fromBeatEdit.setRange(0, 999)
-        self.fromBeatEdit.setDecimals(2)
-        self.fromBeatEdit.setSingleStep(1)
-        self.fromBeatEdit.setPrefix('from ')
-        self.toBeatEdit = QtWidgets.QDoubleSpinBox(self)
-        self.toBeatEdit.setRange(0, 999)
-        self.toBeatEdit.setDecimals(2)
-        self.toBeatEdit.setSingleStep(1)
-        self.toBeatEdit.setPrefix('to ')
+        self.startEdit = QtWidgets.QDoubleSpinBox(self)
+        self.startEdit.setRange(0, 999)
+        self.startEdit.setDecimals(2)
+        self.startEdit.setSingleStep(1)
+        self.startEdit.setPrefix('from ')
+        self.endEdit = QtWidgets.QDoubleSpinBox(self)
+        self.endEdit.setRange(0, 999)
+        self.endEdit.setDecimals(2)
+        self.endEdit.setSingleStep(1)
+        self.endEdit.setPrefix('to ')
         self.rangeLayout.addWidget(QtWidgets.QLabel('Beat Interval:', self), 4)
-        self.rangeLayout.addWidget(self.fromBeatEdit, 3)
-        self.rangeLayout.addWidget(self.toBeatEdit, 3)
+        self.rangeLayout.addWidget(self.startEdit, 3)
+        self.rangeLayout.addWidget(self.endEdit, 3)
         self.layout.addLayout(self.rangeLayout)
 
         self.typeLinearRadio = QtWidgets.QRadioButton("Linear", self)
-        self.linearValueFromEdit = QtWidgets.QDoubleSpinBox(self)
-        self.linearValueFromEdit.setDecimals(3)
-        self.linearValueFromEdit.setSingleStep(.01)
-        self.linearValueFromEdit.setPrefix('from ')
-        self.linearValueToEdit = QtWidgets.QDoubleSpinBox(self)
-        self.linearValueToEdit.setDecimals(3)
-        self.linearValueToEdit.setSingleStep(.01)
-        self.linearValueToEdit.setPrefix('to ')
+        self.linearStartValueEdit = QtWidgets.QDoubleSpinBox(self)
+        self.linearStartValueEdit.setDecimals(3)
+        self.linearStartValueEdit.setSingleStep(.01)
+        self.linearStartValueEdit.setPrefix('from ')
+        self.linearEndValueEdit = QtWidgets.QDoubleSpinBox(self)
+        self.linearEndValueEdit.setDecimals(3)
+        self.linearEndValueEdit.setSingleStep(.01)
+        self.linearEndValueEdit.setPrefix('to ')
         self.linearValueLayout = QtWidgets.QHBoxLayout()
         self.linearValueLayout.addWidget(self.typeLinearRadio, 4)
-        self.linearValueLayout.addWidget(self.linearValueFromEdit, 3)
-        self.linearValueLayout.addWidget(self.linearValueToEdit, 3)
+        self.linearValueLayout.addWidget(self.linearStartValueEdit, 3)
+        self.linearValueLayout.addWidget(self.linearEndValueEdit, 3)
         self.layout.addLayout(self.linearValueLayout)
 
         self.typeConstRadio = QtWidgets.QRadioButton("Constant", self)
@@ -97,25 +97,25 @@ class SegmentDialog(QtWidgets.QDialog):
     def init(self):
         if self.segment is None:
             self.okButton.setEnabled(False)
-            self.linearValueFromEdit.setValue(self.param.default)
-            self.linearValueFromEdit.setEnabled(False)
-            self.linearValueToEdit.setValue(self.param.default)
-            self.linearValueToEdit.setEnabled(False)
+            self.linearStartValueEdit.setValue(self.param.default)
+            self.linearStartValueEdit.setEnabled(False)
+            self.linearEndValueEdit.setValue(self.param.default)
+            self.linearEndValueEdit.setEnabled(False)
             self.constValueEdit.setValue(self.param.default)
             self.constValueEdit.setEnabled(False)
             self.literalValueEdit.setEnabled(False)
             self.nameEdit.setText(findFreeSerial(f"{self.param.id}_seg", self.param.getSegmentList()))
-            self.fromBeatEdit.setValue(self.param.getLastSegmentEnd())
-            self.toBeatEdit.setValue(self.param.getLastSegmentEnd())
+            self.startEdit.setValue(self.param.getLastSegmentEnd())
+            self.endEdit.setValue(self.param.getLastSegmentEnd())
         else:
             self.setType(self.segment.type)
             self.nameEdit.setText(self.segment.id)
-            self.fromBeatEdit.setValue(self.segment.beatFrom)
-            self.toBeatEdit.setValue(self.segment.beatTo)
+            self.startEdit.setValue(self.segment.start)
+            self.endEdit.setValue(self.segment.end)
             if self.segment.type == ParamSegment.LINEAR:
                 self.typeLinearRadio.setChecked(True)
-                self.linearValueFromEdit.setValue(self.segment.args['valueFrom'])
-                self.linearValueToEdit.setValue(self.segment.args['valueTo'])
+                self.linearStartValueEdit.setValue(self.segment.args['startValue'])
+                self.linearEndValueEdit.setValue(self.segment.args['endValue'])
             elif self.segment.type == ParamSegment.CONST:
                 self.typeConstRadio.setChecked(True)
                 self.constValueEdit.setValue(self.segment.args['value'])
@@ -127,8 +127,8 @@ class SegmentDialog(QtWidgets.QDialog):
     def setType(self, segType):
         self.segType = segType
         self.okButton.setEnabled(self.segType is not None)
-        self.linearValueFromEdit.setEnabled(segType == ParamSegment.LINEAR)
-        self.linearValueToEdit.setEnabled(segType == ParamSegment.LINEAR)
+        self.linearStartValueEdit.setEnabled(segType == ParamSegment.LINEAR)
+        self.linearEndValueEdit.setEnabled(segType == ParamSegment.LINEAR)
         self.constValueEdit.setEnabled(segType == ParamSegment.CONST)
         self.literalValueEdit.setEnabled(segType == ParamSegment.LITERAL)
 
@@ -143,9 +143,9 @@ class SegmentDialog(QtWidgets.QDialog):
         if self.deleteSegment:
             return None
 
-        newSegment = ParamSegment(id = self.nameEdit.text(), beatFrom = self.fromBeatEdit.value(), beatTo = self.toBeatEdit.value())
+        newSegment = ParamSegment(id = self.nameEdit.text(), start = self.startEdit.value(), end = self.endEdit.value())
         if self.segType == ParamSegment.LINEAR:
-            kwargs = {'valueFrom': self.linearValueFromEdit.value(), 'valueTo': self.linearValueToEdit.value()}
+            kwargs = {'startValue': self.linearStartValueEdit.value(), 'endValue': self.linearEndValueEdit.value()}
         elif self.segType == ParamSegment.CONST:
             kwargs = {'value': self.constValueEdit.value()}
         elif self.segType == ParamSegment.LITERAL:

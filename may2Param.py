@@ -14,41 +14,14 @@ class Param:
     def __str__(self):
         return f"{self.id} (default: {self.default})"
 
-    def initSegments(self):
-        n_segments = self.form.get('n_segments', None)
-        if n_segments is None:
-            return
-        for n in range(n_segments):
-            segment = ParamSegment(self.form['segments'][3*n+1], self.form['segments'][3*n+2])
-        return
-        # TODO: think about the shit below
-        shape = self.form.get('shape', None)
-
-        segment = ParamSegment()
-        if shape == 'linear':
-            if self.form.get('from', None) is not None and self.form.get('to', None) is not None:
-                from_x = float(self.form['from'].split(',')[0])
-                from_y = float(self.form['from'].split(',')[1])
-                to_x = float(self.form['to'].split(',')[0])
-                to_y = float(self.form['to'].split(',')[1])
-                segment = ParamSegment(beatFrom = from_x, valueFrom = from_y, beatTo = to_x, valueTo = to_y)
-                #form['scale'] = GLfloat(round((to_y-from_y)/(to_x-from_x), 5))
-                #form['offset'] = GLfloat(from_x)
-                #form['shift'] = GLfloat(from_y)
-
-        elif shape == 'const':
-            pass
-            # segment = ParamConstSegment()
-
-        elif shape == 'literal':
-            pass
-            # segment = ParamLiteralSegment()
+    def initSegments(self): # TODO: implement this
+        pass
 
 
     def addSegment(self, item):
         if item is not None:
             self.segments.append(item)
-            self.segments.sort(key = lambda segment: segment.beatFrom)
+            self.segments.sort(key = lambda segment: segment.start)
 
     def updateSegment(self, oldSegment, newSegment):
         try:
@@ -59,7 +32,7 @@ class Param:
             return
         if newSegment is not None:
             self.segments[oldSegmentIndex] = newSegment
-            self.segments.sort(key = lambda segment: segment.beatFrom)
+            self.segments.sort(key = lambda segment: segment.start)
         else:
             self.segments.remove(oldSegment)
 
@@ -77,38 +50,42 @@ class Param:
 
     def hasCollidingSegments(self):
         for seg, nextSeg in zip(self.segments, self.segments[1:]):
-            if seg.beatTo > nextSeg.beatFrom:
+            if seg.end > nextSeg.start:
                 return True
         return False
 
     def getLastSegmentEnd(self):
-        return self.segments[-1].beatTo if self.segments else 0
+        return self.segments[-1].end if self.segments else 0
 
+    def shiftBy(self, offset):
+        for segment in self.segments:
+            segment.start += offset
+            segment.end += offset
 
 class ParamSegment:
 
     LINEAR, CONST, LITERAL = ['linear', 'const', 'literal']
 
-    def __init__(self, id = None, beatFrom = None, beatTo = None, type = None, **kwargs):
+    def __init__(self, id = None, start = None, end = None, type = None, **kwargs):
         self.id = id
-        self.beatFrom = beatFrom
-        self.beatTo = beatTo
+        self.start = start
+        self.end = end
         self.type = type
         self.args = {**kwargs}
 
     def __str__(self):
         if self.type == ParamSegment.LINEAR:
-            return f"[{self.beatFrom}..{self.beatTo}] linear: {self.args['valueFrom']} -> {self.args['valueTo']}"
+            return f"[{self.start}..{self.end}] linear: {self.args['startValue']} -> {self.args['endValue']}"
         elif self.type == ParamSegment.CONST:
-            return f"[{self.beatFrom}..{self.beatTo}] const: {self.args['value']}"
+            return f"[{self.start}..{self.end}] const: {self.args['value']}"
         elif self.type == ParamSegment.LITERAL:
-            return f"[{self.beatFrom}..{self.beatTo}] \"{self.args['value']}\""
+            return f"[{self.start}..{self.end}] \"{self.args['value']}\""
         else:
-            return f"[{self.beatFrom or '?'}..{self.beatTo or '?'}] unknown segment"
+            return f"[{self.start or '?'}..{self.end or '?'}] unknown segment"
 
     def setArgs(self, type, **kwargs):
         self.type = type
         self.args.update(kwargs)
 
-    def beatLen(self):
-        return self.beatTo - self.beatFrom
+    def length(self):
+        return self.end - self.start
