@@ -6,6 +6,7 @@ import json
 
 from may2Objects import * #pylint: disable=unused-wildcard-import
 from may2Synth import * #pylint: disable=unused-wildcard-import
+from may2Param import * #pylint: disable=unused-wildcard-import
 
 
 ################### EN/DECODING FUNCTIONALITY #####################
@@ -162,6 +163,45 @@ class SynthNodeDecoder(json.JSONDecoder):
 
 #########################################################
 
+def encodeParam(obj):
+    if not isinstance(obj, Param):
+        raise TypeError(f"encodeParam can't encode {obj.__class__.__name__}")
+    # decision: we do not save the nodeTree for now! parse when required, these are huge!
+    objDict = {
+        'id': obj.id,
+        'default': obj.default,
+        'form': obj.form,
+        'segments': [segment.__dict__ for segment in obj.segments] # json.dumps(obj.segments, default = encodeParamSegment),
+    }
+    return objDict
+
+def decodeParam(objDict):
+    param = Param(objDict['form'], id = objDict['id'], default = objDict['default'])
+    param.segments =  [decodeParamSegment(segDict) for segDict in objDict['segments']]
+    return param
+
+def encodeParamSegment(obj):
+    if not isinstance(obj, ParamSegment):
+        raise TypeError(f"encodeParamSegment can't encode {obj.__class__.__name__}")
+    objDict = {
+        'id': obj.id,
+        'beatFrom': obj.beatFrom,
+        'beatTo': obj.beatTo,
+        'type': obj.type,
+        'args': obj.args
+    }
+    return objDict
+
+def decodeParamSegment(objDict):
+    segment = ParamSegment(id = objDict['id'])
+    segment.beatFrom = objDict['beatFrom']
+    segment.beatTo = objDict['beatTo']
+    segment.type = objDict['type']
+    segment.args = objDict['args']
+    return segment
+
+#########################################################
+
 class MaysonEncoder(json.JSONEncoder):
 
     #pylint: disable=method-hidden
@@ -172,6 +212,10 @@ class MaysonEncoder(json.JSONEncoder):
             return encodePattern(obj)
         elif isinstance(obj, Synth):
             return encodeSynth(obj)
+        elif isinstance(obj, Param):
+            return encodeParam(obj)
+        elif isinstance(obj, ParamSegment):
+            return encodeParamSegment(obj)
         else:
             return super().default(obj)
 
@@ -187,4 +231,5 @@ class MaysonDecoder(json.JSONDecoder):
         obj['tracks'] = json.loads(oDict['tracks'], object_hook = decodeTrack)
         obj['patterns'] = json.loads(oDict['patterns'], object_hook = decodePattern)
         obj['synths'] = json.loads(oDict['synths'], object_hook = decodeSynth)
+        obj['paramOverrides'] = json.loads(oDict['paramOverrides'], object_hook = decodeParam)
         return obj

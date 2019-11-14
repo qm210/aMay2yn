@@ -1,17 +1,13 @@
 from PyQt5.QtCore import QAbstractItemModel, Qt, QModelIndex
 
-from May2ynatizer import newlineindent
-from may2Utils import GLfloat, GLstr
-
 
 class Param:
 
-    def __init__(self, form, parent = None):
-        self.parent = parent
+    def __init__(self, form, id = None, default = None):
         self.form = form
         self.segments = []
-        self.id = form['id']
-        self.default = form.get('default', None)
+        self.id = id or form['id']
+        self.default = default or float(form.get('default', 0))
 
         self.initSegments()
 
@@ -50,7 +46,22 @@ class Param:
 
 
     def addSegment(self, item):
-        self.segments.append(item)
+        if item is not None:
+            self.segments.append(item)
+            self.segments.sort(key = lambda segment: segment.beatFrom)
+
+    def updateSegment(self, oldSegment, newSegment):
+        try:
+            oldSegmentIndex = self.segments.index(oldSegment)
+        except ValueError:
+            print("Tried to updateSegment(), but did not find", oldSegment, "in this parameter. Add instead.")
+            self.addSegment(newSegment)
+            return
+        if newSegment is not None:
+            self.segments[oldSegmentIndex] = newSegment
+            self.segments.sort(key = lambda segment: segment.beatFrom)
+        else:
+            self.segments.remove(oldSegment)
 
     def getForm(self, row):
         try:
@@ -61,15 +72,28 @@ class Param:
     def getSegmentList(self):
         return [segment.id for segment in self.segments]
 
+    def getSegmentAtIndex(self, index):
+        return self.segments[index] if index is not None else None
+
+    def hasCollidingSegments(self):
+        for seg, nextSeg in zip(self.segments, self.segments[1:]):
+            if seg.beatTo > nextSeg.beatFrom:
+                return True
+        return False
+
+    def getLastSegmentEnd(self):
+        return self.segments[-1].beatTo if self.segments else 0
+
+
 class ParamSegment:
 
     LINEAR, CONST, LITERAL = ['linear', 'const', 'literal']
 
-    def __init__(self, id = None, beatFrom = None, beatTo = None, **kwargs):
+    def __init__(self, id = None, beatFrom = None, beatTo = None, type = None, **kwargs):
         self.id = id
         self.beatFrom = beatFrom
         self.beatTo = beatTo
-        self.type = None
+        self.type = type
         self.args = {**kwargs}
 
     def __str__(self):
@@ -85,3 +109,6 @@ class ParamSegment:
     def setArgs(self, type, **kwargs):
         self.type = type
         self.args.update(kwargs)
+
+    def beatLen(self):
+        return self.beatTo - self.beatFrom

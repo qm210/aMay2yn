@@ -1,12 +1,16 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QTreeView, QTableView, QPushButton, QTreeView, QTreeWidget, QTreeWidgetItem
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QTreeView, QTableView, QPushButton, QTreeView, QTreeWidget, QTreeWidgetItem, QInputDialog
 from PyQt5.QtGui import QStandardItemModel
+from PyQt5.QtCore import pyqtSignal
 
 from may2Synth import Synth
-from may2ParamModel import Param
+from may2Param import Param
 from SegmentDialog import SegmentDialog
 
 
 class May2SynthWidget(QWidget):
+
+    paramChanged = pyqtSignal(Param)
+    randomsChanged = pyqtSignal()
 
     def __init__(self, parent):
         super().__init__()
@@ -23,37 +27,47 @@ class May2SynthWidget(QWidget):
     def getSynthName(self):
         return self.synth.name if self.synth is not None else None
 
+    def updateParamWidget(self):
+        self.paramWidget.clear()
+        for param in self.params:
+            paramItem = QTreeWidgetItem([param.__str__()])
+            for seg in param.segments:
+                paramItem.addChild(QTreeWidgetItem([seg.__str__()]))
+            self.paramWidget.addTopLevelItem(paramItem)
+        self.paramWidget.expandAll()
+        self.paramWidget.setStyleSheet("background-color: red;" if self.findParamSegmentCollisions() else "")
+        self.updateParamButtons()
+
+    def updateParamButtons(self):
+        self.paramEditButton.setEnabled(self.selectedParam is not None)
+        self.newSegmentButton.setEnabled(self.selectedParam is not None)
+
     def setSynth(self, synth):
         self.synth = synth
-
         self.params = []
-        self.paramWidget.clear()
+        if self.synth is not None:
+            for paramID in self.synth.usedParams:
+                param = self.getParamOverride(paramID)
+                if param is None:
+                    param = Param(self.synth.usedParams[paramID])
+                self.params.append(param)
+        self.selectedParam = None
+        self.selectedSegment = None
+        self.updateParamWidget()
+
         self.randoms = []
         # self.randomWidget.clear()
-
-        if synth is None:
-            return
-
-        for paramKey in self.synth.usedParams:
-            paramForm = self.synth.usedParams[paramKey]
-            print(paramForm)
-            param = Param(paramForm)
-            item = QTreeWidgetItem([param.__str__()])
-            for seg in param.segments:
-                item.addChild(seg.__str__())
-            self.paramWidget.addTopLevelItem(item)
-        self.paramWidget.expandAll()
 
     def initLayout(self):
         self.mainLayout = QHBoxLayout(self)
 
         self.paramEditLayout = QVBoxLayout(self)
-        self.reloadSynButton = QPushButton("Reload .syn", self)
+        self.reloadFromSynButton = QPushButton("Reload from .syn", self)
         self.paramEditButton = QPushButton("Edit Selected", self)
         self.paramEditButton.setEnabled(False)
         self.newSegmentButton = QPushButton("New Segment", self)
         self.newSegmentButton.setEnabled(False)
-        self.paramEditLayout.addWidget(self.reloadSynButton)
+        self.paramEditLayout.addWidget(self.reloadFromSynButton)
         self.paramEditLayout.addWidget(self.paramEditButton)
         self.paramEditLayout.addWidget(self.newSegmentButton)
 
@@ -80,37 +94,55 @@ class May2SynthWidget(QWidget):
 
     def initSignals(self):
         self.paramWidget.itemClicked.connect(self.selectParam)
-
+        self.paramWidget.itemDoubleClicked.connect(self.editSelected)
+        self.reloadFromSynButton.clicked.connect(self.reloadFromSyn)
         self.paramEditButton.clicked.connect(self.editSelected)
         self.newSegmentButton.clicked.connect(self.newSegment)
 
     def selectParam(self, item, column = None):
+        self.selectedParam = self.params[self.paramWidget.indexOfTopLevelItem(item)]
         if item.parent() is None:
-            self.selectedParam = item.text(0).split()[0]
             self.selectedSegment = None
         else:
-            self.selectedParam = item.parent().text(0).split()[0]
-            self.selectedSegment = self.paramWidget.indexOfTopLevelItem(item)
+            segmentIndex = self.paramWidget.indexFromItem(item).row()
+            self.selectedSegment = self.selectedParam.getSegmentAtIndex(segmentIndex)
+        self.updateParamButtons()
 
-        self.paramEditButton.setEnabled(self.selectedParam is not None)
-        self.newSegmentButton.setEnabled(self.selectedParam is not None)
+    def editSelected(self, item = None, column = 0):
+        if self.selectedSegment is None:
+            paramDefault, ok = QInputDialog.getDouble(self, 'Edit Parameter Default', f'Default Value for Parameter:\n{self.selectedParam.id}', self.selectedParam.default, decimals = 3)
+            if not ok:
+                return
+            self.selectedParam.default = paramDefault
+        else:
+            print(self.selectedSegment)
+            segmentDialog = SegmentDialog(self.parent, self.selectedParam, segment = self.selectedSegment)
+            if not segmentDialog.exec_():
+                return
+            self.selectedParam.updateSegment(self.selectedSegment, segmentDialog.getSegment())
 
-
-    def editSelected(self):
-        pass
+        self.paramChanged.emit(self.selectedParam)
+        self.updateParamWidget()
 
     def newSegment(self):
-        segmentDialog = SegmentDialog(self.parent)
+        segmentDialog = SegmentDialog(self.parent, self.selectedParam)
         if segmentDialog.exec_():
-            print("yay!")
+            self.selectedParam.addSegment(segmentDialog.getSegment())
+            self.paramChanged.emit(self.selectedParam)
+            self.updateParamWidget()
 
-            self.checkParamSegmentCollisions()
-
-    def checkParamSegmentCollisions(self):
-        foundCollision = False
+    def findParamSegmentCollisions(self):
         for param in self.params:
-            for seg, nextSeg in zip(param.segments, param.segments[1:]):
-                if seg.beatTo > nextSeg.beatFrom:
-                    foundCollision = True
-                    break
-        self.paramWidget.setStyleSheet("background-color: red;" if foundCollision else "")
+            if param.hasCollidingSegments():
+                return True
+        return False
+
+    def getParamOverride(self, paramID):
+        return self.parent.synthModel.paramOverrides.get(paramID, None)
+
+    def reloadFromSyn(self):
+        if self.selectedParam is None:
+            return
+        print("Reload From .Syn is not properly implemented yet. For now, just erase the paramOverride in the synthModel...")
+        self.parent.synthModel.deleteParamOverride(self.selectedParam.id) # TODO: actually, do it via signal as well
+        self.setSynth(self.synth)

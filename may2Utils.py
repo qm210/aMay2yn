@@ -6,7 +6,8 @@ quantize = lambda x, q: floor(x/q)*q
 
 GLfloat = lambda f: str(int(f)) + '.' if f==int(f) else str(f)[0 if f>=1 or f<0 or abs(f)<1e-4 else 1:].replace('-0.','-.')
 strfloat = lambda f: str(int(f)) if f==int(f) else str(f)
-
+newlineindent = '\n' + 4*' '
+newlineplus = '\n' + 6*' ' + '+'
 inQuotes = lambda f: len(f) > 2 and f[0] == '"' and f[-1] == '"'
 
 split_if_not_quoted = lambda string, delimiter: string.split(delimiter) if not inQuotes(string) else [string]
@@ -49,7 +50,7 @@ def isNumber(string):
     regex = match(r'[+-]?[\d]*[\.]?[\d]*([eE][+-]?[\d]+)?', string).group()
     return (regex == string)
 
-def findFreeSerial(self, serialPrefix, takenSerials = []):
+def findFreeSerial(serialPrefix, takenSerials = []):
     count = 0
     while True:
         newSubID = f'{serialPrefix}{count}'

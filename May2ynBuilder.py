@@ -270,7 +270,6 @@ class May2ynBuilder:
                     bpm_list = ['0:' + part.split(':')[1]]
                 else:
                     bpm_list.append(str(bpm_point - self.module_shift) + ':' + part.split(':')[1])
-                print(part, self.module_shift, bpm_list)
         else:
             bpm_list = self.getInfo('BPM').split()
 
@@ -299,6 +298,12 @@ class May2ynBuilder:
         actuallyUsedDrums = set(n.note_pitch for p in self.patterns if p.synthType == may2Objects.DRUMTYPE for n in p.notes)
 
         if self.MODE_debug: print("ACTUALLY USED:", actuallyUsedSynths, actuallyUsedDrums)
+
+        #### Sadly, this structure is already quite abstruse. Rewrite when given time. For now, just update the Param List from the main Synth Models Param Overrides..!
+        paramOverrides = self.parent.synthModel.paramOverrides
+        for index, param in enumerate(self.synatize_param_list):
+            if param['id'] in paramOverrides:
+                self.synatize_param_list[index] = {'id': param['id'], 'type': 'param', 'override': paramOverrides[param['id']]}
 
         self.synatized_code_syn, self.synatized_code_drum, paramcode, filtercode, self.last_synatized_forms = \
             synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, actuallyUsedSynths, actuallyUsedDrums)
@@ -395,8 +400,6 @@ class May2ynBuilder:
             print("HINT: you didn't use any note_slide, might want to remove manually")
         if all(n.note_aux == 0 for p in self.patterns for n in p.notes):
             print("HINT: you didn't use any note_aux, might want to remove manually")
-
-        print("WAIT. WE HAVE", self.drumIndex(), "and we have", syn_rel, len(syn_rel))
 
         print("START TEXTURE")
 

@@ -3,10 +3,9 @@ from random import random
 from re import sub
 
 from May2ynatizerDefaults import set_remaining_defaults
-from may2Utils import GLfloat, GLstr, inQuotes, split_if_not_quoted
-
-newlineindent = '\n' + 4*' '
-newlineplus = '\n' + 6*' ' + '+'
+from may2Utils import GLfloat, GLstr, inQuotes, split_if_not_quoted, newlineindent, newlineplus
+from may2ParamBuilder import buildParamFunction
+from may2Utils import newlineindent, newlineplus
 
 def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = False):
 
@@ -638,11 +637,16 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
         drumsyncode = drumsyncode.replace('_TIME','time').replace('_PROG','_t').replace('_BPROG','Bprog').replace('_BEAT','BT').replace('_BMODPROG','B')
 
     paramcode = ''
-    param_normal, param_includes = [], []
+    param_oldskool, param_includes, param_overrides = [], [], []
     for par in param_list:
-        param_includes.append(par) if par['id'] == 'include' else param_normal.append(par)
+        if par['id'] == 'include':
+            param_includes.append(par)
+        elif 'override' in par:
+            param_overrides.append(par)
+        else:
+            param_oldskool.append(par)
 
-    for par in param_normal:
+    for par in param_oldskool:
         paramcode += 'float ' + par['id'] + '(float _BEAT)\n{' + newlineindent + 'return _BEAT<0 ? 0. : '
         for seg in range(par['n_segments']):
             seg_code = instance(par['segments'][3*seg]).replace('_BPROG', '_BEAT').replace('_BMODPROG', '_BEAT')
@@ -654,6 +658,8 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
     for par in param_includes:
         paramcode += par['src'].replace('"', '').replace('} ', '}\n')
 
+    for par in param_overrides:
+        paramcode += buildParamFunction(par['override'])
 
     filter_list = [f for f in form_list if f['type']=='filter']
     filtercode = ''

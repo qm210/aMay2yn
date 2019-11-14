@@ -200,6 +200,8 @@ class MainWindow(QMainWindow):
         self.trackWidget.activated.connect(partial(self.toggleActivated, activateTrack = True))
         self.patternWidget.activated.connect(partial(self.toggleActivated, activatePattern = True))
         self.patternWidget.patternChanged.connect(self.patternChanged)
+        self.synthWidget.paramChanged.connect(self.paramChanged)
+        self.synthWidget.randomsChanged.connect(self.randomsChanged)
 
         self.beatOffsetCheckBox.stateChanged.connect(self.updateRenderRange)
         self.beatOffsetSpinBox.valueChanged.connect(self.updateRenderRange)
@@ -445,6 +447,7 @@ class MainWindow(QMainWindow):
             'patterns': self.patternModel.patterns,
             'synths': self.synthModel.synths,
             'drumkit': self.drumModel.stringList(),
+            'paramOverrides': self.synthModel.paramOverrides
         }
         fn = open(self.globalState['maysonFile'], 'w')
         print(f"Export to {self.globalState['maysonFile']}")
@@ -622,7 +625,7 @@ class MainWindow(QMainWindow):
 
     def setModelsFromData(self, data):
         if data is not None:
-            tracks, patterns, synths, drumkit = self.decodeMaysonData(data)
+            tracks, patterns, synths, drumkit, paramOverrides = self.decodeMaysonData(data)
         else:
             tracks = [Track()]
             patterns = [Pattern()]
@@ -631,11 +634,12 @@ class MainWindow(QMainWindow):
             self.amaysyn.parseSynths(skipExisting = True)
             synths = self.amaysyn.synths
             drumkit = self.amaysyn.drumkit
-
+            paramOverrides = {}
 
         self.trackModel.setTracks(tracks)
         self.patternModel.setPatterns(patterns)
         self.synthModel.setSynths(synths)
+        self.synthModel.paramOverrides = paramOverrides
         self.drumModel.setStringList(drumkit)
 
         self.trackModel.layoutChanged.emit()
@@ -681,7 +685,14 @@ class MainWindow(QMainWindow):
             synths.append(synth)
 
         drumkit = data['drumkit']
-        return tracks, patterns, synths, drumkit
+
+        paramOverrides = {}
+        if 'paramOverrides' in data:
+            for paramID in data['paramOverrides']:
+                param = decodeParam(data['paramOverrides'][paramID])
+                paramOverrides[paramID] = param
+
+        return tracks, patterns, synths, drumkit, paramOverrides
 
 
     def pushUndoStack(self):
@@ -699,7 +710,8 @@ class MainWindow(QMainWindow):
             'tracks': self.trackModel.tracks,
             'patterns': self.patternModel.patterns,
             'synths': self.synthModel.synths,
-            'drumkit': self.drumModel.stringList()
+            'drumkit': self.drumModel.stringList(),
+            'paramOverrides': self.synthModel.paramOverrides
         }
         self.undoStack.append(json.dumps(undoObject, cls = MaysonEncoder))
 
@@ -906,6 +918,13 @@ class MainWindow(QMainWindow):
         self.patternGroupLayout.setCurrentWidget(self.patternWidget)
 
     def patternChanged(self):
+        self.pushUndoStack()
+
+    def paramChanged(self, param):
+        self.synthModel.setParamOverride(param)
+        self.pushUndoStack()
+
+    def randomsChanged(self):
         self.pushUndoStack()
 
     def addPattern(self, pattern = None, clone = False):

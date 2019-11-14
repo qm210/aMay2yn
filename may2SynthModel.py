@@ -10,6 +10,7 @@ class SynthModel(QAbstractListModel):
     def __init__(self, *args, **kwargs):
         super(SynthModel, self).__init__(*args, **kwargs)
         self.synths = []
+        self.paramOverrides = {}
 
     def setSynths(self, synths):
         self.beginResetModel()
@@ -66,3 +67,12 @@ class SynthModel(QAbstractListModel):
 #        self.synths.insert(row, Synth())
 #        self.endInsertRows()
 
+    def setParamOverride(self, param):
+        self.paramOverrides[param.id] = param
+
+    def deleteParamOverride(self, paramID):
+        paramOverride = self.paramOverrides.pop(paramID, None)
+        if paramOverride is not None:
+            print("Removed Param Override:", paramOverride)
+        else:
+            print("Tried to remove Param Override", paramID, "- but it was not even set.")
