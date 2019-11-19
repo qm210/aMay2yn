@@ -304,6 +304,11 @@ class May2ynBuilder:
             if param['id'] in paramOverrides:
                 self.synatize_param_list[index] = {'id': param['id'], 'type': 'param', 'override': paramOverrides[param['id']]}
 
+        randomOverrides = self.parent.synthModel.randomValues
+        for index, random in enumerate(self.synatize_form_list):
+            if random['id'] in randomOverrides:
+                self.synatize_form_list[index] = randomOverrides[random['id']].getUpdatedForm()
+
         self.synatized_code_syn, self.synatized_code_drum, paramcode, filtercode, self.last_synatized_forms = \
             synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, actuallyUsedSynths, actuallyUsedDrums)
 

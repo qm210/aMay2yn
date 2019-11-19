@@ -85,15 +85,15 @@ class MainWindow(QMainWindow):
         self.synthGroup = QGroupBox()
         self.synthGroup.setLayout(self.synthGroupLayout)
 
-        self.upperLayout = QSplitter(self)
-        self.upperLayout.setOrientation(Qt.Vertical)
-        self.upperLayout.addWidget(self.trackGroup)
-        self.upperLayout.addWidget(self.patternGroup)
-        self.upperLayout.setSizes([400,500])
+        self.mainSplitLayout = QSplitter(self)
+        self.mainSplitLayout.setOrientation(Qt.Vertical)
+        self.mainSplitLayout.addWidget(self.trackGroup)
+        self.mainSplitLayout.addWidget(self.patternGroup)
+        self.mainSplitLayout.addWidget(self.synthGroup)
+        self.mainSplitLayout.setSizes([400,500,150])
 
         self.mainLayout = QVBoxLayout()
-        self.mainLayout.addWidget(self.upperLayout, 6)
-        self.mainLayout.addWidget(self.synthGroup, 1)
+        self.mainLayout.addWidget(self.mainSplitLayout)
 
         self.centralWidget = QWidget(self)
         self.centralWidget.setLayout(self.mainLayout)
@@ -201,7 +201,7 @@ class MainWindow(QMainWindow):
         self.patternWidget.activated.connect(partial(self.toggleActivated, activatePattern = True))
         self.patternWidget.patternChanged.connect(self.patternChanged)
         self.synthWidget.paramChanged.connect(self.paramChanged)
-        self.synthWidget.randomsChanged.connect(self.randomsChanged)
+        self.synthWidget.randomChanged.connect(self.randomChanged)
 
         self.beatOffsetCheckBox.stateChanged.connect(self.updateRenderRange)
         self.beatOffsetSpinBox.valueChanged.connect(self.updateRenderRange)
@@ -269,6 +269,7 @@ class MainWindow(QMainWindow):
                 'maysonFile': f"{self.globalState['argGivenTitle']}.mayson",
                 'lastDirectory': './'
             })
+            self.autoSaveGlobals()
         else:
             loadGlobalState = {}
             try:
@@ -447,7 +448,8 @@ class MainWindow(QMainWindow):
             'patterns': self.patternModel.patterns,
             'synths': self.synthModel.synths,
             'drumkit': self.drumModel.stringList(),
-            'paramOverrides': self.synthModel.paramOverrides
+            'paramOverrides': self.synthModel.paramOverrides,
+            'randomValues': self.synthModel.randomValues,
         }
         fn = open(self.globalState['maysonFile'], 'w')
         print(f"Export to {self.globalState['maysonFile']}")
@@ -625,7 +627,7 @@ class MainWindow(QMainWindow):
 
     def setModelsFromData(self, data):
         if data is not None:
-            tracks, patterns, synths, drumkit, paramOverrides = self.decodeMaysonData(data)
+            tracks, patterns, synths, drumkit, paramOverrides, randomValues = self.decodeMaysonData(data)
         else:
             tracks = [Track()]
             patterns = [Pattern()]
@@ -635,11 +637,13 @@ class MainWindow(QMainWindow):
             synths = self.amaysyn.synths
             drumkit = self.amaysyn.drumkit
             paramOverrides = {}
+            randomValues = {}
 
         self.trackModel.setTracks(tracks)
         self.patternModel.setPatterns(patterns)
         self.synthModel.setSynths(synths)
         self.synthModel.paramOverrides = paramOverrides
+        self.synthModel.randomValues = randomValues
         self.drumModel.setStringList(drumkit)
 
         self.trackModel.layoutChanged.emit()
@@ -692,7 +696,13 @@ class MainWindow(QMainWindow):
                 param = decodeParam(data['paramOverrides'][paramID])
                 paramOverrides[paramID] = param
 
-        return tracks, patterns, synths, drumkit, paramOverrides
+        randomValues = {}
+        if 'randomValues' in data:
+            for randomID in data['randomValues']:
+                randomValue = decodeRandomValue(data['randomValue'][randomID])
+                randomValues[randomID] = randomValue
+
+        return tracks, patterns, synths, drumkit, paramOverrides, randomValues
 
 
     def pushUndoStack(self):
@@ -711,7 +721,8 @@ class MainWindow(QMainWindow):
             'patterns': self.patternModel.patterns,
             'synths': self.synthModel.synths,
             'drumkit': self.drumModel.stringList(),
-            'paramOverrides': self.synthModel.paramOverrides
+            'paramOverrides': self.synthModel.paramOverrides,
+            'randomValues': self.synthModel.randomValues
         }
         self.undoStack.append(json.dumps(undoObject, cls = MaysonEncoder))
 
@@ -924,7 +935,8 @@ class MainWindow(QMainWindow):
         self.synthModel.setParamOverride(param)
         self.pushUndoStack()
 
-    def randomsChanged(self):
+    def randomChanged(self, randomValue):
+        self.synthModel.setRandomValue(randomValue)
         self.pushUndoStack()
 
     def addPattern(self, pattern = None, clone = False):

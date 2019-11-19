@@ -211,9 +211,9 @@ class SynthNode:
         elif self.type == 'const':
             self.value = form['value']
         elif self.type == 'random':
-            self.value = form['value']
+            self.value = deepcopy(form)
             if self.id in self.root.usedRandoms:
-                print(f"{self.root.id}: {self.id}: updating usedRandom {self.root.usedRandoms[self.id]} -> {self.value}")
+                print(f"{self.root.id}: {self.id}: updating usedRandom {self.root.usedRandoms[self.id]['value']} -> {self.value['value']}")
             self.root.usedRandoms.update({self.id: self.value})
         elif self.type in ['param']:
             self.value = deepcopy(form) # wtf what to do with this!?? and how to treat includes? BIGTODO

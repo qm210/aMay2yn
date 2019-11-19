@@ -7,6 +7,7 @@ import json
 from may2Objects import * #pylint: disable=unused-wildcard-import
 from may2Synth import * #pylint: disable=unused-wildcard-import
 from may2Param import * #pylint: disable=unused-wildcard-import
+from may2RandomValue import * #pylint: disable=unused-wildcard-import
 
 
 ################### EN/DECODING FUNCTIONALITY #####################
@@ -202,6 +203,34 @@ def decodeParamSegment(objDict):
     segment.args = objDict['args']
     return segment
 
+def encodeRandomValue(obj):
+    if not isinstance(obj, RandomValue):
+        raise TypeError(f"encodeRandomValue can't encode {obj.__class__.__name__}")
+    objDict = {
+        'id': obj.id,
+        'form': obj.form,
+        'value': obj.value,
+        'min': obj.min,
+        'max': obj.max,
+        'digits': obj.digits,
+        'fixed': obj.fixed,
+        'storedValues': obj.storedValues
+    }
+    return objDict
+
+def decodeRandomValue(objDict):
+    obj = RandomValue(
+        form = objDict['form'],
+        id = objDict['id'],
+        value = objDict['value'],
+        fixed = objDict['fixed'],
+    )
+    obj.min = objDict['min']
+    obj.max = objDict['max']
+    obj.digits = objDict['digits']
+    obj.storedValues = objDict['storedValues']
+    return obj
+
 #########################################################
 
 class MaysonEncoder(json.JSONEncoder):
@@ -218,6 +247,8 @@ class MaysonEncoder(json.JSONEncoder):
             return encodeParam(obj)
         elif isinstance(obj, ParamSegment):
             return encodeParamSegment(obj)
+        elif isinstance(obj, RandomValue):
+            return encodeRandomValue(obj)
         else:
             return super().default(obj)
 
@@ -233,5 +264,6 @@ class MaysonDecoder(json.JSONDecoder):
         obj['tracks'] = json.loads(oDict['tracks'], object_hook = decodeTrack)
         obj['patterns'] = json.loads(oDict['patterns'], object_hook = decodePattern)
         obj['synths'] = json.loads(oDict['synths'], object_hook = decodeSynth)
-        obj['paramOverrides'] = json.loads(oDict['paramOverrides'], object_hook = decodeParam)
+        obj['paramOverrides'] = json.loads(oDict.get('paramOverrides', '{}'), object_hook = decodeParam)
+        obj['randomValues'] = json.loads(oDict.get('randomValues', '{}'), object_hook = decodeRandomValue)
         return obj

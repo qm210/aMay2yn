@@ -1,5 +1,3 @@
-from PyQt5.QtCore import QAbstractItemModel, Qt, QModelIndex
-
 
 class Param:
 
@@ -13,7 +11,10 @@ class Param:
         self.initSegments()
 
     def __str__(self):
-        return f"{self.id} (default: {self.default})"
+        label = f"{self.id} (default: {self.default})"
+        if self.syncWithModule:
+            label += ' (mod sync)'
+        return label
 
     def initSegments(self): # TODO: implement this
         pass
