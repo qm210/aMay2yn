@@ -47,8 +47,8 @@ class SynthDialog(QtWidgets.QDialog):
         self.previewModuleButton.setEnabled(track is not None and not track.isEmpty())
         self.buttonGrid.addWidget(self.previewModuleButton, 1, 1)
 
-        self.hardCopySynthButton = QtWidgets.QPushButton('HardCopy Synth', self)
-        self.buttonGrid.addWidget(self.hardCopySynthButton, 1, 0)
+        self.hardcopySynthButton = QtWidgets.QPushButton('HardCopy Synth', self)
+        self.buttonGrid.addWidget(self.hardcopySynthButton, 1, 0)
 
         self.layout.addLayout(self.buttonGrid)
 
@@ -58,7 +58,7 @@ class SynthDialog(QtWidgets.QDialog):
         self.randomSynthButton.clicked.connect(self.selectRandomSynth)
         self.randomizeParametersButton.clicked.connect(self.randomizeSynthParameters)
         self.previewModuleButton.clicked.connect(self.parent.renderModule)
-        self.hardCopySynthButton.clicked.connect(self.parent.hardCopySynth)
+        self.hardcopySynthButton.clicked.connect(self.parent.hardcopySynth)
 
         self.init()
 

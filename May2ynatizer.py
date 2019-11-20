@@ -41,7 +41,6 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
         i = 2
         while i < len(line):
             a = line[i]
-            print("now at", i, a, a.count('"'))
             while a.count('"') % 2 > 0:
                 i += 1
                 a += ' ' + line[i]

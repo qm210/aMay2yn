@@ -81,7 +81,6 @@ class SynthModel(QAbstractListModel):
     def setRandomValues(self, randomValues):
         for randomValue in randomValues:
             self.randomValues[randomValue.id] = randomValue
-            print("CHANGED", randomValue.id, self.randomValues[randomValue.id])
 
     def reshuffleRandomValues(self):
         for randomID in self.randomValues:

@@ -241,8 +241,8 @@ class Pattern:
     def __repr__(self):
         return ','.join(str(i) for i in [self.name, self.notes, self.length, self.currentNoteIndex, self.synthType])
 
-    def isDuplicateOf(self, other):
-        return len(self.notes) == len(other.notes) and all(nS == nO for nS, nO in zip(self.notes, other.notes))
+    def isDuplicateOf(self, other, transposed = 0):
+        return len(self.notes) == len(other.notes) and all(nS == (nO + transposed) for nS, nO in zip(self.notes, other.notes))
 
     def setTypeParam(self, synthType = None, max_note = None):
         if synthType:
@@ -525,6 +525,16 @@ class Note:
             and self.note_vel == other.note_vel
             and self.note_slide == other.note_slide
             and self.note_aux == other.note_aux)
+
+    def __add__(self, other):
+        newNote = copy(self)
+        if isinstance(other, int):
+            newNote.note_pitch += other
+        elif isinstance(other, Note):
+            newNote.note_pitch += other.note_pitch
+        else:
+            raise TypeError(f"Tried to add Note + {other.__class__.__name__}, not defined.")
+        return newNote
 
     def moveNoteOn(self, to):
         to = max(to, 0)

@@ -50,6 +50,12 @@ class TrackModel(QAbstractListModel):
     def totalLength(self):
         return max(t.getLastModuleOff() for t in self.tracks)
 
+    def getAllModules(self):
+        return [m for t in self.tracks for m in t.modules]
+
+    def getAllModulesOfHash(self, hash):
+        return [m for t in self.tracks for m in t.modules if m.patternHash == hash]
+
 ########################## TRACK FUNCTIONALITY ############################
 
     def track(self, index):

@@ -23,6 +23,8 @@ class PatternDialog(QtWidgets.QDialog):
         self.patternIndex = self.patternModel.getIndexOfPattern(pattern) if pattern is not None \
             else self.patternModel.getPatternIndexOfHash(module.patternHash) if module is not None else 0
         self.initPatternIndex = self.patternIndex
+        self.initName = pattern.name if pattern is not None else ''
+        self.namesChanged = {}
         self.initBeat = beat if module is None else module.mod_on
         self.initTranspose = 0 if module is None else module.transpose
 
@@ -68,12 +70,16 @@ class PatternDialog(QtWidgets.QDialog):
         self.patternList.setModel(self.patternModel)
         self.layout.addWidget(self.patternList)
 
+        self.nameEdit = QtWidgets.QLineEdit(self)
+        self.nameEdit.setPlaceholderText('Pattern Name...')
+        self.layout.addWidget(self.nameEdit)
+
         self.buttonGrid = QtWidgets.QGridLayout()
 
         self.newPatternButton = QtWidgets.QPushButton('New Pattern', self)
         self.clonePatternButton = QtWidgets.QPushButton('Clone Pattern', self)
         self.purgeEmptyButton = QtWidgets.QPushButton('Purge Empty', self)
-        self.purgeUnusedButton = QtWidgets.QPushButton('Purge Unused', self)
+        self.purgeUnusedButton = QtWidgets.QPushButton('Purge Unused / Duplicates', self)
 
         self.buttonGrid.addWidget(self.newPatternButton, 0, 0)
         self.buttonGrid.addWidget(self.clonePatternButton, 0, 1)
@@ -91,6 +97,7 @@ class PatternDialog(QtWidgets.QDialog):
         self.modOnSpinBox.valueChanged.connect(self.moveModule)
         self.transposeSpinBox.valueChanged.connect(self.transposeModule)
         self.patternList.selectionModel().currentChanged.connect(self.selectPattern)
+        self.nameEdit.textEdited.connect(self.renamePattern)
         self.newPatternButton.clicked.connect(self.newPattern)
         self.clonePatternButton.clicked.connect(self.clonePattern)
         self.purgeEmptyButton.clicked.connect(self.purgeEmptyPatterns)
@@ -107,6 +114,7 @@ class PatternDialog(QtWidgets.QDialog):
         else:
             self.module = may2Objects.Module(mod_on = self.initBeat, pattern = self.getPattern())
 
+        self.nameEdit.setText(self.initName)
         self.modOnSpinBox.setValue(self.module.mod_on)
         self.transposeSpinBox.setValue(self.module.transpose)
         if self.patternModel.rowCount() > 0:
@@ -136,6 +144,7 @@ class PatternDialog(QtWidgets.QDialog):
     def transposeModule(self, value):
         self.module.transpose = value
 
+
     def newPattern(self):
         newPatternDialog = NewPatternDialog(self, self.track.synthType)
         if newPatternDialog.exec_():
@@ -149,21 +158,40 @@ class PatternDialog(QtWidgets.QDialog):
         self.accept()
 
     def purgeEmptyPatterns(self):
+        currentPatternHash = self.patternModel.patterns[self.patternIndex]._hash
         self.parent.patternModel.purgeEmptyPatterns()
         self.patternModel.setPatternsFromModel(self.createFilteredModel())
+        mappedPatternHash = self.parent.lastPurgeMap[currentPatternHash]
+        self.patternIndex = self.patternModel.getPatternIndexOfHash(mappedPatternHash) or 0
+        self.patternList.setCurrentIndex(self.patternModel.createIndex(self.patternIndex, 0))
+        self.initPatternIndex = self.patternIndex
+        self.okButton.setEnabled(self.patternIndex is not None)
 
     def purgeUnusedPatterns(self):
+        currentPatternHash = self.patternModel.patterns[self.patternIndex]._hash
         self.parent.purgeUnusedPatterns()
         self.patternModel.setPatternsFromModel(self.createFilteredModel())
+        mappedPatternHash = self.parent.lastPurgeMap[currentPatternHash]
+        self.patternIndex = self.patternModel.getPatternIndexOfHash(mappedPatternHash) or 0
+        self.patternList.setCurrentIndex(self.patternModel.createIndex(self.patternIndex, 0))
+        self.initPatternIndex = self.patternIndex
+        self.okButton.setEnabled(self.patternIndex is not None)
 
     def getPattern(self):
-        return self.patternModel.patterns[self.patternIndex] if self.patternModel.rowCount() > 0 else None
+        return self.patternModel.patterns[self.patternIndex] if self.patternIndex is not None and self.patternModel.rowCount() > 0 else None
 
     def selectPattern(self, current, previous):
         self.patternIndex = current.row()
         self.module.setPattern(self.getPattern())
         self.checkCollisions()
+        self.nameEdit.setText(self.getPattern().name)
         self.okButton.setEnabled(True)
+
+    def renamePattern(self, newName):
+        pattern = self.getPattern()
+        if pattern is not None:
+            pattern.name = newName
+            self.namesChanged[pattern._hash] = newName
 
     def checkCollisions(self):
         collision = self.module.collidesWithAnyOf(self.track.modules)

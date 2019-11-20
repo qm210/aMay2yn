@@ -29,37 +29,10 @@ class May2SynthWidget(QWidget):
         self.initLayout()
         self.initSignals()
 
-
-    def getSynthName(self):
-        return self.synth.name if self.synth is not None else None
-
-    def setSynth(self, synth):
-        self.synth = synth
-        self.params = []
-        if self.synth is not None:
-            for paramID in self.synth.usedParams:
-                param = self.getParamOverride(paramID)
-                if param is None:
-                    param = Param(self.synth.usedParams[paramID])
-                self.params.append(param)
-        self.selectedParam = None
-        self.selectedSegment = None
-        self.updateParamWidget()
-
-        self.randoms = []
-        if self.synth is not None:
-            for randomID in self.synth.usedRandoms:
-                random = self.getRandom(randomID)
-                if random is None:
-                    random = RandomValue(self.synth.usedRandoms[randomID])
-                self.randoms.append(random)
-        self.selectedRandom = None
-        self.updateRandomWidget()
-
     def initLayout(self):
         self.mainLayout = QHBoxLayout(self)
 
-        self.paramEditLayout = QVBoxLayout(self)
+        self.paramEditLayout = QVBoxLayout()
         self.reloadFromSynButton = QPushButton("Reload from .syn", self)
         self.reloadFromSynButton.setEnabled(False)
         self.paramEditButton = QPushButton("Edit Selected", self)
@@ -77,7 +50,7 @@ class May2SynthWidget(QWidget):
         self.paramWidget.setItemsExpandable(False)
         self.mainLayout.addWidget(self.paramWidget)
 
-        self.randomEditLayout = QVBoxLayout(self)
+        self.randomEditLayout = QVBoxLayout()
         self.reshuffleButton = QPushButton("reshuffle", self)
         self.reshuffleButton.setEnabled(False)
         self.hardcopyButton = QPushButton("hardcopy", self)
@@ -107,6 +80,33 @@ class May2SynthWidget(QWidget):
         self.reshuffleButton.clicked.connect(self.reshuffleRandoms)
         self.hardcopyButton.clicked.connect(self.hardcopySynth)
         self.setFixedButton.clicked.connect(self.setAllFixedOrFree)
+
+
+    def getSynthName(self):
+        return self.synth.name if self.synth is not None else None
+
+    def setSynth(self, synth):
+        self.synth = synth
+        self.params = []
+        if self.synth is not None:
+            for paramID in self.synth.usedParams:
+                param = self.getParamOverride(paramID)
+                if param is None:
+                    param = Param(self.synth.usedParams[paramID])
+                self.params.append(param)
+        self.selectedParam = None
+        self.selectedSegment = None
+        self.updateParamWidget()
+
+        self.randoms = []
+        if self.synth is not None:
+            for randomID in self.synth.usedRandoms:
+                random = self.getRandom(randomID)
+                if random is None:
+                    random = RandomValue(self.synth.usedRandoms[randomID])
+                self.randoms.append(random)
+        self.selectedRandom = None
+        self.updateRandomWidget()
 
 ############################## PARAMS ###############################
 
@@ -255,7 +255,8 @@ class May2SynthWidget(QWidget):
         print("should implement this, but for now, just write the values to this terminal:")
         for random in self.randoms:
             print(random.getRow())
-        #TODO: connect this with storeValue
+        self.parent.hardcopySynth(self.synth, self.randoms)
+        #TODO: "softcopy": connect this with storeValue
 
     def setAllFixedOrFree(self):
         anyFixed = any([random.fixed for random in self.randoms])

@@ -30,6 +30,11 @@ class PatternModel(QAbstractListModel):
     def rowCount(self, index = None):
         return len(self.patterns)
 
+    def removePattern(self, pattern):
+        if pattern not in self.patterns:
+            return
+        self.removeRow(self.patterns.index(pattern))
+
     def removeRow(self, row, parent = QModelIndex()):
         self.beginRemoveRows(parent, row, row)
         self.patterns.remove(self.patterns[row])

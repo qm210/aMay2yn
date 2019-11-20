@@ -33,6 +33,7 @@ from May2ynBuilder import May2ynBuilder
 from SFXGLWidget import SFXGLWidget
 from SettingsDialog import SettingsDialog
 from PatternDialogs import ImportPatternDialog
+from may2Utils import findFreeSerial
 from may2Style import notACrime, deactivatedColor
 
 globalStateFile = 'global.state'
@@ -290,6 +291,8 @@ class MainWindow(QMainWindow):
         self.undoStep = 0
         self.pushUndoStack()
 
+        self.initPurgeMap()
+
         self.updateUIfromState()
 
 
@@ -529,6 +532,8 @@ class MainWindow(QMainWindow):
 
         if key == Qt.Key_Escape:
             self.close()
+        elif key == Qt.Key_F1:
+            self.shufflePatternColors()
         elif key == Qt.Key_F5:
             self.loadSynFile()
         elif key == Qt.Key_F9:
@@ -686,7 +691,6 @@ class MainWindow(QMainWindow):
             nodeTree = self.amaysyn.getNodeTreeIfMainSrcMatches(synth.name, synth.mainSrc)
             if nodeTree is not None:
                 synth.nodeTree = nodeTree
-                print(synth.nodeTree.id, synth.nodeTree.usedRandoms)
             synths.append(synth)
 
         drumkit = data['drumkit']
@@ -952,12 +956,62 @@ class MainWindow(QMainWindow):
 
     def purgeUnusedPatterns(self):
         usedPatternHashs = [module.patternHash for track in self.trackModel.tracks for module in track.modules]
-            self.patternModel.purgeUnusedPatterns(usedPatternHashs)
+        self.patternModel.purgeUnusedPatterns(usedPatternHashs)
+        self.purgeDuplicatePatterns()
+
+    def purgeDuplicatePatterns(self):
+        self.initPurgeMap()
+        for pattern in self.patternModel.patterns[:]:
+            if self.lastPurgeMap[pattern._hash] != pattern._hash or pattern.isEmpty():
+                continue
+            other_patterns = [p for p in self.patternModel.patterns if p != pattern]
+            for other_p in other_patterns:
+                if other_p.isEmpty():
+                    continue
+                potentiallyTransposed = pattern.notes[0].note_pitch - other_p.notes[0].note_pitch
+                if pattern.isDuplicateOf(other_p, transposed = potentiallyTransposed):
+                    for m in self.trackModel.getAllModulesOfHash(other_p._hash):
+                        m.setPattern(pattern)
+                        m.transpose -= potentiallyTransposed
+                    self.patternModel.removePattern(other_p)
+                    self.lastPurgeMap[other_p._hash] = pattern._hash
+                    print(f"Removed duplicate of {pattern.name}: {other_p.name}")
+
+    def initPurgeMap(self):
+        self.lastPurgeMap = {}
+        for pattern in self.patternModel.patterns:
+            self.lastPurgeMap[pattern._hash] = pattern._hash
 
 ######################### SYNATIZE FUNCTIONALITY #####################
 
-    def hardCopySynth(self):
-        pass
+    def hardcopySynth(self, synth, randoms):
+        if synth.type != SYNTHTYPE:
+            print("tried to hardcopy synth that is not a SYNTH type. Can't.")
+            return
+
+        nameSuggestion = findFreeSerial(f"{synth.name}.", self.synthModel.synthList())
+        name, ok = QInputDialog.getText(self, "Hardcopy Synth", f"Clone '{synth.name}' under new Name:", QLineEdit.Normal, nameSuggestion)
+        # TODO: implement own QDialog with some options, e.g. "keep free randoms free (fix only those with FIXED tag)" and "set current Track to new Synth"
+        if not ok:
+            return
+        try:
+            formTemplate = next(form for form in self.amaysyn.last_synatized_forms if form['id'] == synth.name)
+            formType = formTemplate['type']
+            formMode = formTemplate.get('mode', [])
+            formBody = ' '.join(f"{key}={formTemplate[key]}" for key in formTemplate if key not in  ['type', 'id', 'mode'])
+            if formMode:
+                formBody += ' mode=' + ','.join(formMode)
+        except StopIteration:
+            print("Current synth is not compiled yet. Do so and try again.")
+            return
+        except:
+            print("Could not CLONE HARD:", synth.name, formTemplate)
+            raise
+        else:
+            with open(self.state['synFile'], mode='a') as synFileHandle:
+                synFileHandle.write(f'\n{formType}    {name}    {formBody}')
+            self.loadSynFile()
+
 
     def randomizeSynatizer(self):
         print("this is heavy stuff!")

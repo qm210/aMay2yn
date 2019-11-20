@@ -293,7 +293,7 @@ class May2TrackWidget(QWidget):
         if self.parent.ctrlPressed:
             self.setScale(deltaH = event.angleDelta().y() / 1200)
         elif self.parent.altPressed:
-            transpose = 12 if event.angleDelta().y() > 0 else -12
+            transpose = 12 if event.angleDelta().x() > 0 else -12
             self.model.currentTrack().transposeModule(transpose)
         else:
             if self.parent.shiftPressed:
@@ -430,17 +430,26 @@ class May2TrackWidget(QWidget):
             patternDialog = PatternDialog(self.parent, track = track, pattern = self.parent.getModulePattern(), beat = beat)
             if patternDialog.exec_():
                 track.addModule(patternDialog.module)
+                self.syncPatternNames(patternDialog.namesChanged)
                 self.select(track, patternDialog.module)
                 self.trackChanged.emit()
         else:
+            oldPatternHash = module.patternHash
             patternDialog = PatternDialog(self.parent, track = track, module = module)
             status = patternDialog.exec_()
             if status:
                 pattern = patternDialog.getPattern()
-                if pattern._hash != module.patternHash:
-                    module.setPattern(pattern)
+                self.syncPatternNames(patternDialog.namesChanged)
+                if pattern._hash != oldPatternHash:
                     self.select(track, module)
                     self.trackChanged.emit()
+
+    def syncPatternNames(self, namesChanged):
+        if namesChanged:
+            for module in self.model.getAllModules():
+                if module.patternHash in namesChanged:
+                    module.patternName = namesChanged[module.patternHash]
+
 
     def addPattern(self, pattern, clone = False):
         self.parent.addPattern(pattern, clone)
