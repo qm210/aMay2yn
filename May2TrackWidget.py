@@ -1,5 +1,5 @@
 from PyQt5.QtGui import QColor, QPainter, QFont
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QInputDialog, QLineEdit
 from PyQt5.QtCore import Qt, pyqtSignal
 from math import sqrt, floor
 from numpy import clip
@@ -250,6 +250,8 @@ class May2TrackWidget(QWidget):
         if eventX < self.synthX:
             if event.button() == Qt.RightButton:
                 self.toggleMute(corrTrack)
+            elif event.button() == Qt.MiddleButton:
+                self.renameTrack(corrTrack)
 
         elif eventX < self.gridX:
             if event.button() == Qt.RightButton:
@@ -403,6 +405,17 @@ class May2TrackWidget(QWidget):
             track = self.model.currentTrack()
         self.trackSolo = track if self.trackSolo is None else None
         self.repaint()
+
+    def renameTrack(self, track = None, name = None):
+        if track is None:
+            track = self.mode.currentTrack()
+        if name is None:
+            # TODO: enhance to 'Track Settings Dialog with Mute, Solo, Volume, etc.'
+            name, ok = QInputDialog.getText(self, 'Rename Track', f"Rename Track '{track.name}' to:", QLineEdit.Normal, track.name)
+            if not ok:
+                return
+        track.name = name
+        self.repaintAndEmitTrackChanged()
 
     def openSynthDialog(self, track = None):
         self.parent.setModifiers()

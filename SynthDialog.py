@@ -57,8 +57,8 @@ class SynthDialog(QtWidgets.QDialog):
 
         self.randomSynthButton.clicked.connect(self.selectRandomSynth)
         self.randomizeParametersButton.clicked.connect(self.randomizeSynthParameters)
-        self.previewModuleButton.clicked.connect(self.parent.renderModule)
-        self.hardcopySynthButton.clicked.connect(self.parent.hardcopySynth)
+        self.previewModuleButton.clicked.connect(self.previewModule)
+        self.hardcopySynthButton.clicked.connect(self.hardcopySynth)
 
         self.init()
 
@@ -88,3 +88,9 @@ class SynthDialog(QtWidgets.QDialog):
 
     def randomizeSynthParameters(self):
         self.parent.randomizeSynatizer()
+
+    def hardcopySynth(self):
+        print("not implemented yet")
+
+    def previewModule(self):
+        self.parent.renderModule(synthName = self.synthName())

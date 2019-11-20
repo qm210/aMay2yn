@@ -78,6 +78,9 @@ class SynthModel(QAbstractListModel):
         else:
             print("Tried to remove Param Override", paramID, "- but it was not even set.")
 
+    def setRandomValue(self, randomValue):
+        self.randomValues[randomValue.id] = randomValue
+
     def setRandomValues(self, randomValues):
         for randomValue in randomValues:
             self.randomValues[randomValue.id] = randomValue

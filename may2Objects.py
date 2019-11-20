@@ -17,7 +17,7 @@ class Track:
         self.mute = False
 
     def __repr__(self):
-        return ','.join(str(i) for i in [self.name, self.synthName, self.synthType, self.modules, self.currentModuleIndex])
+        return f"{self.name}, {self.synthName}, {self.synthType}, {self.modules}, {self.currentModuleIndex}"
 
     # helpers...
     def getModule(self, offset = 0):

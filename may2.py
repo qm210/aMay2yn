@@ -108,52 +108,68 @@ class MainWindow(QMainWindow):
 
         newAction = QAction(QIcon.fromTheme('document-new'), 'New', self)
         newAction.setShortcut('Ctrl+N')
+        newAction.triggered.connect(self.newSong)
+        self.toolBar.addAction(newAction)
+
         loadAction = QAction(QIcon.fromTheme('document-open'), 'Load .mayson', self)
         loadAction.setShortcut('Ctrl+L')
+        loadAction.triggered.connect(self.loadAndImportMayson)
+        self.toolBar.addAction(loadAction)
+
         saveAction = QAction(QIcon.fromTheme('document-save'), 'Save .mayson', self)
         saveAction.setShortcut('Ctrl+S')
+        saveAction.triggered.connect(self.exportMayson)
+        self.toolBar.addAction(saveAction)
+
         saveAsAction = QAction(QIcon.fromTheme('document-save-as'), 'Save .mayson As...', self)
         saveAsAction.setShortcut('Ctrl+Shift+S')
+        saveAsAction.triggered.connect(partial(self.exportMayson, saveAs = True))
+        self.toolBar.addAction(saveAsAction)
+
+        self.toolBar.addSeparator()
+
         undoAction = QAction(QIcon.fromTheme('edit-undo'), 'Undo', self)
         undoAction.setShortcut('Ctrl+Z')
+        undoAction.triggered.connect(partial(self.loadUndoStep, relativeStep = +1))
+        self.toolBar.addAction(undoAction)
         redoAction = QAction(QIcon.fromTheme('edit-redo'), 'Redo', self)
         redoAction.setShortcut('Shift+Ctrl+Z')
+        redoAction.triggered.connect(partial(self.loadUndoStep, relativeStep = -1))
+        self.toolBar.addAction(redoAction)
         settingsAction = QAction(QIcon.fromTheme('preferences-system'), 'Settings', self)
         settingsAction.setShortcut('F3')
+        settingsAction.triggered.connect(self.openSettingsDialog)
+        self.toolBar.addAction(settingsAction)
+
+        self.toolBar.addSeparator()
+
+        reloadSynAction = QAction(QIcon('./icon_reloadSyn.png'), 'Reload .syn File', self)
+        reloadSynAction.setShortcut('F5')
+        reloadSynAction.triggered.connect(self.loadSynFile)
+        self.toolBar.addAction(reloadSynAction)
+
+        randomizeAllAction = QAction(QIcon('./icon_randomize.png'), 'Shuffle All Random Values', self)
+        randomizeAllAction.setShortcut('F4')
+        randomizeAllAction.triggered.connect(self.reshuffleAllRandomValues)
+        self.toolBar.addAction(randomizeAllAction)
+
+        self.toolBar.addSeparator()
+
         renderModuleAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderModule', self)
         renderModuleAction.setShortcut('Ctrl+T')
-        renderSongAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderSong', self)
-        renderSongAction.setShortcut('Ctrl+Enter')
-        stopPlaybackAction = QAction(QIcon.fromTheme('media-playback-stop'), 'Stop Playback', self)
-        stopPlaybackAction.setShortcut('Enter')
-        importPatternAction = QAction(QIcon('./icon_lmms_import.png'), 'Import LMMS Patterns', self)
-        importPatternAction.setShortcut('Ctrl+I')
-
-        newAction.triggered.connect(self.newSong)
-        loadAction.triggered.connect(self.loadAndImportMayson)
-        saveAction.triggered.connect(self.exportMayson)
-        saveAsAction.triggered.connect(partial(self.exportMayson, saveAs = True))
-        undoAction.triggered.connect(partial(self.loadUndoStep, relativeStep = +1))
-        redoAction.triggered.connect(partial(self.loadUndoStep, relativeStep = -1))
-        settingsAction.triggered.connect(self.openSettingsDialog)
         renderModuleAction.triggered.connect(self.renderModule)
-        renderSongAction.triggered.connect(self.renderSong)
-        stopPlaybackAction.triggered.connect(self.stopPlayback)
-        importPatternAction.triggered.connect(self.openImportPatternDialog)
-
-        self.toolBar.addAction(newAction)
-        self.toolBar.addAction(loadAction)
-        self.toolBar.addAction(saveAction)
-        self.toolBar.addAction(saveAsAction)
-        self.toolBar.addSeparator()
-        self.toolBar.addAction(undoAction)
-        self.toolBar.addAction(redoAction)
-        self.toolBar.addAction(settingsAction)
-        self.toolBar.addSeparator()
         self.toolBar.addWidget(QLabel('   Module: '))
         self.toolBar.addAction(renderModuleAction)
+
+        renderSongAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderSong', self)
+        renderSongAction.setShortcut('Ctrl+Enter')
+        renderSongAction.triggered.connect(self.renderSong)
         self.toolBar.addWidget(QLabel(' All: '))
         self.toolBar.addAction(renderSongAction)
+
+        stopPlaybackAction = QAction(QIcon.fromTheme('media-playback-stop'), 'Stop Playback', self)
+        stopPlaybackAction.setShortcut('Enter')
+        stopPlaybackAction.triggered.connect(self.stopPlayback)
         self.toolBar.addAction(stopPlaybackAction)
 
         self.toolBar.addWidget(QLabel('  ', self))
@@ -191,6 +207,10 @@ class MainWindow(QMainWindow):
         self.toolBar.addWidget(self.useSequenceCheckBox)
 
         self.toolBar.addSeparator()
+
+        importPatternAction = QAction(QIcon('./icon_lmms_import.png'), 'Import LMMS Patterns', self)
+        importPatternAction.setShortcut('Ctrl+I')
+        importPatternAction.triggered.connect(self.openImportPatternDialog)
         self.toolBar.addAction(importPatternAction)
 
     def initSignals(self):
@@ -534,8 +554,6 @@ class MainWindow(QMainWindow):
             self.close()
         elif key == Qt.Key_F1:
             self.shufflePatternColors()
-        elif key == Qt.Key_F5:
-            self.loadSynFile()
         elif key == Qt.Key_F9:
             self.trackWidget.debugOutput()
         elif key == Qt.Key_F10:
@@ -886,6 +904,20 @@ class MainWindow(QMainWindow):
             return type
         return choice(self.synthModel.synthList())
 
+    def reshuffleAllRandomValues(self):
+        if self.amaysyn is None:
+            print("aMay2ynBuilder not initialized. Doesn't work that way, yet...")
+            return
+        for randomForm in self.amaysyn.stored_randoms:
+            randomValue = self.synthModel.randomValues.get(randomForm['id'], RandomValue(randomForm))
+            randomValue.reshuffle()
+            self.synthModel.setRandomValue(randomValue)
+
+    def getRandom(self, randomID):
+        return self.parent.synthModel.randomValues.get(randomID, None)
+
+
+
     def getActualSynFileTimestamp(self):
         if self.state.get('synFile', None) is not None:
             return path.getmtime(self.state['synFile'])
@@ -1050,11 +1082,14 @@ class MainWindow(QMainWindow):
         else:
             self.renderSong()
 
-    def renderModule(self):
+    def renderModule(self, _ = None, synthName = None):
         self.state['lastRendered'] = 'module'
         self.toggleGlobalDeactivedState(active = False)
         track = deepcopy(self.getTrack())
+        if synthName is not None:
+            track.setSynth(name = synthName)
         track.mute = False
+        print("ÄHM", track)
         modInfo = deepcopy(self.info)
         modInfo['B_offset'] = self.getModule().getModuleOn()
         modInfo['B_stop'] = self.getModule().getModuleOff()
