@@ -10,7 +10,7 @@ from may2TrackModel import TrackModel
 from may2Utils import drawText, drawTextDoubleInX, quantize, GLfloat
 from SynthDialog import SynthDialog
 from PatternDialogs import PatternDialog
-from TrackDialogs import TrackTypeDialog
+from TrackDialogs import TrackSettingsDialog, TrackTypeDialog
 import may2Style
 
 colorBG = QColor(*may2Style.group_bgcolor)
@@ -170,7 +170,7 @@ class May2TrackWidget(QWidget):
         for c in range(self.numberTracksVisible):
             track = self.model.tracks[self.offsetV + c]
             y = self.Y + c * self.rowH
-            label = f'{100 * track.volume}%'
+            label = f'{100 * track.volume:.0f}%'
             if track.mute or (self.trackSolo is not None and track != self.trackSolo):
                 label = 'MUTE'
             elif track == self.trackSolo:
@@ -264,20 +264,16 @@ class May2TrackWidget(QWidget):
 
             if corrModule is None:
                 beat = self.getBeatAtX(eventX)
-                if event.button() == Qt.LeftButton and self.parent.ctrlPressed:
+                if event.button() == Qt.RightButton:
                     self.queryTrackType(corrTrack)
                     self.openPatternDialog(corrTrack, beat = beat)
                 elif event.button() == Qt.MiddleButton:
                     self.insertModule(corrTrack, self.copyOfLastSelectedModule, beat)
             else:
                 if event.button() == Qt.LeftButton:
-                    if self.parent.ctrlPressed:
-                        self.openPatternDialog(corrTrack, module = corrModule)
-                    else:
                         self.initDragModule(corrTrack, corrModule, event.pos())
-                elif event.button() == Qt.RightButton:
-                    pass
-                    #self.openModuleSelector(module) # window to choose Pattern and Transpose, and exact Position
+                elif event.button == Qt.RightButton:
+                        self.openPatternDialog(corrTrack, module = corrModule)
                 elif event.button() == Qt.MiddleButton:
                     self.deleteModule(corrTrack, corrModule)
 
@@ -411,11 +407,12 @@ class May2TrackWidget(QWidget):
             track = self.mode.currentTrack()
         if name is None:
             # TODO: enhance to 'Track Settings Dialog with Mute, Solo, Volume, etc.'
-            name, ok = QInputDialog.getText(self, 'Rename Track', f"Rename Track '{track.name}' to:", QLineEdit.Normal, track.name)
-            if not ok:
-                return
-        track.name = name
-        self.repaintAndEmitTrackChanged()
+            trackDialog = TrackSettingsDialog(self.parent, track)
+            if trackDialog.exec_():
+                track.name = trackDialog.getName()
+                track.volume = trackDialog.getVolume()
+                track.mute = trackDialog.getMute()
+                self.repaintAndEmitTrackChanged()
 
     def openSynthDialog(self, track = None):
         self.parent.setModifiers()

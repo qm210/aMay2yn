@@ -87,6 +87,17 @@ class TrackModel(QAbstractListModel):
             row = self.currentTrackIndex
         self.removeRow(row)
 
+    def switchRows(self, row1 = None, row2 = None):
+        switchCurrentIndex = False
+        if row1 is None:
+            row1 = self.currentTrackIndex
+            switchCurrentIndex = True
+        if row2 is None:
+            row2 = (row1 + 1) % self.rowCount()
+        self.tracks[row1], self.tracks[row2] = self.tracks[row2], self.tracks[row1]
+        if switchCurrentIndex:
+            self.currentTrackIndex = row2
+
     def transposeModule(self, inc):
         track = self.currentTrack()
         module = track.getModule() if track is not None else None
