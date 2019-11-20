@@ -161,7 +161,7 @@ class PatternDialog(QtWidgets.QDialog):
         currentPatternHash = self.patternModel.patterns[self.patternIndex]._hash
         self.parent.patternModel.purgeEmptyPatterns()
         self.patternModel.setPatternsFromModel(self.createFilteredModel())
-        mappedPatternHash = self.parent.lastPurgeMap[currentPatternHash]
+        mappedPatternHash = self.parent.lastPurgeMap[currentPatternHash] if self.parent.lastPurgeMap else None
         self.patternIndex = self.patternModel.getPatternIndexOfHash(mappedPatternHash) or 0
         self.patternList.setCurrentIndex(self.patternModel.createIndex(self.patternIndex, 0))
         self.initPatternIndex = self.patternIndex
@@ -171,7 +171,7 @@ class PatternDialog(QtWidgets.QDialog):
         currentPatternHash = self.patternModel.patterns[self.patternIndex]._hash
         self.parent.purgeUnusedPatterns()
         self.patternModel.setPatternsFromModel(self.createFilteredModel())
-        mappedPatternHash = self.parent.lastPurgeMap[currentPatternHash]
+        mappedPatternHash = self.parent.lastPurgeMap[currentPatternHash] if self.parent.lastPurgeMap else None
         self.patternIndex = self.patternModel.getPatternIndexOfHash(mappedPatternHash) or 0
         self.patternList.setCurrentIndex(self.patternModel.createIndex(self.patternIndex, 0))
         self.initPatternIndex = self.patternIndex

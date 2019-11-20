@@ -211,7 +211,7 @@ class May2TrackWidget(QWidget):
         return coordL, coordR
 
     def getTrackAtY(self, y):
-        if y < self.Y or y > self.endY:
+        if y < self.Y or y >= self.endY:
             return None
         visibleRow = int((y - self.Y) / (self.endY - self.Y) * self.numberTracksVisible)
         track = self.model.tracks[self.offsetV + visibleRow]
@@ -272,7 +272,7 @@ class May2TrackWidget(QWidget):
             else:
                 if event.button() == Qt.LeftButton:
                         self.initDragModule(corrTrack, corrModule, event.pos())
-                elif event.button == Qt.RightButton:
+                elif event.button() == Qt.RightButton:
                         self.openPatternDialog(corrTrack, module = corrModule)
                 elif event.button() == Qt.MiddleButton:
                     self.deleteModule(corrTrack, corrModule)
