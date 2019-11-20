@@ -182,6 +182,11 @@ float MADD(float t, float f, float p0, int NMAX, int NINC, float MIX, float CO, 
     return s_atan(ret);
 }
 
+float MADD(float t, float f, float p0, int NMAX, int NINC, float MIX, float CO, float NDECAY, float RES, float RES_Q, float DET, float PW, int keyF)
+{
+    return MADD(t, f, p0, NMAX, NINC, MIX, CO, NDECAY, RES, RES_Q, DET, PW, 0., keyF);
+}
+
 float BADD(float t, float f, float p0, float MIX, float AMP, float FPEAK, float BW, float Q, float NCUT, float DET, float PW)
 {
     float ret = 0.;

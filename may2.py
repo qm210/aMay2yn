@@ -6,7 +6,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QVBoxLayout, QGroupBox, QSplitter, QFileDialog, \
     QDoubleSpinBox, QCheckBox, QLabel,QInputDialog, QLineEdit, QMessageBox, QStackedLayout
-from PyQt5.QtCore import Qt, pyqtSignal, QItemSelectionModel, QFile, QTextStream, QStringListModel, QBuffer, QIODevice
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QItemSelectionModel, QFile, QTextStream, QStringListModel, QBuffer, QIODevice
 from PyQt5.QtGui import QFontDatabase, QIcon, QColor, QPainter
 from PyQt5.QtMultimedia import QAudioOutput, QAudioFormat, QAudioDeviceInfo, QAudio
 from copy import deepcopy
@@ -201,7 +201,7 @@ class MainWindow(QMainWindow):
         self.patternWidget.activated.connect(partial(self.toggleActivated, activatePattern = True))
         self.patternWidget.patternChanged.connect(self.patternChanged)
         self.synthWidget.paramChanged.connect(self.paramChanged)
-        self.synthWidget.randomChanged.connect(self.randomChanged)
+        self.synthWidget.randomsChanged.connect(self.randomsChanged)
 
         self.beatOffsetCheckBox.stateChanged.connect(self.updateRenderRange)
         self.beatOffsetSpinBox.valueChanged.connect(self.updateRenderRange)
@@ -488,7 +488,8 @@ class MainWindow(QMainWindow):
             query = QMessageBox.question(self, 'Load .syn?', question, QMessageBox.Yes | QMessageBox.No)
             if query == QMessageBox.Yes:
                 self.loadSynFile()
-                # for now, there's no way to change the syn parameters in the program. but eventually, it would go like this:
+                self.autoSave()
+                # for now, there's no way to change the syn parameters in the program (only defined params and randoms). but eventually, it would go like this:
                 # store the "overwrites"
                 # when loading, parse each object anyway
                 # find the differences, especially when they collide with overwrites
@@ -629,11 +630,11 @@ class MainWindow(QMainWindow):
         if data is not None:
             tracks, patterns, synths, drumkit, paramOverrides, randomValues = self.decodeMaysonData(data)
         else:
-            tracks = [Track()]
-            patterns = [Pattern()]
-            self.amaysyn.__init__(title = self.state['title'], synFile = defaultSynFile, info = self.defaultInfo)
+            self.updateAMay2yn()
             self.amaysyn.tokenizeSynFile()
             self.amaysyn.parseSynths(skipExisting = True)
+            tracks = [Track()]
+            patterns = [Pattern()]
             synths = self.amaysyn.synths
             drumkit = self.amaysyn.drumkit
             paramOverrides = {}
@@ -699,7 +700,7 @@ class MainWindow(QMainWindow):
         randomValues = {}
         if 'randomValues' in data:
             for randomID in data['randomValues']:
-                randomValue = decodeRandomValue(data['randomValue'][randomID])
+                randomValue = decodeRandomValue(data['randomValues'][randomID])
                 randomValues[randomID] = randomValue
 
         return tracks, patterns, synths, drumkit, paramOverrides, randomValues
@@ -935,8 +936,8 @@ class MainWindow(QMainWindow):
         self.synthModel.setParamOverride(param)
         self.pushUndoStack()
 
-    def randomChanged(self, randomValue):
-        self.synthModel.setRandomValue(randomValue)
+    def randomsChanged(self, randomValues):
+        self.synthModel.setRandomValues(randomValues)
         self.pushUndoStack()
 
     def addPattern(self, pattern = None, clone = False):
@@ -949,6 +950,9 @@ class MainWindow(QMainWindow):
             self.patternModel.addRow(index, pattern)
             self.patternColors[pattern._hash] = self.randomColor()
 
+    def purgeUnusedPatterns(self):
+        usedPatternHashs = [module.patternHash for track in self.trackModel.tracks for module in track.modules]
+            self.patternModel.purgeUnusedPatterns(usedPatternHashs)
 
 ######################### SYNATIZE FUNCTIONALITY #####################
 

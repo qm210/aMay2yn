@@ -41,6 +41,7 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
         i = 2
         while i < len(line):
             a = line[i]
+            print("now at", i, a, a.count('"'))
             while a.count('"') % 2 > 0:
                 i += 1
                 a += ' ' + line[i]
@@ -82,7 +83,6 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
                     form['src'] = sub('(?<![*+])-','+-',form['src']).replace(',','+')
             except KeyError:
                 print('PARSING - ERROR IN LINE (src not given)\n', l)
-                quit()
 
         if cmd == 'random': # TODO: 'tag' functionality not accessible yet - idea is: if tag is set, then only reshuffle if the tag is in the taglist
             if form['id'] in stored_random_values and not reshuffle_randoms:
@@ -109,16 +109,13 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
                 assert r in form
             except AssertionError:
                 print('PARSING - ERROR! IN LINE\n', l, '\n... YOU NEED TO DEFINE:', r, 'and generally', requirements)
-                quit()
 
         for key in form.keys():
             if key not in defaults.keys() and key not in requirements and key != 'value':
                 print('PARSING - ERROR: ', key+'='+str(form[key]), 'IN FORM', form, '- supports', list(defaults.keys()))
-                quit()
 
         if cid in [f['id'] for f in form_list if f['id'] != 'include']:
             print('PARSING - ERROR! ID \"' + cid + '\" already taken.')
-            quit()
 
         if cmd == 'main' or cmd == 'maindrum':
             main_list.append(form)
@@ -132,7 +129,7 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
                 segments = form['segments'].split(',') if form['segments'] is not None else []
                 if len(segments) % 3 != 0:
                     print('PARSING - ERROR! SEGMENTS OF PARAM HAVE TO BE IN STRUCTURE <Segment>,<Start>,<End>,... AND THUS A MULTIPLE OF THREE: ', form)
-                    quit()
+
                 form.update({'segments': segments, 'n_segments': int(len(segments) / 3)})
 
             param_list.append(form)
@@ -326,7 +323,6 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
 
                     else:
                         print("PARSING - ERROR! THIS OSC/LFO SHAPE DOES NOT EXIST: "+form['shape'], form, sep='\n')
-                        quit()
 
                     if 'overdrive' in form and form['overdrive'] != '0':
                         _return = 'clip((1.+' + instance(form['overdrive']) + ')*' + _return + ')'
@@ -513,7 +509,6 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
 
                 else:
                     print("PARSING - ERROR! THIS ENVELOPE SHAPE DOES NOT EXIST: "+form['shape'], form, sep='\n')
-                    quit()
 
                 if form['scale'] != '1':
                     _return = instance(form['scale']) + '*' + _return
@@ -545,7 +540,6 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                     pars = ['iir_gain', 'iir_delay1', 'iir_delay2', 'iir_delay3', 'iir_delay4', 'ap_gain', 'ap_delay1', 'ap_delay2']
                 else:
                     print("PARSING - ERROR! THIS FILTER DOES NOT EXIST: " + form['shape'], form, sep='\n')
-                    quit()
 
                 return form['shape']+form['id']+'(_PROG,f,tL,vel,'+','.join([instance(form[p]) for p in pars])+')'
 
@@ -554,11 +548,9 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
 
             else:
                 print("PARSING - ERROR! THIS FORM TYPE DOES NOT EXIST: "+form['type'], form, sep='\n')
-                quit()
 
         except:
             print("PARSING - UNEXPECTED UNEXPECTEDNESS (which was not expected) - IN FORM", form if form else str(ID), '', sep='\n')
-            quit()
 
     def param(ID, key):
         form = next((f for f in form_list if f['id']==ID), None)

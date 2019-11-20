@@ -78,12 +78,10 @@ class SynthModel(QAbstractListModel):
         else:
             print("Tried to remove Param Override", paramID, "- but it was not even set.")
 
-    def setRandomValue(self, randomValue, value = None):
-        id = randomValue.id
-        if value is not None:
-            randomValue.value = value
-        self.randomValues[id] = randomValue
-        print("CHANGED", id, self.randomValues[id])
+    def setRandomValues(self, randomValues):
+        for randomValue in randomValues:
+            self.randomValues[randomValue.id] = randomValue
+            print("CHANGED", randomValue.id, self.randomValues[randomValue.id])
 
     def reshuffleRandomValues(self):
         for randomID in self.randomValues:
@@ -93,6 +91,7 @@ class SynthModel(QAbstractListModel):
         for randomID in self.randomValues:
             self.randomValues[randomID].store(key)
 
-    def setRandomValueFixed(self, id, fixed = True):
-        if id in self.randomValues:
-            self.randomValues[id].fixed = fixed
+    def setRandomValuesFixed(self, ids, fixed = True):
+        for id in ids:
+            if id in self.randomValues:
+                self.randomValues[id].fixed = fixed

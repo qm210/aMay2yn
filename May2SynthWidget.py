@@ -12,7 +12,7 @@ import may2Style
 class May2SynthWidget(QWidget):
 
     paramChanged = pyqtSignal(Param)
-    randomChanged = pyqtSignal(RandomValue)
+    randomsChanged = pyqtSignal(list)
 
     def __init__(self, parent):
         super().__init__()
@@ -23,13 +23,15 @@ class May2SynthWidget(QWidget):
         self.selectedSegment = None
         self.randoms = []
         self.selectedRandom = None
+
+        self.active = False
         self.justUpdatingRandomWidget = False
         self.initLayout()
         self.initSignals()
 
+
     def getSynthName(self):
         return self.synth.name if self.synth is not None else None
-
 
     def setSynth(self, synth):
         self.synth = synth
@@ -241,12 +243,12 @@ class May2SynthWidget(QWidget):
             elif item.column() == RandomValue.fixedColumn:
                 self.selectedRandom.fixed = (item.checkState() == Qt.Checked)
 
-            self.randomChanged.emit(self.selectedRandom)
+            self.randomsChanged.emit([self.selectedRandom])
 
     def reshuffleRandoms(self):
         for random in self.randoms:
             random.reshuffle()
-#            self.randomChanged.emit(random)
+        self.randomsChanged.emit(self.randoms)
         self.updateRandomWidgetColumn(RandomValue.valueColumn)
 
     def hardcopySynth(self):
@@ -260,3 +262,11 @@ class May2SynthWidget(QWidget):
         for random in self.randoms:
             random.fixed = not anyFixed
         self.updateRandomWidgetColumn(RandomValue.fixedColumn)
+
+
+################################################################################
+
+    def debugOutput(self):
+        print("RANDOM VALUES STORED IN SYNTH MODEL:")
+        for r in self.parent.synthModel.randomValues:
+            print(r)

@@ -74,3 +74,10 @@ class PatternModel(QAbstractListModel):
         filteredModel.patterns = [pattern for pattern in self.patterns if pattern.synthType == typeFilter]
         return filteredModel
 
+    def purgeEmptyPatterns(self):
+        nonemptyPatterns = [pattern for pattern in self.patterns if not pattern.isEmpty()]
+        self.setPatterns(nonemptyPatterns)
+
+    def purgeUnusedPatterns(self, usedHashs):
+        usedPatterns = [pattern for pattern in self.patterns if pattern._hash in usedHashs]
+        self.setPatterns(usedPatterns)

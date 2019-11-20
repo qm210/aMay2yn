@@ -73,12 +73,12 @@ class PatternDialog(QtWidgets.QDialog):
         self.newPatternButton = QtWidgets.QPushButton('New Pattern', self)
         self.clonePatternButton = QtWidgets.QPushButton('Clone Pattern', self)
         self.purgeEmptyButton = QtWidgets.QPushButton('Purge Empty', self)
-        self.purgeUnusedbutton = QtWidgets.QPushButton('Purge Unused', self)
+        self.purgeUnusedButton = QtWidgets.QPushButton('Purge Unused', self)
 
         self.buttonGrid.addWidget(self.newPatternButton, 0, 0)
         self.buttonGrid.addWidget(self.clonePatternButton, 0, 1)
         self.buttonGrid.addWidget(self.purgeEmptyButton, 1, 0)
-        self.buttonGrid.addWidget(self.purgeUnusedbutton, 1, 1)
+        self.buttonGrid.addWidget(self.purgeUnusedButton, 1, 1)
         self.layout.addLayout(self.buttonGrid)
 
         self.importPatternButton = QtWidgets.QPushButton('Import LMMS patterns', self)
@@ -93,6 +93,8 @@ class PatternDialog(QtWidgets.QDialog):
         self.patternList.selectionModel().currentChanged.connect(self.selectPattern)
         self.newPatternButton.clicked.connect(self.newPattern)
         self.clonePatternButton.clicked.connect(self.clonePattern)
+        self.purgeEmptyButton.clicked.connect(self.purgeEmptyPatterns)
+        self.purgeUnusedButton.clicked.connect(self.purgeUnusedPatterns)
         self.importPatternButton.clicked.connect(self.openImportPatternDialog)
 
         self.init(module)
@@ -145,6 +147,14 @@ class PatternDialog(QtWidgets.QDialog):
     def clonePattern(self):
         self.parent.addPattern(self.getPattern(), clone = True)
         self.accept()
+
+    def purgeEmptyPatterns(self):
+        self.parent.patternModel.purgeEmptyPatterns()
+        self.patternModel.setPatternsFromModel(self.createFilteredModel())
+
+    def purgeUnusedPatterns(self):
+        self.parent.purgeUnusedPatterns()
+        self.patternModel.setPatternsFromModel(self.createFilteredModel())
 
     def getPattern(self):
         return self.patternModel.patterns[self.patternIndex] if self.patternModel.rowCount() > 0 else None
@@ -233,6 +243,7 @@ class ImportPatternDialog(QtWidgets.QDialog):
         super(ImportPatternDialog, self).__init__(**kwargs)
         self.setGeometry(parent.x() + 0.5 * (parent.width() - self.WIDTH), parent.y() + 0.5 * (parent.height() - self.HEIGHT), self.WIDTH, self.HEIGHT)
         self.parent = parent
+        self.LMMS_scalenotes = 48 * self.parent.info['barsPerBeat']
         self.importPatternModel = QtCore.QStringListModel()
 
         self.layout = QtWidgets.QVBoxLayout(self)
@@ -257,7 +268,7 @@ class ImportPatternDialog(QtWidgets.QDialog):
 
         self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, self)
         self.buttonBox.accepted.connect(self.parsePatternsAndAccept)
-        self.buttonBox.rejected.connect(self.rejected)
+        self.buttonBox.rejected.connect(self.reject)
 
         self.importButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
         self.importButton.setText('Import!')
