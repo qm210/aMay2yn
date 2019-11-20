@@ -84,7 +84,7 @@ class May2TrackWidget(QWidget):
         self.beatW = 20 * self.scaleH
 
         self.fontSize = max(13 * sqrt(self.scaleV), 5)
-        self.fontSizeSmall = max(8 * min(self.scaleH, self.scaleV), 5)
+        self.fontSizeSmall = max(7 + sqrt(self.scaleH), 7)
         self.fontSizeSmallerScale = .9
 
         self.charW = 10
@@ -143,7 +143,9 @@ class May2TrackWidget(QWidget):
             x += self.beatW
 
     def drawModules(self, qp):
-        qp.font().setPointSize(self.fontSizeSmall)
+        font = qp.font()
+        font.setPointSize(self.fontSizeSmall)
+        qp.setFont(font)
         for c in range(self.numberTracksVisible):
             track = self.model.tracks[self.offsetV + c]
             y = self.Y + c * self.rowH
@@ -446,8 +448,7 @@ class May2TrackWidget(QWidget):
         else:
             oldPatternHash = module.patternHash
             patternDialog = PatternDialog(self.parent, track = track, module = module)
-            status = patternDialog.exec_()
-            if status:
+            if patternDialog.exec_():
                 pattern = patternDialog.getPattern()
                 self.syncPatternNames(patternDialog.namesChanged)
                 if pattern._hash != oldPatternHash:
@@ -455,9 +456,12 @@ class May2TrackWidget(QWidget):
                     self.trackChanged.emit()
 
     def syncPatternNames(self, namesChanged):
+        print("namesChanged:", namesChanged)
         if namesChanged:
             for module in self.model.getAllModules():
+                print("WE HAVE MODULE", module.patternHash, module.patternName)
                 if module.patternHash in namesChanged:
+                    print("IS NOW CALLED", namesChanged[module.patternHash])
                     module.patternName = namesChanged[module.patternHash]
 
 

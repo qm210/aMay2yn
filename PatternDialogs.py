@@ -319,7 +319,7 @@ class ImportPatternDialog(QtWidgets.QDialog):
         self.parseButton.clicked.connect(self.parseFile)
         self.clearButton.clicked.connect(self.clearFile)
         self.patternList.selectionModel().selectionChanged.connect(self.updateSelectedIndices)
-        self.editFilename.textChanged.connect(self.setFilenameAndParse)
+        self.editFilename.editingFinished.connect(self.setFilenameAndParse)
         self.editFilter.textChanged.connect(self.setFilterAndParse)
 
         if self.lastFilename:
@@ -327,7 +327,9 @@ class ImportPatternDialog(QtWidgets.QDialog):
             self.editFilter.setText(self.filter)
             self.parseFile()
 
-    def setFilenameAndParse(self, text):
+    def setFilenameAndParse(self, text = None):
+        if text is None:
+            text = self.editFilename.text()
         self.xmlFilename = text
         self.parseFile()
 
@@ -358,6 +360,8 @@ class ImportPatternDialog(QtWidgets.QDialog):
         self.importButton.setEnabled(len(self.selectedIndices) > 0)
 
     def parseFile(self):
+        if self.xmlFilename is None:
+            return
         try:
             test = open(self.xmlFilename, 'r')
             head = test.read(5)
@@ -365,12 +369,12 @@ class ImportPatternDialog(QtWidgets.QDialog):
                 raise TypeError
             test.close()
         except FileNotFoundError:
-            QtWidgets.QMessageBox.warning(self, 'File not found', f'File was not found:\n{self.XML_filename}')
+            QtWidgets.QMessageBox.warning(self, 'File not found', f'File was not found:\n{self.xmlFilename}')
             self.setData()
             self.editFilename.selectAll()
             return
         except TypeError:
-            QtWidgets.QMessageBox.warning(self, 'File Error', f'File seems not to be valid XML:\n{self.XML_filename}')
+            QtWidgets.QMessageBox.warning(self, 'File Error', f'File seems not to be valid XML:\n{self.xmlFilename}')
             self.setData()
             self.editFilename.selectAll()
             return

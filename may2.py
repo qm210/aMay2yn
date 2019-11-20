@@ -173,7 +173,7 @@ class MainWindow(QMainWindow):
         self.toolBar.addAction(stopPlaybackAction)
 
         self.toolBar.addWidget(QLabel('  ', self))
-        self.beatOffsetCheckBox = QCheckBox('From: ', self)
+        self.beatOffsetCheckBox = QCheckBox('From Beat ', self)
         self.beatOffsetCheckBox.setChecked(True)
         self.toolBar.addWidget(self.beatOffsetCheckBox)
 
@@ -181,20 +181,18 @@ class MainWindow(QMainWindow):
         self.beatOffsetSpinBox.setDecimals(0)
         self.beatOffsetSpinBox.setSingleStep(1)
         self.beatOffsetSpinBox.setRange(0, 999)
-        self.beatOffsetSpinBox.setPrefix('Beat ')
         self.beatOffsetSpinBox.setMinimumWidth(120)
         self.beatOffsetSpinBox.setEnabled(True)
         self.toolBar.addWidget(self.beatOffsetSpinBox)
 
         self.toolBar.addWidget(QLabel('  ', self))
-        self.beatStopCheckBox = QCheckBox('To: ', self)
+        self.beatStopCheckBox = QCheckBox('To ', self)
         self.toolBar.addWidget(self.beatStopCheckBox)
 
         self.beatStopSpinBox = QDoubleSpinBox(self)
         self.beatStopSpinBox.setDecimals(0)
         self.beatStopSpinBox.setSingleStep(1)
         self.beatStopSpinBox.setRange(0, 999)
-        self.beatStopSpinBox.setPrefix('Beat ')
         self.beatStopSpinBox.setMinimumWidth(120)
         self.beatStopSpinBox.setEnabled(False)
         self.toolBar.addWidget(self.beatStopSpinBox)
