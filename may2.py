@@ -579,6 +579,11 @@ class MainWindow(QMainWindow):
                 elif key == Qt.Key_Up:
                     self.trackWidget.selectTrack(-1)
 
+                elif key == Qt.Key_C:
+                    self.trackWidget.cloneCurrentModuleNearby()
+                elif key == Qt.Key_Delete:
+                    self.trackWidget.deleteCurrentModule()
+
             elif self.ctrlPressed and not self.shiftPressed:
 
                 if key == Qt.Key_Plus:
@@ -1100,6 +1105,10 @@ class MainWindow(QMainWindow):
 
     def renderTrack(self):
         self.state['lastRendered'] = 'track'
+        anyOverlap = self.trackModel.findModuleOverlap(onlyCurrentTrack = True)
+        if anyOverlap is not None:
+            QMessageBox.critical(self, 'Overlap!', anyOverlap)
+            return
         self.toggleGlobalDeactivedState(active = False)
         track = self.getTrack()
         restoreMute = track.mute
@@ -1113,6 +1122,10 @@ class MainWindow(QMainWindow):
 
     def renderSong(self):
         self.state['lastRendered'] = 'song'
+        anyOverlap = self.trackModel.findModuleOverlap()
+        if anyOverlap is not None:
+            QMessageBox.critical(self, 'Overlap!', anyOverlap)
+            return
         self.toggleGlobalDeactivedState(active = False)
         self.amaysyn.extra_time_shift = self.state.get('extraTimeShift', 0)
         self.amaysyn.updateState(title = self.state['title'], info = self.info)

@@ -349,8 +349,6 @@ class May2TrackWidget(QWidget):
             self.trackSelected.emit(track)
             if track.synthType != currentSynthType:
                 self.trackTypeChanged.emit()
-        if module is None and track.modules:
-            module = track.modules[0]
         if module is not None:
             module.tag()
             self.model.currentTrack().selectFirstTaggedModuleAndUntag()
@@ -366,8 +364,22 @@ class May2TrackWidget(QWidget):
         self.trackChanged.emit()
         self.select(track, newModule)
 
+    def cloneCurrentModuleNearby(self):
+        track = self.model.currentTrack()
+        modulePrototype = track.getModule()
+        newModule = Module(mod_on = modulePrototype.getModuleOff(), pattern = None, copyModule = modulePrototype, transpose = modulePrototype.transpose)
+        track.addModule(newModule, forceModOn = False)
+        self.trackChanged.emit()
+        self.select(track, newModule)
+
     def deleteModule(self, track, module):
         track.currentModuleIndex = track.findIndexOfModule(module)
+        track.delModule()
+        self.trackChanged.emit()
+        self.select(track, track.getModule())
+
+    def deleteCurrentModule(self):
+        track = self.model.currentTrack()
         track.delModule()
         self.trackChanged.emit()
         self.select(track, track.getModule())
@@ -389,7 +401,6 @@ class May2TrackWidget(QWidget):
     def selectTrack(self, inc):
         index = self.model.currentTrackIndex + inc
         self.select(self.model.track(index))
-        print(inc)
 
     def toggleMute(self, track = None):
         if track is None:
