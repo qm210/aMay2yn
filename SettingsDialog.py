@@ -82,7 +82,7 @@ class SettingsDialog(QtWidgets.QDialog):
     def checkBpmList(self, text):
         tryBpmList = self.bpmEdit.text().strip() + ' '
         regEx = re.match(r"([\d\.]+:[\d\.]+ +)+", tryBpmList)
-        valid = (regEx.group() == tryBpmList)
+        valid = regEx is not None and (regEx.group() == tryBpmList)
         if valid:
             bpms = tryBpmList.split()
             bpmDict = {}

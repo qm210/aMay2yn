@@ -766,8 +766,8 @@ class MainWindow(QMainWindow):
     def openSettingsDialog(self):
         settingsDialog = SettingsDialog(self)
         if settingsDialog.exec_():
-            self.info['bpm'] = settingsDialog.bpmList()
-            self.trackWidget.updateBpmList(self.info['bpm'])
+            self.info['BPM'] = settingsDialog.bpmList()
+            self.trackWidget.updateBpmList(self.info['BPM'])
             self.info['level_syn'], self.info['level_drum'] = settingsDialog.getLevels()
             self.info['beatQuantum'] = 1/float(settingsDialog.beatQuantumDenominatorSpinBox.value())
             self.info['barsPerBeat'] = settingsDialog.barsPerBeatSpinBox.value()

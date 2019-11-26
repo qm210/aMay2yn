@@ -97,6 +97,7 @@ class PatternDialog(QtWidgets.QDialog):
         self.modOnSpinBox.valueChanged.connect(self.moveModule)
         self.transposeSpinBox.valueChanged.connect(self.transposeModule)
         self.patternList.selectionModel().currentChanged.connect(self.selectPattern)
+        self.patternList.doubleClicked.connect(self.accept)
         self.nameEdit.textEdited.connect(self.renamePattern)
         self.newPatternButton.clicked.connect(self.newPattern)
         self.clonePatternButton.clicked.connect(self.clonePattern)
