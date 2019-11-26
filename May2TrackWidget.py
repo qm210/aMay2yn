@@ -270,7 +270,7 @@ class May2TrackWidget(QWidget):
                     self.queryTrackType(corrTrack)
                     self.openPatternDialog(corrTrack, beat = beat)
                 elif event.button() == Qt.MiddleButton:
-                    self.insertModule(corrTrack, self.copyOfLastSelectedModule, beat)
+                    self.insertModule(corrTrack, self.dSelectedModule, beat)
             else:
                 if event.button() == Qt.LeftButton:
                         self.initDragModule(corrTrack, corrModule, event.pos())
