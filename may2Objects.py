@@ -177,6 +177,13 @@ class Track:
         for m in self.modules:
             m.tagged = False
 
+    def ensureOrder(self):
+        if self.modules:
+            self.getModule().tag()
+            self.modules.sort(key = lambda m: m.mod_on)
+            self.currentModuleIndex = self.getFirstTaggedModuleIndex()
+            self.untagAllModules()
+
 
 class Module:
 
@@ -494,11 +501,18 @@ class Pattern:
             self.currentNoteIndex = self.getFirstTaggedNoteIndex()
             self.untagAllNotes()
 
+    def findSuchANote(self, notePrototype):
+        for note in self.notes:
+            if note == notePrototype:
+                return note
+        else:
+            return None
 
     ### DEBUG ###
     def printNoteList(self):
         for n in self.notes:
             print('on', n.note_on, 'off', n.note_off, 'len', n.note_len, 'pitch', n.note_pitch, 'pan', n.note_pan, 'vel', n.note_vel, 'slide', n.note_slide)
+
 
 class Note:
 
@@ -544,6 +558,10 @@ class Note:
     def moveNoteOff(self, to):
         self.note_off = to
         self.note_on = to - self.note_len
+
+    def cropNoteOff(self, to):
+        self.note_off = to
+        self.note_len = self.note_off - self.note_on
 
     def tag(self, tagged = True):
         self.tagged = tagged

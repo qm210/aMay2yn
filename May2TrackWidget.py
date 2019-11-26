@@ -338,9 +338,12 @@ class May2TrackWidget(QWidget):
         if self.dragModule:
             if self.dragModule.mod_on < self.offsetH or self.dragModule.mod_on > self.offsetH + self.numberBeatsVisible + 1:
                 self.dragModuleTo(self.dragOrigin)
-            #TODO: note to self; Editor should allow overlapping modules but export should be declined, then! (give error message)
             else:
-                self.trackChanged.emit()
+                self.finalizeTrackChangeAndEmit()
+
+    def finalizeTrackChangeAndEmit(self):
+        self.model.currentTrack().ensureOrder()
+        self.trackChanged.emit()
 
     def select(self, track, module = None):
         if track is not None:
@@ -361,7 +364,7 @@ class May2TrackWidget(QWidget):
             return # if modulePrototype is None, should open some window to choose pattern
         newModule = Module(mod_on = modOn, pattern = None, copyModule = modulePrototype, transpose = modulePrototype.transpose)
         track.addModule(newModule, forceModOn = forceModOn)
-        self.trackChanged.emit()
+        self.finalizeTrackChangeAndEmit()
         self.select(track, newModule)
 
     def cloneCurrentModuleNearby(self):
@@ -369,19 +372,19 @@ class May2TrackWidget(QWidget):
         modulePrototype = track.getModule()
         newModule = Module(mod_on = modulePrototype.getModuleOff(), pattern = None, copyModule = modulePrototype, transpose = modulePrototype.transpose)
         track.addModule(newModule, forceModOn = False)
-        self.trackChanged.emit()
+        self.finalizeTrackChangeAndEmit()
         self.select(track, newModule)
 
     def deleteModule(self, track, module):
         track.currentModuleIndex = track.findIndexOfModule(module)
         track.delModule()
-        self.trackChanged.emit()
+        self.finalizeTrackChangeAndEmit()
         self.select(track, track.getModule())
 
     def deleteCurrentModule(self):
         track = self.model.currentTrack()
         track.delModule()
-        self.trackChanged.emit()
+        self.finalizeTrackChangeAndEmit()
         self.select(track, track.getModule())
 
     ################# HELPERS ##############
@@ -455,7 +458,7 @@ class May2TrackWidget(QWidget):
                 track.addModule(patternDialog.module)
                 self.syncPatternNames(patternDialog.namesChanged)
                 self.select(track, patternDialog.module)
-                self.trackChanged.emit()
+                self.finalizeTrackChangeAndEmit()
         else:
             oldPatternHash = module.patternHash
             patternDialog = PatternDialog(self.parent, track = track, module = module)
@@ -464,7 +467,7 @@ class May2TrackWidget(QWidget):
                 self.syncPatternNames(patternDialog.namesChanged)
                 if pattern._hash != oldPatternHash:
                     self.select(track, module)
-                    self.trackChanged.emit()
+                    self.finalizeTrackChangeAndEmit()
 
     def syncPatternNames(self, namesChanged):
         print("namesChanged:", namesChanged)

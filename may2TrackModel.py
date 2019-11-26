@@ -110,7 +110,12 @@ class TrackModel(QAbstractListModel):
         tracks = [self.currentTrack()] if onlyCurrentTrack else self.tracks
         self.collisionInterval = (0, 0)
         for track in tracks:
+            print("LIST OF TRACKS")
+            for m in track.modules:
+                print(m)
+            print("NOOOW...")
             for module, nextModule in zip(track.modules, track.modules[1:]):
+                print(module, nextModule)
                 if module.getModuleOff() > nextModule.getModuleOn():
                     return f'Modules overlap!\nTrack \'{track.name}\'\nBeats {nextModule.getModuleOn()} .. {module.getModuleOff()}.\nCan\'t render.'
         return None

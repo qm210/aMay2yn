@@ -8,6 +8,7 @@ from copy import deepcopy
 from may2Objects import Pattern, Note
 from may2PatternModel import PatternModel
 from may2Utils import * # pylint: disable=unused-wildcard-import
+from NoteDialog import NoteDialog
 import may2Style
 
 colorBG = QColor(*may2Style.group_bgcolor)
@@ -189,21 +190,18 @@ class May2PatternWidget(QWidget):
         pen = qp.pen()
         for b in range(self.numberBarsVisible):
             pen.setColor(QColor(13, 0, 13, 100)) # HARDCODE
-            pen.setWidthF(1.5 if b % 4 == 0 else 1)
+            pen.setWidthF(1.5 if b % self.barsPerBeat() == 0 else 1)
             qp.setPen(pen)
             qp.drawLine(x, self.B, x, self.T)
             pen.setWidthF(.3)
             qp.setPen(pen)
-            x += 0.25 * self.barW
-            qp.drawLine(x, self.B, x, self.T)
-            x += 0.25 * self.barW
-            qp.drawLine(x, self.B, x, self.T)
-            x += 0.25 * self.barW
-            qp.drawLine(x, self.B, x, self.T)
+            for _ in range(3):
+                x += 0.25 * self.barW
+                qp.drawLine(x, self.B, x, self.T)
             x += 0.25 * self.barW
             pen.setColor(QColor(153, 204, 204)) # HARDCODE
             qp.setPen(pen)
-            drawText(qp, x, self.B + 1, Qt.AlignHCenter | Qt.AlignTop, f'{(b+1)/4 + self.offsetH : .2f}')
+            drawText(qp, x, self.B + 1, Qt.AlignHCenter | Qt.AlignTop, f'{(b+1)/self.barsPerBeat() + self.offsetH : .2f}')
 
         # END SEGMENT
         if self.pattern is None:
@@ -330,21 +328,25 @@ class May2PatternWidget(QWidget):
             self.activate()
             return
 
-        if self.parent.ctrlPressed:
-            if event.button() == Qt.MiddleButton:
-                self.setScale(H = 1, V = 1)
+        if self.parent.ctrlPressed and event.button() == Qt.MiddleButton:
+            self.setScale(H = 1, V = 1)
             return
 
         corrNote = self.findCorrespondingNote(event.pos().x(), event.pos().y())
         if corrNote is None:
             if event.button() == Qt.LeftButton:
                 self.insertNote(self.copyOfLastSelectedNote, event.pos(), copyParameters = False, initDrag = True)
+            elif event.button() == Qt.MiddleButton:
+                self.openInsertNoteDialog(self.copyOfLastSelectedNote, event.pos())
             return
 
-        # noteAlreadySelected = (corrNote == self.pattern.getNote()) # TOOD: use this, or ctrlPressed, to somehow change the parameters
+        noteAlreadySelected = (corrNote == self.pattern.getNote()) # TOOD: use this, or ctrlPressed, to somehow change the parameters
         self.select(corrNote)
         if event.button() == Qt.LeftButton:
-            self.initDragNote(corrNote, event.pos())
+            if self.parent.ctrlPressed:
+                self.openNoteDialog(corrNote)
+            else:
+                self.initDragNote(corrNote, event.pos())
         if event.button() == Qt.RightButton:
             self.initStretchNote(corrNote, event.pos())
         if event.button() == Qt.MiddleButton:
@@ -383,6 +385,7 @@ class May2PatternWidget(QWidget):
 
     def activate(self):
         self.active = True
+        print("ACTIVATED")
         self.activated.emit()
 
     def setScale(self, H = None, V = None, deltaH = None, deltaV = None):
@@ -426,6 +429,15 @@ class May2PatternWidget(QWidget):
         self.pattern.ensureOrder()
         self.patternChanged.emit()
 
+    def openNoteDialog(self, note):
+        noteDialog = NoteDialog(self.parent, note = note)
+        if noteDialog.exec_():
+            self.pattern.delNote(specificNote = note)
+            newNote = noteDialog.getNewNote()
+            self.pattern.addNote(newNote)
+            self.select(self.pattern.findSuchANote(newNote))
+            self.finalizePatternChangeAndEmit()
+
     def insertNote(self, notePrototype, pos, copyParameters = False, initDrag = False):
         if notePrototype is None:
             notePrototype = Note(note_len = 1)
@@ -441,9 +453,25 @@ class May2PatternWidget(QWidget):
             self.initDragNote(self.pattern.getNote(), pos)
         self.finalizePatternChangeAndEmit()
 
+    def openInsertNoteDialog(self, notePrototype, pos):
+        notePos = self.getPositionInNoteUnits(pos.x(), pos.y())
+        if notePrototype is None:
+            notePrototype = Note()
+        notePrototype.note_on = notePos[0]
+        notePrototype.note_pitch = notePos[1]
+        noteDialog = NoteDialog(self.parent, note = notePrototype)
+        if noteDialog.exec_():
+            newNote = noteDialog.getNewNote()
+            if newNote is None:
+                return
+            self.pattern.addNote(newNote)
+            self.select(self.pattern.findSuchANote(newNote))
+            self.finalizePatternChangeAndEmit()
+
     def deleteNote(self, note):
         self.pattern.delNote(note)
         self.finalizePatternChangeAndEmit()
+
 
     def setNumberInput(self, numberInput):
         self.numberInput = numberInput
@@ -453,7 +481,7 @@ class May2PatternWidget(QWidget):
         return self.parent.info['barsPerBeat']
 
     def beatQuantum(self):
-        return self.parent.info['beatQuantum']
+        return self.parent.info['beatQuantum'] * 4/self.barsPerBeat() # the last factor is some hack, but it's only three days to Vortex
 
     def debugOutput(self):
         print("=== PATTERN ===")
