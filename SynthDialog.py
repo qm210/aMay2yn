@@ -55,6 +55,7 @@ class SynthDialog(QtWidgets.QDialog):
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
+        self.synthList.doubleClicked.connect(self.accept)
         self.randomSynthButton.clicked.connect(self.selectRandomSynth)
         self.randomizeParametersButton.clicked.connect(self.randomizeSynthParameters)
         self.previewModuleButton.clicked.connect(self.previewModule)
