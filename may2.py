@@ -56,9 +56,7 @@ class MainWindow(QMainWindow):
 
         self.show()
 
-        self.shiftPressed = False
-        self.ctrlPressed = False
-        self.altPressed = False
+        self.setModifiers(None)
 
        # print(QFontDatabase.addApplikationFont(':/RobotoMonomRegular.ttf')) # could pedistribute, but then I should Read about its LICENSE first
 
@@ -550,16 +548,18 @@ class MainWindow(QMainWindow):
 
         if key == Qt.Key_Escape:
             self.close()
-        elif key == Qt.Key_F1:
-            self.shufflePatternColors()
-        elif key == Qt.Key_F9:
-            self.trackWidget.debugOutput()
-        elif key == Qt.Key_F10:
-            self.patternWidget.debugOutput()
-        elif key == Qt.Key_F11:
-            self.synthWidget.debugOutput()
-        elif key == Qt.Key_F12:
-            self.debugOutput()
+
+        if self.noModifiers:
+            if key == Qt.Key_F1:
+                self.shufflePatternColors()
+            elif key == Qt.Key_F9:
+                self.trackWidget.debugOutput()
+            elif key == Qt.Key_F10:
+                self.patternWidget.debugOutput()
+            elif key == Qt.Key_F11:
+                self.synthWidget.debugOutput()
+            elif key == Qt.Key_F12:
+                self.debugOutput()
 
         if self.trackWidget.active:
 
@@ -584,6 +584,7 @@ class MainWindow(QMainWindow):
                 elif key == Qt.Key_Delete:
                     self.trackWidget.deleteCurrentModule()
 
+
             elif self.ctrlPressed and not self.shiftPressed:
 
                 if key == Qt.Key_Plus:
@@ -592,6 +593,10 @@ class MainWindow(QMainWindow):
                     self.trackModel.cloneTrack()
                 elif key == Qt.Key_Minus:
                     self.trackModel.deleteTrack()
+
+                elif key == Qt.Key_H:
+                    self.rehashPattern()
+
 
             elif self.ctrlPressed and self.shiftPressed:
 
@@ -640,6 +645,7 @@ class MainWindow(QMainWindow):
             self.shiftPressed = event.modifiers() & Qt.ShiftModifier == Qt.ShiftModifier
             self.ctrlPressed = event.modifiers() & Qt.ControlModifier == Qt.ControlModifier
             self.altPressed = event.modifiers() & Qt.AltModifier == Qt.AltModifier
+        self.noModifiers = not self.shiftPressed and not self.ctrlPressed and not self.altPressed
 
     def paintEvent(self, event):
         if self.globalState['deactivated']:
@@ -1148,6 +1154,16 @@ class MainWindow(QMainWindow):
         self.audiooutput.start(self.audiobuffer)
 
 ###################################################################
+
+    def rehashPattern(self):
+        pattern = self.getModulePattern()
+        print("speaking of pattern", pattern.name, pattern._hash)
+        pattern.rehash()
+        self.getModule().patternHash = pattern._hash
+        self.patternColors[pattern._hash] = self.randomColor()
+
+        print("rehashed and is now", pattern._hash)
+
 
     def debugOutput(self):
         print('\n\n')

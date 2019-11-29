@@ -259,6 +259,9 @@ class Pattern:
             for n in self.notes:
                 n.note_pitch = n.note_pitch % max_note
 
+    def rehash(self):
+        self._hash = hash(self)
+
     # helpers...
     def getNote(self, offset=0):
         return self.notes[(self.currentNoteIndex + offset) % len(self.notes)] if self.notes else None

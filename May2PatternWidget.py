@@ -384,7 +384,6 @@ class May2PatternWidget(QWidget):
 
     def activate(self):
         self.active = True
-        print("ACTIVATED")
         self.activated.emit()
 
     def setScale(self, H = None, V = None, deltaH = None, deltaV = None):

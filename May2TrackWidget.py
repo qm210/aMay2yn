@@ -472,9 +472,7 @@ class May2TrackWidget(QWidget):
         print("namesChanged:", namesChanged)
         if namesChanged:
             for module in self.model.getAllModules():
-                print("WE HAVE MODULE", module.patternHash, module.patternName)
                 if module.patternHash in namesChanged:
-                    print("IS NOW CALLED", namesChanged[module.patternHash])
                     module.patternName = namesChanged[module.patternHash]
 
 

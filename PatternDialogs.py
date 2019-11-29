@@ -180,7 +180,6 @@ class PatternDialog(QtWidgets.QDialog):
         self.okButton.setEnabled(self.patternIndex is not None)
 
     def getPattern(self):
-        print("Pattern Index is", self.patternIndex, "name is", self.patternModel.patterns[self.patternIndex].name)
         return self.patternModel.patterns[self.patternIndex] if self.patternIndex is not None and self.patternModel.rowCount() > 0 else None
 
     def selectPattern(self, current, previous):
