@@ -979,15 +979,14 @@ class MainWindow(QMainWindow):
         self.synthModel.setRandomValues(randomValues)
         self.pushUndoStack()
 
-    def addPattern(self, pattern = None, clone = False):
+    def addPattern(self, pattern = None):
+        if pattern is None:
+            return
         index = self.patternModel.getIndexOfPattern(pattern)
         if index is None:
             index = self.patternModel.rowCount() - 1
-        if clone:
-            self.patternModel.cloneRow(index)
-        elif pattern is not None:
-            self.patternModel.addRow(index, pattern)
-            self.patternColors[pattern._hash] = self.randomColor()
+        self.patternModel.addRow(index, pattern)
+        self.patternColors[pattern._hash] = self.randomColor()
 
     def purgeUnusedPatterns(self):
         usedPatternHashs = [module.patternHash for track in self.trackModel.tracks for module in track.modules]

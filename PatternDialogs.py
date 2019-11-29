@@ -155,7 +155,8 @@ class PatternDialog(QtWidgets.QDialog):
             self.accept()
 
     def clonePattern(self):
-        self.parent.addPattern(self.getPattern(), clone = True)
+        print("cloning pattern", self.getPattern().name, self.getPattern().getCopy().name)
+        self.parent.addPattern(self.getPattern().getCopy())
         self.accept()
 
     def purgeEmptyPatterns(self):
@@ -179,6 +180,7 @@ class PatternDialog(QtWidgets.QDialog):
         self.okButton.setEnabled(self.patternIndex is not None)
 
     def getPattern(self):
+        print("Pattern Index is", self.patternIndex, "name is", self.patternModel.patterns[self.patternIndex].name)
         return self.patternModel.patterns[self.patternIndex] if self.patternIndex is not None and self.patternModel.rowCount() > 0 else None
 
     def selectPattern(self, current, previous):

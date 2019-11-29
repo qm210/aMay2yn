@@ -478,8 +478,8 @@ class May2TrackWidget(QWidget):
                     module.patternName = namesChanged[module.patternHash]
 
 
-    def addPattern(self, pattern, clone = False):
-        self.parent.addPattern(pattern, clone)
+    def addPattern(self, pattern):
+        self.parent.addPattern(pattern)
 
 
     def addMarker(self, label, position, style = '', unique = False):

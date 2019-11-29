@@ -1,4 +1,4 @@
-from copy import copy
+from copy import copy, deepcopy
 from numpy import clip
 import random
 import json
@@ -507,6 +507,11 @@ class Pattern:
                 return note
         else:
             return None
+
+    def getCopy(self):
+        newPattern = Pattern(name = self.name, length=self.length, synthType = self.synthType, max_note = self.max_note)
+        newPattern.notes = copy(self.notes)
+        return newPattern
 
     ### DEBUG ###
     def printNoteList(self):
