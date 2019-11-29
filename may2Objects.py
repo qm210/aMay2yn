@@ -260,6 +260,7 @@ class Pattern:
                 n.note_pitch = n.note_pitch % max_note
 
     def rehash(self):
+        self.notes = deepcopy(self.notes)
         self._hash = hash(self)
 
     # helpers...
