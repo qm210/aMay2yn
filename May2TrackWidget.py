@@ -239,7 +239,6 @@ class May2TrackWidget(QWidget):
     def mousePressEvent(self, event):
         if not self.active:
             self.activate()
-            return
 
         eventX = event.pos().x()
         eventY = event.pos().y()

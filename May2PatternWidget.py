@@ -326,7 +326,6 @@ class May2PatternWidget(QWidget):
     def mousePressEvent(self, event):
         if not self.active:
             self.activate()
-            return
 
         if self.parent.ctrlPressed and event.button() == Qt.MiddleButton:
             self.setScale(H = 1, V = 1)
