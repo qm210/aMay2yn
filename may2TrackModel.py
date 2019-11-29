@@ -119,3 +119,12 @@ class TrackModel(QAbstractListModel):
                 if module.getModuleOff() > nextModule.getModuleOn():
                     return f'Modules overlap!\nTrack \'{track.name}\'\nBeats {nextModule.getModuleOn()} .. {module.getModuleOff()}.\nCan\'t render.'
         return None
+
+    def moveAllModules(self, deltaBeats):
+        firstModOn = min(track.getFirstModuleOn() for track in self.tracks if track.modules)
+        if deltaBeats < 0:
+            deltaBeats = max(deltaBeats, -firstModOn)
+        print("LEL", deltaBeats)
+        for track in self.tracks:
+            for module in track.modules:
+                module.mod_on += deltaBeats

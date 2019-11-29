@@ -217,7 +217,6 @@ class May2PatternWidget(QWidget):
             qp.drawLine(endX, self.B, endX, self.T)
 
     def drawNumberInput(self, qp):
-        print("get called", self.numberInput)
         font = qp.font()
         font.setPointSize(self.fontSizeNumberInput)
         qp.setFont(font)
@@ -327,7 +326,6 @@ class May2PatternWidget(QWidget):
         self.stretchNote.note_len = quantize(max(self.stretchNoteOrigin + noteDistance[0], self.beatQuantum()), self.beatQuantum())
 
     def mousePressEvent(self, event):
-        print("hello?", self.active)
         if not self.active:
             self.activate()
 

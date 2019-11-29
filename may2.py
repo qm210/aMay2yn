@@ -607,6 +607,11 @@ class MainWindow(QMainWindow):
                 elif key == Qt.Key_Minus:
                     self.trackModel.deleteTrack()
 
+                elif key == Qt.Key_Left:
+                    self.trackModel.moveAllModules(-1)
+                elif key == Qt.Key_Right:
+                    self.trackModel.moveAllModules(+1)
+
                 elif key == Qt.Key_H:
                     self.rehashPattern()
 
