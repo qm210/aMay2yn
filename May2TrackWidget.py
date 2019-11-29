@@ -469,7 +469,6 @@ class May2TrackWidget(QWidget):
                     self.finalizeTrackChangeAndEmit()
 
     def syncPatternNames(self, namesChanged):
-        print("namesChanged:", namesChanged)
         if namesChanged:
             for module in self.model.getAllModules():
                 if module.patternHash in namesChanged:

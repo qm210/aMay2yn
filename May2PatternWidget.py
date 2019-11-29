@@ -421,6 +421,7 @@ class May2PatternWidget(QWidget):
             if self.stretchNote.note_len < 0:
                 self.stretchNoteTo(self.stretchOrigin)
             else:
+                self.copyOfLastSelectedNote = deepcopy(self.stretchNote)
                 self.finalizePatternChangeAndEmit()
 
     def finalizePatternChangeAndEmit(self):
