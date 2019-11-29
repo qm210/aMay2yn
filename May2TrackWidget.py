@@ -474,6 +474,14 @@ class May2TrackWidget(QWidget):
                 if module.patternHash in namesChanged:
                     module.patternName = namesChanged[module.patternHash]
 
+    def syncModulesToPatternChange(self, patternChanged):
+        if patternChanged:
+            for module in self.model.getAllModules():
+                if module.patternHash == patternChanged._hash:
+                    module.patternName = patternChanged.name
+                    module.patternLength = patternChanged.length
+            self.update()
+
 
     def addPattern(self, pattern):
         self.parent.addPattern(pattern)

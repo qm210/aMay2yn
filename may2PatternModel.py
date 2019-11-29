@@ -86,3 +86,16 @@ class PatternModel(QAbstractListModel):
     def purgeUnusedPatterns(self, usedHashs):
         usedPatterns = [pattern for pattern in self.patterns if pattern._hash in usedHashs]
         self.setPatterns(usedPatterns)
+
+    def extendPattern(self, pattern, beatsInc):
+        if pattern not in self.patterns:
+            print("wtf, pattern not in patternModel,", pattern.name)
+            quit()
+        if pattern.length + beatsInc < 1:
+            return
+        if beatsInc < 0:
+            for note in pattern.notes[:]:
+                if note.note_off > pattern.length + beatsInc:
+                    pattern.delNote(specificNote = note)
+        pattern.length += beatsInc
+

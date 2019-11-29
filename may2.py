@@ -352,7 +352,6 @@ class MainWindow(QMainWindow):
         )
 
     def toggleActivated(self, activateTrack = False, activatePattern = False, activateSynth = False):
-        print("toggleCAtivated", activateTrack, activatePattern, activateSynth)
         self.trackGroup.setObjectName('activated' if activateTrack else '')
         self.trackWidget.active = activateTrack
         self.trackGroup.style().polish(self.trackGroup)
@@ -643,6 +642,13 @@ class MainWindow(QMainWindow):
                         self.setNumberInput(keytext)
                     else:
                         self.setNumberInput()
+
+            elif self.ctrlPressed and not self.shiftPressed:
+
+                if key == Qt.Key_Right:
+                    self.changePatternLength(+1)
+                elif key == Qt.Key_Left:
+                    self.changePatternLength(-1)
 
         elif self.synthWidget.active:
             pass
@@ -1039,6 +1045,14 @@ class MainWindow(QMainWindow):
         self.lastPurgeMap = {}
         for pattern in self.patternModel.patterns:
             self.lastPurgeMap[pattern._hash] = pattern._hash
+
+    def changePatternLength(self, beatsInc):
+        pattern = self.getModulePattern()
+        self.patternModel.extendPattern(pattern, beatsInc)
+        self.patternWidget.setPattern(self.getModulePattern())
+        self.patternWidget.update()
+        self.trackWidget.syncModulesToPatternChange(pattern)
+        self.patternChanged()
 
 ######################### SYNATIZE FUNCTIONALITY #####################
 

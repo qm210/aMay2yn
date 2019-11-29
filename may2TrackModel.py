@@ -124,7 +124,6 @@ class TrackModel(QAbstractListModel):
         firstModOn = min(track.getFirstModuleOn() for track in self.tracks if track.modules)
         if deltaBeats < 0:
             deltaBeats = max(deltaBeats, -firstModOn)
-        print("LEL", deltaBeats)
         for track in self.tracks:
             for module in track.modules:
                 module.mod_on += deltaBeats
