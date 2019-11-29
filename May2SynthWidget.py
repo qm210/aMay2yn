@@ -13,6 +13,7 @@ class May2SynthWidget(QWidget):
 
     paramChanged = pyqtSignal(Param)
     randomsChanged = pyqtSignal(list)
+    activated = pyqtSignal()
 
     def __init__(self, parent):
         super().__init__()

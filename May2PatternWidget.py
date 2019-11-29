@@ -217,6 +217,7 @@ class May2PatternWidget(QWidget):
             qp.drawLine(endX, self.B, endX, self.T)
 
     def drawNumberInput(self, qp):
+        print("get called", self.numberInput)
         font = qp.font()
         font.setPointSize(self.fontSizeNumberInput)
         qp.setFont(font)
@@ -277,6 +278,8 @@ class May2PatternWidget(QWidget):
     def findCorrespondingNote(self, coordX, coordY):
         nextNeighbor = None
         minDistance = None
+        if self.pattern is None:
+            return None
         for note in self.pattern.notes:
             L, R, T, B = self.getRectOfNote(note)
             centerX = 0.5 * (L + R)
@@ -324,11 +327,15 @@ class May2PatternWidget(QWidget):
         self.stretchNote.note_len = quantize(max(self.stretchNoteOrigin + noteDistance[0], self.beatQuantum()), self.beatQuantum())
 
     def mousePressEvent(self, event):
+        print("hello?", self.active)
         if not self.active:
             self.activate()
 
         if self.parent.ctrlPressed and event.button() == Qt.MiddleButton:
             self.setScale(H = 1, V = 1)
+            return
+
+        if self.pattern is None:
             return
 
         corrNote = self.findCorrespondingNote(event.pos().x(), event.pos().y())
@@ -384,6 +391,7 @@ class May2PatternWidget(QWidget):
 
     def activate(self):
         self.active = True
+        print("emit activated pattern shit")
         self.activated.emit()
 
     def setScale(self, H = None, V = None, deltaH = None, deltaV = None):

@@ -344,7 +344,15 @@ class MainWindow(QMainWindow):
         if self.amaysyn is not None:
             self.amaysyn.useSequenceTexture = self.state['useSequence']
 
+    def activateNext(self):
+        self.toggleActivated(
+            activateTrack = self.synthWidget.active,
+            activatePattern = self.trackWidget.active,
+            activateSynth = self.patternWidget.active
+        )
+
     def toggleActivated(self, activateTrack = False, activatePattern = False, activateSynth = False):
+        print("toggleCAtivated", activateTrack, activatePattern, activateSynth)
         self.trackGroup.setObjectName('activated' if activateTrack else '')
         self.trackWidget.active = activateTrack
         self.trackGroup.style().polish(self.trackGroup)
@@ -560,6 +568,11 @@ class MainWindow(QMainWindow):
                 self.synthWidget.debugOutput()
             elif key == Qt.Key_F12:
                 self.debugOutput()
+
+        elif self.ctrlPressed:
+
+            if key == Qt.Key_Tab:
+                self.activateNext()
 
         if self.trackWidget.active:
 
