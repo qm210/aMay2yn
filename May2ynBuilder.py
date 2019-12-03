@@ -256,8 +256,7 @@ class May2ynBuilder:
         if B_stop > 0 and B_stop < max_mod_off:
             max_mod_off = B_stop
 
-        # loop_mode = self.getInfo('loop')
-        loop_mode = 'none' # TODO: do I still need this loop mode..??
+        loop_mode = self.getInfo('loop') if not self.MODE_headless else 'none'
 
         filename = self.getInfo('title') + '.glsl'
 
@@ -271,9 +270,6 @@ class May2ynBuilder:
                     bpm_list.append(str(bpm_point - B_offset) + ':' + part.split(':')[1])
         else:
             bpm_list = self.getInfo('BPM').split()
-
-        if self.MODE_headless:
-            loop_mode = 'full'
 
         self.track_sep = [0] + list(accumulate([len(t.modules) for t in self.tracks]))
         self.pattern_sep = [0] + list(accumulate([len(p.notes) for p in self.patterns]))
@@ -377,13 +373,13 @@ class May2ynBuilder:
         beatheader += 'const float pos_SPB[' + ntime_1 + '] = float[' + ntime_1 + '](' + ','.join(map(GLfloat, pos_SPB)) + ');'
 
         self.song_length = self.getTimeOfBeat(max_mod_off, bpm_list)
-        if loop_mode == 'full':
+        if loop_mode != 'seamless':
             self.song_length = self.getTimeOfBeat(max_mod_off + max_rel, bpm_list)
 
         time_offset = self.getTimeOfBeat(B_offset, bpm_list)
         self.song_length -= time_offset
 
-        if loop_mode == 'none':
+        if loop_mode != 'none':
             loopcode = ('time = mod(time, ' + GLfloat(self.song_length) + ');\n' + 4*' ')
         else:
             loopcode = ('if (time > ' + GLfloat(self.song_length) + ') return vec2(0);\n' + 4*' ')

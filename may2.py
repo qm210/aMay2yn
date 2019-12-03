@@ -199,6 +199,9 @@ class MainWindow(QMainWindow):
         self.writeWavCheckBox = QCheckBox('Write .WAV', self)
         self.toolBar.addWidget(self.writeWavCheckBox)
 
+        self.loopCheckBox = QCheckBox('Loop', self)
+        self.toolBar.addWidget(self.loopCheckBox)
+
         self.useSequenceCheckBox = QCheckBox('Use Sequence', self)
         self.toolBar.addWidget(self.useSequenceCheckBox)
 
@@ -226,6 +229,7 @@ class MainWindow(QMainWindow):
         self.beatStopSpinBox.valueChanged.connect(self.updateRenderRange)
 
         self.writeWavCheckBox.stateChanged.connect(self.updateWriteWav)
+        self.loopCheckBox.stateChanged.connect(self.updateLoop)
         self.useSequenceCheckBox.stateChanged.connect(self.updateUseSequence)
 
     def initModelView(self):
@@ -338,6 +342,9 @@ class MainWindow(QMainWindow):
 
     def updateWriteWav(self, state):
         self.state['writeWAV'] = (state == Qt.Checked)
+
+    def updateLoop(self, state):
+        self.info['loop'] = 'seamless' if state == Qt.Checked else 'none'
 
     def updateUseSequence(self, state):
         self.state['useSequence'] = (state == Qt.Checked)
