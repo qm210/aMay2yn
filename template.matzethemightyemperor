@@ -156,6 +156,7 @@ float comp_SAW(int N, float inv_N, float PW) {return inv_N * (1. - _sin(float(N)
 float comp_TRI(int N, float inv_N, float PW) {return N % 2 == 0 ? .1 * inv_N * _sin(float(N)*PW) : inv_N * inv_N * (1. - _sin(float(N)*PW));}
 float comp_SQU(int N, float inv_N, float PW) {return inv_N * (minus1hochN(N) * _sin(.5*float(N)*PW + .25) - 1.);}
 float comp_HAE(int N, float inv_N, float PW) {return N % 2 == 0 ? 0. : inv_N * (1. - minus1hochNminus1halbe(N))*_sin(PW);}
+float comp_OBO(int N, float inv_N, float PW) {return sqrt(inv_N) * (1. + _sin(float(N)*(1.5+PW)+.5*PI));}
 
 float MADD(float t, float f, float p0, int NMAX, int NINC, float MIX, float CO, float NDECAY, float RES, float RES_Q, float DET, float PW, float LOWCUT, int keyF)
 {
@@ -169,11 +170,12 @@ float MADD(float t, float f, float p0, int NMAX, int NINC, float MIX, float CO, 
     {
         float_N = float(N);
         inv_N = 1./float_N;
-        comp_mix = MIX < 0. ? (MIX+1.) * comp_TRI(N,inv_N,PW)  -     MIX  * comp_SAW(N,inv_N,PW)
+        comp_mix = MIX < -1. ? (MIX+2.) * comp_SAW(N,inv_N,PW)  - (MIX+1.) * comp_OBO(N,inv_N,PW)
+                 : MIX <  0. ? (MIX+1.) * comp_TRI(N,inv_N,PW)  -     MIX  * comp_SAW(N,inv_N,PW)
                  : MIX < 1. ? (1.-MIX) * comp_TRI(N,inv_N,PW)  +     MIX  * comp_SQU(N,inv_N,PW)
                             : (MIX-1.) * comp_HAE(N,inv_N,PW)  + (2.-MIX) * comp_SQU(N,inv_N,PW);
 
-        if(abs(comp_mix) < 1e-6) continue;
+        if(abs(comp_mix) < 1e-4) continue;
 
         filter_N = pow(1. + pow(float_N*INR,NDECAY),-.5) + RES * exp(-pow((float_N*f-CO)*IRESQ,2.));
 
