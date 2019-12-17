@@ -472,7 +472,9 @@ class May2ynBuilder:
             .replace("//BEATHEADER", beatheader)\
             .replace("STEREO_DELAY", GLfloat(self.getInfo('stereo_delay')))\
             .replace("LEVEL_SYN", GLfloat(self.getInfo('level_syn')))\
-            .replace("LEVEL_DRUM", GLfloat(self.getInfo('level_drum')))
+            .replace("LEVEL_DRUM", GLfloat(self.getInfo('level_drum')))\
+            .replace("MASTERCODE_L", self.getInfo('masterCodeL'))\
+            .replace("MASTERCODE_R", self.getInfo('masterCodeR'))
 
         glslcode = glslcode.replace('e+00','').replace('-0.)', ')').replace('+0.)', ')')
         glslcode = self.purgeExpendables(glslcode)

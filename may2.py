@@ -276,6 +276,8 @@ class MainWindow(QMainWindow):
             'level_drum': .666,
             'barsPerBeat': 4,
             'beatQuantum': 1/16,
+            'masterCodeL': 'masterL',
+            'masterCodeR': 'masterR',
         }
         self.info = deepcopy(self.defaultInfo)
         self.patterns = []
@@ -809,6 +811,8 @@ class MainWindow(QMainWindow):
             self.info['BPM'] = settingsDialog.bpmList()
             self.trackWidget.updateBpmList(self.info['BPM'])
             self.info['level_syn'], self.info['level_drum'] = settingsDialog.getLevels()
+            self.info['masterCodeL'] = settingsDialog.masterCodeL()
+            self.info['masterCodeR'] = settingsDialog.masterCodeR()
             self.info['beatQuantum'] = 1/float(settingsDialog.beatQuantumDenominatorSpinBox.value())
             self.info['barsPerBeat'] = settingsDialog.barsPerBeatSpinBox.value()
             settingsDialogSynFile = settingsDialog.synFileEdit.text()

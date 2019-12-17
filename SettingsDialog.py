@@ -13,6 +13,8 @@ class SettingsDialog(QtWidgets.QDialog):
         self.setGeometry(parent.x() + 0.5 * (parent.width() - self.WIDTH), parent.y() + 0.5 * (parent.height() - self.HEIGHT), self.WIDTH, self.HEIGHT)
         self.parent = parent
         self.initBpmList = self.parent.info.get('BPM', '')
+        self.initMasterCodeL = self.parent.info.get('masterCodeL', '')
+        self.initMasterCodeR = self.parent.info.get('masterCodeR', '')
 
         self.layout = QtWidgets.QVBoxLayout(self)
 
@@ -47,6 +49,20 @@ class SettingsDialog(QtWidgets.QDialog):
         self.levelDrumSpinBox.setStepType(QtWidgets.QAbstractSpinBox.AdaptiveDecimalStepType)
         self.levelDrumSpinBox.setValue(self.parent.info['level_drum'])
         self.formLayout.addRow(QtWidgets.QLabel('Global Drum Level: '), self.levelDrumSpinBox)
+
+        self.masterCodeLEdit = QtWidgets.QTextEdit(self)
+        self.masterCodeLEdit.setTabChangesFocus(True)
+        self.masterCodeLEdit.setText(self.initMasterCodeL)
+        self.formLayout.addRow(QtWidgets.QLabel('Master Code Left: '), self.masterCodeLEdit)
+
+        self.masterCodeREdit = QtWidgets.QTextEdit(self)
+        self.masterCodeREdit.setTabChangesFocus(True)
+        self.masterCodeREdit.setText(self.initMasterCodeR)
+        self.formLayout.addRow(QtWidgets.QLabel('Master Code Right: '), self.masterCodeREdit)
+
+        self.line2 = QtWidgets.QFrame(self)
+        self.line2.setFrameShape(QtWidgets.QFrame.HLine)
+        self.layout.addWidget(self.line2)
 
         self.beatQuantumDenominatorSpinBox = QtWidgets.QSpinBox(self)
         self.beatQuantumDenominatorSpinBox.setValue(int(1/self.parent.info['beatQuantum']))
@@ -100,3 +116,15 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def getLevels(self):
         return (self.levelSynSpinBox.value(), self.levelDrumSpinBox.value())
+
+    def masterCodeL(self):
+        newMasterCodeL = self.masterCodeLEdit.toPlainText().strip()
+        if newMasterCodeL == '':
+            newMasterCodeL = 'masterL'
+        return newMasterCodeL if newMasterCodeL != '' else 'masterL'
+
+    def masterCodeR(self):
+        newMasterCodeR = self.masterCodeREdit.toPlainText().strip()
+        if newMasterCodeR == '':
+            newMasterCodeR = self.masterCodeL().replace('masterL', 'masterR')
+        return newMasterCodeR
