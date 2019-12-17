@@ -682,11 +682,19 @@ main Ghost2 src=ghost2004*ghost2101 release=.54 !.8 stereodelay=0.05 predraw=.1
 lfo tri0200 shape=sin freq=.5
 lfo tri0210 shape=sin freq=.2 mode=global
 lfo tri0211 shape=sin freq=.21 mode=global
-osc tri0000 shape=tri freq=.251*f phase=.35*tri0200 overdrive=5+4*tri0210*tri0211
-osc tri0001 shape=tri freq=.5*f phase=.4+.15*tri0200+.22*trienv002*tri0000
-env trienv001 shape=stepexpdecay exponent=7 hold=.13 decay=.01
+osc trinoise0 shape=lpnoise freq=2142
+osc trinoise1 shape=lpnoise freq=3961
+osc tri0000 shape=tri freq=.51*f phase=.35*tri0200
+osc tri0001 shape=tri freq=f phase=.4+.15*tri0200+.22*trienv002*tri0000+trienv002*trinoise1*.1 overdrive=4*tri0210*tri0211
+osc tri0002 shape=tri freq=1.995*f phase=.15*tri0200+.22*trienv002*tri0000+trienv002*trinoise0*.1
+osc tri0003 shape=saw freq=2.011*f phase=.1+.5*trienv002*tri0000
+osc tri0004 shape=sin freq=.52*f+trienv002*tri0200 phase=.4+.25*tri0200*.22*trienv002*tri0000
+env trienv001 shape=stepexpdecay exponent=7 hold=.03 decay=.1
 env trienv002 attack=.025 hold=0 decay=.1 sustain=.3
-main TriCyb src=.25*trienv001*tri0000+.76*trienv001*tri0001 release=.5 stereodelay=2e-3
+form picmix mix src=.25*trienv001*tri0000+.76*trienv001*tri0001+tri0210*trienv001*tri0002+.62*tri0211*trienv001*tri0003+.27*trienv001*tri0004
+form picmix_sat saturate src=picmix gain=1
+form picmix_ch chorus src=picmix_sat number=5 step=1e-5 intensity=3 rate=1.4
+main PicCyb src=picmix_ch release=1.5 stereodelay=2e-3
 
 param include src="float _HCybHHClENV0(float t){return t <= .004? linmix(t,250.,0.,0.,1.):t <= .032? linmix(t,35.7143,-.1429,1.,0.):0.;} float _HCybHHClENV1(float t){return t <= .009? linmix(t,111.1111,0.,0.,1.):t <= .06? linmix(t,19.6078,-.1765,1.,0.):0.;} float _HCybHHClENV2(float t){return t <= .15? linmix(t,6.6667,0.,6000.,1000.):t <= .4? linmix(t,4.,-.6,1000.,200.):200.;} float _HCybHHClENV3(float t){return t <= .18? linmix(t,5.5556,0.,4.123,4.04):4.04;} "
 
