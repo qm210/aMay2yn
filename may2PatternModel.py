@@ -98,6 +98,6 @@ class PatternModel(QAbstractListModel):
                 if note.note_on >= pattern.length + beatsInc:
                     pattern.delNote(specificNote = note)
                 elif note.note_off > pattern.length + beatsInc:
-                    note.moveNoteOff(pattern.length + beatsInc)
+                    note.cropNoteOff(pattern.length + beatsInc)
         pattern.length += beatsInc
 

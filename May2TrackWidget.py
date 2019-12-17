@@ -222,7 +222,7 @@ class May2TrackWidget(QWidget):
     def getBeatAtX(self, x):
         if x < self.gridX or x > self.R:
             return None
-        visibleBeat = int((x - self.gridX) / (self.R - self.gridX) * self.numberBeatsVisible)
+        visibleBeat = floor((x - self.gridX) / (self.R - self.gridX) * self.numberBeatsVisible)
         beat = self.offsetH + visibleBeat
         return beat
 
