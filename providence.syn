@@ -525,6 +525,10 @@ maindrum    BELL0    src=".27*(0.*lpnoise(_PROG,1993.)+0.*lpnoise(_PROG,2349.)+0
 maindrum    RIDE0    src=".61*(0.*lpnoise(_PROG,385.)+0.*lpnoise(_PROG,2973.)+0.*lpnoise(_PROG,1554.))*(smstep(0.,.01,_PROG)-smstep(0.,.54,_PROG-.02))+_sin(drop_phase(_PROG,.03,638.,304.))*exp(-_PROG*9.7)*.1+_sin(drop_phase(_PROG*1541.,.03,638.,304.))*exp(-_PROG*2.8)*.91" release=.15 relpower=1 slidetime=.125
 maindrum    CYMBLTOM    src=".25*(0.*lpnoise(_PROG,260.)+0.*lpnoise(_PROG,868.)+0.*lpnoise(_PROG,454.))*(smstep(0.,.01,_PROG)-smstep(0.,.91,_PROG-.91))+_sin(drop_phase(_PROG,.02,559.,252.))*exp(-_PROG*5.5)*.4+_sin(drop_phase(_PROG*1444.,.02,559.,252.))*exp(-_PROG*6.9)*.3" release=.15 relpower=1 slidetime=.125
 
+param include src="float _BOOMENV0(float t){return t <= .019? linmix(t,52.6316,0.,0.,1.):t <= .244? linmix(t,4.4444,-.0844,1.,.274):t <= 1.2? linmix(t,1.046,-.2552,.274,0.):0.;} float _BOOMENV1(float t){return t <= .147? linmix(t,6.8027,0.,0.,1.):t <= .488? linmix(t,2.9326,-.4311,1.,.417):t <= 1.058? linmix(t,1.7544,-.8561,.417,0.):0.;} float _BOOMENV2(float t){return t <= .259? linmix(t,3.861,0.,0.,1.):t <= .868? linmix(t,1.642,-.4253,1.,.464):t <= 1.947? linmix(t,.9268,-.8044,.464,0.):0.;} float _BOOMENV3(float t){return t <= .62? linmix(t,1.6129,0.,0.,1.):t <= 1.899? linmix(t,.7819,-.4848,1.,0.):0.;} float _BOOMENV4(float t){return t <= .046? linmix(t,21.7391,0.,273.108,73.441):73.441;} "
+
+maindrum BOOM src="_BOOMENV0(_t)*(1.6*(.5*_sin_(drop_phase(_t,.046,273.108,73.441),1.7*_BOOMENV0(_t)*lpnoise(_t,452.603))+.5*_sin_(.983*drop_phase(_t,.046,273.108,73.441),1.7*_BOOMENV0(_t)*lpnoise(_t,452.603))))+_BOOMENV1(_t)*(1.25*lpnoise(_t,452.603))+_BOOMENV2(_t)*(1.45*lpnoise(_t,212.15))+_BOOMENV3(_t)*(1.85*lpnoise(_t,141.624))" srcr="_BOOMENV0(_t)*(1.6*(.5*_sin_(drop_phase((_t-.00089),.046,273.108,73.441),1.7*_BOOMENV0(_t)*lpnoise((_t-.00089),452.603))+.5*_sin_(.983*drop_phase((_t-.00089),.046,273.108,73.441),1.7*_BOOMENV0(_t)*lpnoise((_t-.00089),452.603))))+_BOOMENV1(_t)*(1.25*lpnoise((_t-.00011),452.603))+_BOOMENV2(_t)*(1.45*lpnoise((_t-.00173),212.15))+_BOOMENV3(_t)*(1.85*lpnoise((_t-.002),141.624))" release=0.0
+
 
 form bell0src define src=".43*(0.*lpnoise(_PROG,2675.)+0.*lpnoise(_PROG,755.)+0.*lpnoise(_PROG,1282.))*(smstep(0.,.01,_PROG)-smstep(0.,.55,_PROG-.05))+_sin(drop_phase(_PROG,.01,582.,340.))*exp(-_PROG*.5)*.43+_sin(drop_phase(_PROG*1788.,.01,582.,340.))*exp(-_PROG*9.8)*.78"
 form bell0dst sinshape src=bell0src amount=vel parts=30
@@ -694,7 +698,8 @@ form   FMTubu001 op=chorus src=FMTubu000 number=2 step=.01 intensity=1. rate=0.3
 main   FMTubu src=FMTubuE00*FMTubu001 release=1 slidetime=.1
 
 osc HO00 shape=madd nmax=8 mix=-2 pw=3 cutoff=600 q=10 res=.4 resq=100 detune=.001 phase=.3*HO01
-osc HO02 shape=madd freq=3*f nmax=16 mix=-2 pw=7 cutoff=10000 q=100 res=.4 resq=100 detune=.001 phase=.3*HO01
+osc HO02 shape=madd freq=4*f nmax=16 mix=-2 pw=7 cutoff=10000 q=100 res=.4 resq=100 detune=.001 phase=.3*HO01
 osc HO01 shape=lpnoise freq=3300
 env HO10 shape=ahdsrexp attack=.125 decay=.125 sustain=.5
 main    HOboe src=HO10*HO00+.7*HO10*HO02 release=.2 stereodelay=3e-3
+
