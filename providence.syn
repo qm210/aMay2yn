@@ -397,7 +397,7 @@ form fqmbace7_src define src="vel*2.5*QFM(_PROG,.993*f,0.,.00787*24.,.00787*92.,
 main    FQMbace.7   src=fqmbace7_src release=1.3 slidetime=.02 relpower=7 stereodelay=.07
 
 form fqmbace7_dist saturate src=fqmbace7_src gain=4
-main    FQMbace7Sat src=fqmbace7sat_vol*fqmbace7_dist release=1.3 slidetime=.03 relpower=4 stereodelay=.03
+main    FQMbace7Sat src=fqmbace7sat_vol*fqmbace7_dist release=1 slidetime=.03 relpower=4 stereodelay=.03
 param fqmbace7sat_vol default=1
 
 main    FQMbace.8   src="vel*QFM(_PROG,f,0.,.00787*20.,.00787*17.,.00787*54.,.00787*33.,.5,1.,1.001,1.,.00787*126.,.00787*19.,.00787*23.,.00787*36.,6.)*env_AHDSR(_PROG,tL,.007,0.,.01,1.,.006)" release=.2 slidetime=.6 relpower=1
@@ -460,7 +460,7 @@ form fmpluck1_src define src="QFM(_PROG,f,0.,.00787*125.,.00787*env_AHDSRexp(_BP
 main    FMpluck.1    src=fmpluck1_src release=.5 slidetime=.1337 relpower=1 predraw=0
 
 form   fmpluck1_srcup sinshape src=fmpluck1_src amount=.5 parts=7
-main    FMpluck.1up    src=fmpluck1_srcup release=.5 slidetime=.1337 relpower=1 predraw=0 stereodelay=.1
+main    FMpluck.1up    src=fmpluck1_srcup release=.5 slidetime=.1337 relpower=10 predraw=0 stereodelay=.1
 
 main    FMpluck.2    src="QFM(_PROG,f,0.,.00787*97.,.00787*env_AHDSR(_BPROG,L,.0001,.192,.088,.486,0.)*106.,.00787*env_AHDSR(_BPROG,L,.0001,.111,.191,.084,0.)*1.,.00787*env_AHDSR(_BPROG,L,.0001,.178,.221,.449,0.)*9.,.999,1.,1.+.0875*(.5+(.5*_sin(.08*_BPROG))),2.,.00787*77.,.00787*42.,.00787*35.,.00787*83.,6.)*env_AHDSR(_BPROG,L,.0001,.005,.169,.945,.158)" release=.5 slidetime=.1337 relpower=1 predraw=0
 main    FMpluck.3    src="vel*QFM(_PROG,f,0.,.00787*85.,.00787*env_AHDSR(_BPROG,L,.0001,.07,.093,.148,0.)*33.,.00787*env_AHDSR(_BPROG,L,.0001,.285,.2,.357,0.)*68.,.00787*env_AHDSR(_BPROG,L,.0001,.244,.181,.003,0.)*120.,.999,1.,1.+.0849*(.5+(.5*_sin(.25*_BPROG))),2.,.00787*10.,.00787*53.,.00787*115.,.00787*38.,9.)*env_AHDSR(_BPROG,L,.0001,.044,.163,.13,.129)" release=.7 slidetime=.1337 relpower=.5 predraw=0 stereodelay=0.01
@@ -723,9 +723,11 @@ form   FMP002 op=chorus src=FMP001 number=3 step=4e-3 intensity=3. rate=0.05
 main   FMotionPad src=fett2_volume*FMPE01*FMP002 release=1 slidetime=.3 relpower=3 stereodelay=.1
 
 osc    FMTubu000 shape=fm lv1=113 lv2=86 lv3=113 lv4=86 fr1=1 fr2=3.5 fr3=1 fr4=3.5 fb1=0 fb2=0 fb3=0 fb4=0 algo=8 parscale=127
-env    FMTubuE00 attack=0 decay=.25 sustain=0 hold=0 release=1
-form   FMTubu001 op=chorus src=FMTubu000 number=2 step=.01 intensity=1. rate=0.32
-main   FMTubu src=FMTubuE00*FMTubu001 release=1 slidetime=.1
+env    FMTubuE00 attack=0 decay=.2 sustain=0 hold=0 release=1
+form   FMTubu002 op=saturate src=FMTubuE00*FMTubu000 gain=10
+form   FMTubu001 op=chorus src=FMTubu002 number=2 step=.01 intensity=.5 rate=0.32
+form   FMTubu003 op=delay src=FMTubu001 number=2 delay=.333 gain=.2
+main   FMTubu src=FMTubu003 release=2 slidetime=.1 stereodelay=0.008
 
 param hoboe_vol default=1
 osc HO00 shape=madd nmax=8 mix=-2 pw=3 cutoff=600 q=10 res=.4 resq=100 detune=.006 phase=.3*HO01+HO11*HO20
