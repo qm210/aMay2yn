@@ -82,7 +82,7 @@ def set_remaining_defaults(cid, cmd, form):
             raise
 
     elif cmd == 'env':
-        defaults.update({'shape':'ahdsr', 'attack':'1e-3', 'hold':'0', 'decay':'.1', 'sustain':'1', 'release':'0', 'scale':'1', 'shift':'0', 'offset':'0'})
+        defaults.update({'shape':'ahdsrexp', 'attack':'1e-3', 'hold':'0', 'decay':'.1', 'sustain':'1', 'release':'0', 'scale':'1', 'shift':'0', 'offset':'0'})
         #TODO: calibrate attack and decay
 
         try:

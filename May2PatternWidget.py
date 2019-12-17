@@ -105,6 +105,8 @@ class May2PatternWidget(QWidget):
         self.numberBarsVisible = 0 if not self.pattern else int(clip(self.barsPerBeat() * (self.pattern.length - self.offsetH), 0, self.maxNumberBars))
         self.numberBeatsVisible = self.numberBarsVisible / self.barsPerBeat()
 
+        self.endX = self.X + self.pianoW + (self.beatW * (self.pattern.length - self.offsetH) if self.pattern is not None else 0)
+
         if self.drumMode:
             self.numberDrums = self.parent.drumModel.rowCount()
             self.numberDrumsVisible = min(self.numberKeysVisible, self.numberDrums)
@@ -204,17 +206,13 @@ class May2PatternWidget(QWidget):
             drawText(qp, x, self.B + 1, Qt.AlignHCenter | Qt.AlignTop, f'{(b+1)/self.barsPerBeat() + self.offsetH : .2f}')
 
         # END SEGMENT
-        if self.pattern is None:
-            endX = self.X + self.pianoW
-        else:
-            endX = self.X + self.pianoW + self.beatW * (self.pattern.length - self.offsetH)
-        if endX > 0 and endX < self.R:
-            qp.fillRect(endX, self.B, self.R - endX, self.T - self.B, QColor(0, 0, 0, 75)) # HARDCODE
+        if self.endX > 0 and self.endX < self.R:
+            qp.fillRect(self.endX, self.B, self.R - self.endX, self.T - self.B, QColor(0, 0, 0, 75)) # HARDCODE
             pen = qp.pen()
             pen.setColor(Qt.black)
             pen.setWidthF(2)
             qp.setPen(pen)
-            qp.drawLine(endX, self.B, endX, self.T)
+            qp.drawLine(self.endX, self.B, self.endX, self.T)
 
     def drawNumberInput(self, qp):
         font = qp.font()
@@ -339,7 +337,8 @@ class May2PatternWidget(QWidget):
         corrNote = self.findCorrespondingNote(event.pos().x(), event.pos().y())
         if corrNote is None:
             if event.button() == Qt.LeftButton:
-                self.insertNote(self.copyOfLastSelectedNote, event.pos(), copyParameters = False, initDrag = True)
+                if event.pos().x() < self.endX:
+                    self.insertNote(self.copyOfLastSelectedNote, event.pos(), copyParameters = False, initDrag = True)
             elif event.button() == Qt.MiddleButton:
                 self.openInsertNoteDialog(self.copyOfLastSelectedNote, event.pos())
             return

@@ -230,10 +230,11 @@ class May2TrackWidget(QWidget):
         track = self.getTrackAtY(coordY)
         if track is None:
             return None, None
-        for module in track.modules:
-            L, R = self.getPosOfModule(module)
-            if coordX >= L and coordX <= R:
-                return track, module
+        if coordX >= self.gridX:
+            for module in track.modules:
+                L, R = self.getPosOfModule(module)
+                if coordX >= L and coordX <= R:
+                    return track, module
         return track, None
 
     def mousePressEvent(self, event):

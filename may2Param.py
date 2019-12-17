@@ -88,8 +88,9 @@ class ParamSegment:
     def setArgs(self, type, **kwargs):
         self.type = type
         self.args.update(kwargs)
-        for arg in self.args:
-            self.args[arg] = round(self.args[arg], 3)
+        if self.type != ParamSegment.LITERAL:
+            for arg in self.args:
+                self.args[arg] = round(self.args[arg], 3)
 
     def length(self):
         return self.end - self.start

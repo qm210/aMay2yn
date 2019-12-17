@@ -644,6 +644,9 @@ class MainWindow(QMainWindow):
                 elif key == Qt.Key_X:
                     self.setParameterFromNumberInput('aux')
 
+                elif key == Qt.Key_Delete:
+                    self.patternWidget.deleteNote()
+
                 if keytext:
                     if keytext.isdigit() or keytext in ['.', '-']:
                         self.setNumberInput(keytext)
@@ -933,6 +936,7 @@ class MainWindow(QMainWindow):
         if self.state['numberInput']:
             self.state['lastNumberInput'] = self.state['numberInput']
         self.getModulePattern().getNote().setParameter(parameter, self.state['lastNumberInput'])
+        self.patternWidget.select(self.getModulePattern().getNote())
 
     def setRandomSynth(self):
         track = self.getTrack()
