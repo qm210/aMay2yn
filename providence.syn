@@ -388,7 +388,7 @@ main    chippy.5    src="vel*env_AHDSR(_PROG,tL,.028,0.,.144,.912,.006)*MADD(flo
 main    chippy.6    src="vel*env_AHDSR(_PROG,tL,.035,0.,.142,.61,.035)*MADD(floor(16000.*_PROG+.5)/16000.,f,0.,128,1,-.83,(1901.+(776.*_sin_(2.*B,.4))),18.,0.,17.9,.016,.4*(.55+(.4*clip((1.+1.)*_sin(4.*B)))),0)" release=4e-2 relpower=1 slidetime=.125
 param fqmbace5_volume default=1
 form fqmbace5_src define src="vel*QFM(_PROG,f,0.,.00787*71.,.00787*52.,.00787*91.,.00787*99.,.5,1.,1.001,1.,.00787*49.,.00787*104.,.00787*65.,.00787*90.,7.)*env_AHDSR(_PROG,tL,.023,0.,.01,1.,.006)" 
-main    FQMbace.5   src=fqmbace5_volume*fqmbace5_src release=.2 slidetime=.18 relpower=1
+main    FQMbace.5   src=fqmbace5_volume*fqmbace5_src release=.2 slidetime=.28 relpower=1
 main    FQMbace.6   src="vel*QFM(_PROG,f,0.,.00787*110.,.00787*90.,.00787*54.,.00787*71.,.5,1.,1.001,1.,.00787*60.,.00787*40.,.00787*68.,.00787*9.,10.)*env_AHDSR(_PROG,tL,.02,0.,.01,1.,.003)" release=.2 slidetime=.6 relpower=1
 main    FQMimp.1    src="vel*waveshape(QFM(_PROG,f,0.,.00787*54.,.00787*82.,.00787*86.,.00787*64.,.5,1.,1.001,1.,.00787*95.,.00787*83.,.00787*18.,.00787*83.,10.),(.5+(.5*_sin(.4*B))),.05,.46,.3,.7,.8)*env_AHDSR(_PROG,tL,.2,0.,.01,1.,.05)+vel*clip((1.+2.)*_sin(f*_PROG))" release=.05 relpower=1 slidetime=.125
 main    FQMimp.2    src="vel*waveshape(QFM(_PROG,f,0.,.00787*0.,.00787*119.,.00787*92.,.00787*101.,.5,1.,1.001,1.,.00787*100.,.00787*61.,.00787*25.,.00787*9.,1.),(.5+(.5*_sin(.4*B))),.05,.46,.3,.7,.8)*env_AHDSR(_PROG,tL,.2,0.,.01,1.,.05)+vel*clip((1.+2.)*_sin(f*_PROG))" release=.05 relpower=1 slidetime=.125

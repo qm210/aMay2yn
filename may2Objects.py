@@ -600,8 +600,8 @@ class Note:
     def setParameter(self, parameter, value = None, min_value = None, max_value = None):
         if value is not None:
             value = float(value)
-            if min_value and value < min_value: value = min_value
-            if max_value and value > max_value: value = max_value
+            if min_value is not None and value < min_value: value = min_value
+            if max_value is not None and value > max_value: value = max_value
         if parameter == 'pan':
             self.setPan(value)
         elif parameter == 'vel':

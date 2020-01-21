@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QVBoxLa
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QItemSelectionModel, QFile, QTextStream, QStringListModel, QBuffer, QIODevice
 from PyQt5.QtGui import QFontDatabase, QIcon, QColor, QPainter
 from PyQt5.QtMultimedia import QAudioOutput, QAudioFormat, QAudioDeviceInfo, QAudio
+from math import ceil
 from copy import deepcopy
 from functools import partial
 from os import path
@@ -33,6 +34,7 @@ from May2ynBuilder import May2ynBuilder
 from SFXGLWidget import SFXGLWidget
 from SettingsDialog import SettingsDialog
 from PatternDialogs import ImportPatternDialog
+from ParameterDialog import ParameterDialog
 from may2Utils import findFreeSerial
 from may2Style import notACrime, deactivatedColor
 
@@ -260,6 +262,7 @@ class MainWindow(QMainWindow):
             'numberInputMode': False,
             'numberInput': '',
             'lastNumberInput': '',
+            'lastChangedParameterType': '',
             'lastImportPatternFilename': '',
             'lastImportPatternFilter': '',
             'synFileTimestamp': None,
@@ -662,6 +665,9 @@ class MainWindow(QMainWindow):
                 elif key == Qt.Key_Left:
                     self.changePatternLength(-1)
 
+                elif key == Qt.Key_P:
+                    self.openParameterDialog()
+
         elif self.synthWidget.active:
             pass
 
@@ -829,7 +835,12 @@ class MainWindow(QMainWindow):
                 self.addPattern(pattern)
         self.state['lastImportPatternFilename'] = importPatternDialog.xmlFilename
         self.state['lastImportPatternFilter'] = importPatternDialog.filter
-        # self.autosave()
+
+    def openParameterDialog(self):
+        parameterDialog = ParameterDialog(self, pattern = self.getModulePattern(), parameterType = self.state['lastChangedParameterType'])
+        if parameterDialog.exec_():
+            self.state['lastChangedParameterType'] = parameterDialog.parameterType
+            self.autoSave()
 
     def updateRenderRange(self):
         self.beatOffsetSpinBox.setRange(0, self.trackModel.totalLength())
@@ -939,6 +950,7 @@ class MainWindow(QMainWindow):
     def setParameterFromNumberInput(self, parameter):
         if self.state['numberInput']:
             self.state['lastNumberInput'] = self.state['numberInput']
+            self.state['lastChangedParameterType'] = parameter
         self.getModulePattern().getNote().setParameter(parameter, self.state['lastNumberInput'])
         self.patternWidget.select(self.getModulePattern().getNote())
 
@@ -1232,6 +1244,13 @@ class MainWindow(QMainWindow):
                     synthObj.printNodeTree()
                     print("USED PARAMS:", synthObj.nodeTree.usedParams)
                     print("USED RANDOMS:", synthObj.nodeTree.usedRandoms)
+
+        if self.amaysyn is not None:
+            print("\nTIME OF EVERY BEAT:")
+            for beat in range(ceil(self.trackModel.totalLength())):
+                print("BEAT", beat, "\t TIME", self.amaysyn.getTimeOfBeat_raw(beat, self.info['BPM']))
+
+        print()
 
 ###################################################################
 
