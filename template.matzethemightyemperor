@@ -146,6 +146,16 @@ float sinshape(float x, float amt, float parts)
     return (1.-amt) * x + amt * sign(x) * 0.5 * (1. - cos(parts*PI*x));
 }
 
+float distshape(float x, float amt, float threshold)
+{
+    return (1.-amt) * x + amt * x*(abs(x)+threshold)/(x*x + (threshold-1.)*abs(x) + 1.);
+}
+
+float foldshape(float x, float amt, float threshold, float whatever)
+{
+    return (abs(x) >= threshold) ? ((1.-amt) * x + amt * abs(abs(mod(x - threshold, threshold * 2. * whatever)) - threshold * whatever) - threshold) : x;
+}
+
 float GAC(float t, float offset, float a, float b, float c, float d, float e, float f, float g)
 {
     t = t - offset;
@@ -423,8 +433,8 @@ vec2 mainSynth(float time)
             // this would be the place for track sum effects, if any (distortion / waveshape)
         }
     }
-    float masterL = LEVEL_SYN * sidechain * s_atan(sL) + LEVEL_DRUM * dL;
-    float masterR = LEVEL_SYN * sidechain * s_atan(sR) + LEVEL_DRUM * dR;
+    float masterL = LEVEL_SYN * sidechain * s_atan(MASTERCODE_sL) + LEVEL_DRUM * dL;
+    float masterR = LEVEL_SYN * sidechain * s_atan(MASTERCODE_sR) + LEVEL_DRUM * dR;
     return vec2(
         MASTERCODE_L,
         MASTERCODE_R);

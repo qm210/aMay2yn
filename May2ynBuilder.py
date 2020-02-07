@@ -37,7 +37,8 @@ class May2ynBuilder:
         self.MODE_debug = False
         self.MODE_headless = False
         self.MODE_renderWav = kwargs.pop('renderWAV', False)
-        self.initWavOut()
+        self.initWavOut(kwargs.pop('outdir', None))
+        self.MODE_justRenderWAV = False
 
         self.synths = []
         self.synthNames = None
@@ -67,11 +68,11 @@ class May2ynBuilder:
             self.extra_time_shift = extra_time_shift
 
     def initWavOut(self, outdir = None):
-        if self.MODE_renderWav:
-            if outdir is not None:
-                self.outdir = outdir
-            if not path.isdir('./' + self.outdir):
-                mkdir(self.outdir)
+        if outdir is not None:
+            self.MODE_renderWav = True
+            self.outdir = outdir
+        if not path.isdir('./' + self.outdir):
+            mkdir(self.outdir)
 
     def validSynFile(self):
         return self.synFile is not None and path.exists(self.synFile)
@@ -473,6 +474,8 @@ class May2ynBuilder:
             .replace("STEREO_DELAY", GLfloat(self.getInfo('stereo_delay')))\
             .replace("LEVEL_SYN", GLfloat(self.getInfo('level_syn')))\
             .replace("LEVEL_DRUM", GLfloat(self.getInfo('level_drum')))\
+            .replace("MASTERCODE_sL", self.getInfo('masterSynthCodeL'))\
+            .replace("MASTERCODE_sR", self.getInfo('masterSynthCodeR'))\
             .replace("MASTERCODE_L", self.getInfo('masterCodeL'))\
             .replace("MASTERCODE_R", self.getInfo('masterCodeR'))
 
@@ -561,6 +564,11 @@ class May2ynBuilder:
             print("you need to build() some shader before executeShader(). shady boi...")
             return None
 
+        wavFileName = self.getInfo('title') + '.wav'
+        if self.MODE_justRenderWAV:
+            renderWAV = True
+            wavFileName = self.getWAVFileName(self.getWAVFileCount())
+
         # TODO: would be really nice: option to not re-shuffle the last throw of randoms, but export these to WAV on choice... TODOTODOTODOTODO!
         # TODO LATER: great plans -- live looping ability (how bout midi input?)
         if self.stored_randoms:
@@ -569,7 +577,6 @@ class May2ynBuilder:
             with open(self.getInfo('title') + '.rnd', 'a') as of:
                 of.write(timestamp + '\t' + countID + '\t' \
                                 + '\t'.join((rnd['id'] + '=' + str(rnd['value'])) for rnd in self.stored_randoms if rnd['store']) + '\n')
-
 
         starttime = datetime.datetime.now()
 
@@ -608,7 +615,8 @@ class May2ynBuilder:
                 else:
                     floatmusic_R.append(sample)
             floatmusic_stereo = np.transpose(np.array([floatmusic_L, floatmusic_R], dtype = np.float32))
-            wavfile.write(self.getInfo('title') + '.wav', samplerate, floatmusic_stereo)
+            wavfile.write(wavFileName, samplerate, floatmusic_stereo)
+            print(f"{wavFileName} written.")
 
 
         if self.MODE_headless:

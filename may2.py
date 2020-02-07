@@ -35,6 +35,7 @@ from SFXGLWidget import SFXGLWidget
 from SettingsDialog import SettingsDialog
 from PatternDialogs import ImportPatternDialog
 from ParameterDialog import ParameterDialog
+from RandomizerDialog import RandomizerDialog
 from may2Utils import findFreeSerial
 from may2Style import notACrime, deactivatedColor
 
@@ -152,6 +153,11 @@ class MainWindow(QMainWindow):
         randomizeAllAction.setShortcut('F4')
         randomizeAllAction.triggered.connect(self.reshuffleAllRandomValues)
         self.toolBar.addAction(randomizeAllAction)
+
+        randomizeAllManyTimesAction = QAction(QIcon('./icon_randomize_many.png'), 'Shuffle All Random Variables Multiple Times', self)
+        randomizeAllManyTimesAction.setShortcut('Ctrl+F4')
+        randomizeAllManyTimesAction.triggered.connect(self.reshuffleAllRandomValuesManyTimes)
+        self.toolBar.addAction(randomizeAllManyTimesAction)
 
         self.toolBar.addSeparator()
 
@@ -279,6 +285,8 @@ class MainWindow(QMainWindow):
             'level_drum': .666,
             'barsPerBeat': 4,
             'beatQuantum': 1/16,
+            'masterSynthCodeL': 'sL',
+            'masterSynthCodeR': 'sR',
             'masterCodeL': 'masterL',
             'masterCodeR': 'masterR',
         }
@@ -819,6 +827,8 @@ class MainWindow(QMainWindow):
             self.info['level_syn'], self.info['level_drum'] = settingsDialog.getLevels()
             self.info['masterCodeL'] = settingsDialog.masterCodeL()
             self.info['masterCodeR'] = settingsDialog.masterCodeR()
+            self.info['masterSynthCodeL'] = settingsDialog.masterSynthCodeL()
+            self.info['masterSynthCodeR'] = settingsDialog.masterSynthCodeR()
             self.info['beatQuantum'] = 1/float(settingsDialog.beatQuantumDenominatorSpinBox.value())
             self.info['barsPerBeat'] = settingsDialog.barsPerBeatSpinBox.value()
             settingsDialogSynFile = settingsDialog.synFileEdit.text()
@@ -976,6 +986,18 @@ class MainWindow(QMainWindow):
     def getRandom(self, randomID):
         return self.parent.synthModel.randomValues.get(randomID, None)
 
+    def reshuffleAllRandomValuesManyTimes(self):
+        dialog = RandomizerDialog(self)
+        if dialog.exec_():
+            self.writeWavCheckBox.setChecked(True)
+            print(self.amaysyn.MODE_renderWav)
+            self.amaysyn.initWavOut(dialog.outDirEdit.text())
+            self.amaysyn.MODE_justRenderWAV = True
+            for number in range(dialog.numberSpin.value()):
+                print(f"RANDOMIZE {number + 1} / {dialog.numberSpin.value()}")
+                self.reshuffleAllRandomValues()
+                self.renderWhateverWasLast()
+            self.amaysyn.MODE_justRenderWAV = False
 
 
     def getActualSynFileTimestamp(self):
@@ -1207,10 +1229,11 @@ class MainWindow(QMainWindow):
             return
 
         self.bytearray = self.amaysyn.executeShader(shader, self.samplerate, self.texsize, renderWAV = self.state['writeWAV'])
-        self.audiobuffer = QBuffer(self.bytearray)
-        self.audiobuffer.open(QIODevice.ReadOnly)
-        self.audiooutput.stop()
-        self.audiooutput.start(self.audiobuffer)
+        if not self.amaysyn.MODE_justRenderWAV:
+            self.audiobuffer = QBuffer(self.bytearray)
+            self.audiobuffer.open(QIODevice.ReadOnly)
+            self.audiooutput.stop()
+            self.audiooutput.start(self.audiobuffer)
 
 ###################################################################
 

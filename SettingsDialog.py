@@ -10,11 +10,13 @@ class SettingsDialog(QtWidgets.QDialog):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.setWindowTitle('Settings')
-        self.setGeometry(parent.x() + 0.5 * (parent.width() - self.WIDTH), parent.y() + 0.5 * (parent.height() - self.HEIGHT), self.WIDTH, self.HEIGHT)
+        #self.setGeometry(parent.x() + 0.5 * (parent.width() - self.WIDTH), parent.y() + 0.5 * (parent.height() - self.HEIGHT), self.WIDTH, self.HEIGHT)
         self.parent = parent
         self.initBpmList = self.parent.info.get('BPM', '')
         self.initMasterCodeL = self.parent.info.get('masterCodeL', '')
         self.initMasterCodeR = self.parent.info.get('masterCodeR', '')
+        self.initMasterSynthCodeL = self.parent.info.get('masterSynthCodeL', '')
+        self.initMasterSynthCodeR = self.parent.info.get('masterSynthCodeR', '')
 
         self.layout = QtWidgets.QVBoxLayout(self)
 
@@ -59,6 +61,16 @@ class SettingsDialog(QtWidgets.QDialog):
         self.masterCodeREdit.setTabChangesFocus(True)
         self.masterCodeREdit.setText(self.initMasterCodeR)
         self.formLayout.addRow(QtWidgets.QLabel('Master Code Right: '), self.masterCodeREdit)
+
+        self.masterSynthCodeLEdit = QtWidgets.QTextEdit(self)
+        self.masterSynthCodeLEdit.setTabChangesFocus(True)
+        self.masterSynthCodeLEdit.setText(self.initMasterSynthCodeL)
+        self.formLayout.addRow(QtWidgets.QLabel('Master Synth Code Left: '), self.masterSynthCodeLEdit)
+
+        self.masterSynthCodeREdit = QtWidgets.QTextEdit(self)
+        self.masterSynthCodeREdit.setTabChangesFocus(True)
+        self.masterSynthCodeREdit.setText(self.initMasterSynthCodeR)
+        self.formLayout.addRow(QtWidgets.QLabel('Master Synth Code Right: '), self.masterSynthCodeREdit)
 
         self.line2 = QtWidgets.QFrame(self)
         self.line2.setFrameShape(QtWidgets.QFrame.HLine)
@@ -119,8 +131,6 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def masterCodeL(self):
         newMasterCodeL = self.masterCodeLEdit.toPlainText().strip()
-        if newMasterCodeL == '':
-            newMasterCodeL = 'masterL'
         return newMasterCodeL if newMasterCodeL != '' else 'masterL'
 
     def masterCodeR(self):
@@ -128,3 +138,13 @@ class SettingsDialog(QtWidgets.QDialog):
         if newMasterCodeR == '':
             newMasterCodeR = self.masterCodeL().replace('masterL', 'masterR')
         return newMasterCodeR
+
+    def masterSynthCodeL(self):
+        newMasterSynthCodeL = self.masterSynthCodeLEdit.toPlainText().strip()
+        return newMasterSynthCodeL if newMasterSynthCodeL != '' else 'sL'
+
+    def masterSynthCodeR(self):
+        newMasterSynthCodeR = self.masterSynthCodeREdit.toPlainText().strip()
+        if newMasterSynthCodeR == '':
+            newMasterSynthCodeR = self.masterSynthCodeL().replace('sL', 'sR')
+        return newMasterSynthCodeR

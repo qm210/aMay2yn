@@ -68,6 +68,9 @@ def set_remaining_defaults(cid, cmd, form):
                 defaults.update({'noise_amp':'.25', 'tone_amp': '.8', 'freq0':'500', 'freq1':'300', 'freqdecay':'.5', 'fmtone_amp':'.2', 'fmtone_freq':'500',\
                                  'noise1_amount':'.7', 'noise1_freq':'3196', 'noise2_amount':'.3', 'noise2_freq':'2965', 'noise3_amount':'.6', 'noise3_freq':'3643',\
                                  'attack':'1e-3', 'decay':'.1', 'release':'.2', 'tone_decayexp':'30', 'fmtone_decayexp':'20'})
+            elif form['shape'] == 'protosnaresimple':
+                defaults.update({'noise_amp':'.25', 'tone_amp': '1.', 'freq0':'500', 'freq1':'300', 'freqdecay':'.5', 'fmtone_amp':'0', 'fmtone_freq':'500',\
+                                 'noise_freq':'8266', 'attack':'1e-3', 'decay':'.25', 'release':'.2', 'tone_decayexp':'30', 'fmtone_decayexp':'20'})
             elif form['shape'] == 'protoshake':
                 defaults.update({'timbre':'1', 'amp':'2', 'decay':'.05', 'release':'.01'})
             elif form['shape'] == 'protoride':
@@ -154,6 +157,12 @@ def set_remaining_defaults(cid, cmd, form):
 
             elif form['op'] == 'sinshape':
                 defaults.update({'amount':'1', 'parts':'3'})
+
+            elif form['op'] == 'distshape':
+                defaults.update({'amount': '1', 'threshold': '.5'})
+
+            elif form['op'] == 'foldshape':
+                defaults.update({'amount': '1', 'threshold': '.5', 'whatever': '2'})
 
             elif form['op'] == 'saturate':
                 defaults.update({'gain':'3'})

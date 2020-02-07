@@ -221,6 +221,11 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                     return 'waveshape(' + instance(form['src']) + ',' + ','.join(instance(form[p]) for p in ['amount','a','b','c','d','e']) + ')'
                 elif form['op'] == 'sinshape':
                     return 'sinshape(' + instance(form['src']) + ',' + ','.join(instance(form[p]) for p in ['amount','parts']) + ')'
+                elif form['op'] == 'distshape':
+                    return 'distshape(' + instance(form['src']) + ',' + ','.join(instance(form[p]) for p in ['amount','threshold']) + ')'
+                elif form['op'] == 'foldshape':
+                    return 'foldshape(' + instance(form['src']) + ',' + ','.join(instance(form[p]) for p in ['amount','threshold','whatever']) + ')'
+
                 elif form['op'] == 'saturate':
                     if 'crazy' in form['mode']:
                         return 's_crzy('+instance(form['gain']) + '*' + instance(form['src']) + ')'
@@ -412,6 +417,20 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                             + '*exp(-_PROG*' + instance(form['tone_decayexp'])+')*' + instance(form['tone_amp'])\
                             + '+ _sin(drop_phase(_PROG*' + instance(form['fmtone_freq'])+','+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
                             + '*exp(-_PROG*' + instance(form['fmtone_decayexp'])+')*' + instance(form['fmtone_amp'])
+
+                    elif form['shape'] == 'protosnaresimple':
+                        if form['fmtone_amp'] == '0':
+                            return '(' + instance(form['noise_amp']) + '*lpnoise(_PROG,' + instance(form['noise_freq']) + ')'\
+                            + '*(smstep(0.,'+instance(form['attack'])+',_PROG)-smstep(0.,'+instance(form['release'])+',_PROG-'+instance(form['decay'])+'))'\
+                            + ' + _sin(drop_phase(_PROG,'+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
+                            + '*exp(-_PROG*' + instance(form['tone_decayexp'])+')*' + instance(form['tone_amp']) + ')'
+                        else:
+                            return '(' + instance(form['noise_amp']) + '*lpnoise(_PROG,' + instance(form['noise_freq']) + ')'\
+                            + '*(smstep(0.,'+instance(form['attack'])+',_PROG)-smstep(0.,'+instance(form['release'])+',_PROG-'+instance(form['decay'])+'))'\
+                            + ' + _sin(drop_phase(_PROG,'+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
+                            + '*exp(-_PROG*' + instance(form['tone_decayexp'])+')*' + instance(form['tone_amp'])\
+                            + '+ _sin(drop_phase(_PROG*' + instance(form['fmtone_freq'])+','+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
+                            + '*exp(-_PROG*' + instance(form['fmtone_decayexp'])+')*' + instance(form['fmtone_amp']) + ')'
 
                     elif form['shape'] == 'protoshake':
                         return instance(form['amp']) + '*lpnoise(_PROG, 1.+' + instance(form['timbre']) + '*_PROG)'\
