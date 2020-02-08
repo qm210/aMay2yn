@@ -220,6 +220,15 @@ class MainWindow(QMainWindow):
         importPatternAction.triggered.connect(self.openImportPatternDialog)
         self.toolBar.addAction(importPatternAction)
 
+        self.toolBar.addSeparator()
+
+        renderNoteAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderNote', self)
+        renderNoteAction.setShortcut('Ctrl+B')
+        renderNoteAction.triggered.connect(self.renderNote)
+        self.toolBar.addWidget(QLabel('   Note: '))
+        self.toolBar.addAction(renderNoteAction)
+
+
     def initSignals(self):
         self.trackWidget.moduleSelected.connect(self.loadModule)
         self.trackWidget.trackSelected.connect(self.trackSelected)
@@ -1168,6 +1177,8 @@ class MainWindow(QMainWindow):
             self.renderModule()
         elif self.state['lastRendered'] == 'track':
             self.renderTrack()
+        elif self.state['lastRendered'] == 'note':
+            self.renderNote()
         else:
             self.renderSong()
 
@@ -1178,7 +1189,6 @@ class MainWindow(QMainWindow):
         if synthName is not None:
             track.setSynth(name = synthName)
         track.mute = False
-        print("ÄHM", track)
         modInfo = deepcopy(self.info)
         modInfo['B_offset'] = self.getModule().getModuleOn()
         modInfo['B_stop'] = self.getModule().getModuleOff()
@@ -1216,6 +1226,28 @@ class MainWindow(QMainWindow):
         self.amaysyn.extra_time_shift = self.state.get('extraTimeShift', 0)
         self.amaysyn.updateState(title = self.state['title'], info = self.info)
         shader = self.amaysyn.build(tracks = self.trackModel.tracks, patterns = self.patternModel.patterns)
+        self.executeShader(shader)
+        self.toggleGlobalDeactivedState(active = True)
+
+    def renderNote(self, _ = None, synthName = None):
+        self.state['lastRendered'] = 'note'
+        self.toggleGlobalDeactivedState(active = False)
+        track = deepcopy(self.getTrack())
+        if synthName is not None:
+            track.setSynth(name = synthName)
+        track.mute = False
+        note = deepcopy(self.getModulePattern().getNote())
+        note.moveNoteOn(0)
+        pattern = Pattern(length = note.note_len + 2)
+        pattern.notes = [note]
+        track.modules = [Module(0, pattern)]
+        modInfo = deepcopy(self.info)
+        modInfo['B_offset'] = 0
+        modInfo['B_stop'] = pattern.length
+        self.amaysyn.updateState(title = self.state['title'], info = modInfo)
+        self.amaysyn.extra_time_shift = 0
+        shader = self.amaysyn.build(tracks = [track], patterns = [pattern]) # self.getModulePattern()
+        self.amaysyn.updateState(info = self.info)
         self.executeShader(shader)
         self.toggleGlobalDeactivedState(active = True)
 

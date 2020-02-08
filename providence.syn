@@ -713,7 +713,12 @@ main    blower    src="MADD(_PROG,f,0.,72,1,1.24,1675.*env_AHDSR(_BPROG,L,.151,0
 main    singer    src="MADD(_PROG,f,0.,72,1,-.76,826.*env_AHDSR(_BPROG,L,.184,0.,.1,1.,0.),30.6,6.7,3.,.013,.87,0.,0)*env_AHDSR(_BPROG,L,.112,0.,.1,1.,0.)" release=.03 relpower=1 slidetime=.125 predraw=0 stereodelay=default
 main    flutey    src="MADD(_PROG,f,0.,72,1,1.79,357.*env_AHDSR(_BPROG,L,.097,0.,.1,1.,0.),43.9,.4,3.,.013,.51,0.,0)*env_AHDSR(_BPROG,L,.169,0.,.1,1.,0.)" release=.03 relpower=1 slidetime=.125 predraw=0 stereodelay=default
 main    kreisSaw    src=".7*vel*env_AHDSR(_BPROG,L,.314,0.,.1,1.,.263)*waveshape(MADD(_PROG,f,0.,256,1,-.787,(1899.+(556.*clip((1.+.577)*_sin(.406*_BEAT)))),8.456,.486,2.86,.001,.54,0.,0),.54,.1,.5,.2,.5,.6)+.6*vel*env_AHDSR(_BPROG,L,.314,0.,.1,1.,.263)*MADD(_PROG,.501*f,0.,64,1,-.787,(1899.+(556.*clip((1.+.577)*_sin(.406*_BEAT)))),8.456,.486,2.86,.001,.2*.54,0.,0)" release=0.26 relpower=1 slidetime=.125 predraw=0 stereodelay=default
-main    flutey    src="MADD(_PROG,f,0.,72,1,1.53,898.*env_AHDSR(_BPROG,L,.025,0.,.1,1.,0.),13.5,.9,3.,.013,.07,0.,0)*env_AHDSR(_BPROG,L,.16,0.,.1,1.,0.)" release=.03 relpower=1 slidetime=.125 predraw=0 stereodelay=default
+
+form flutey2src define src="MADD(_PROG,f,0.,72,1,1.53,898.*env_AHDSR(_BPROG,L,.025,0.,.1,1.,0.),13.5,.9,3.,.013,.07,0.,0)*env_AHDSR(_BPROG,L,.16,0.,.1,1.,0.)"
+main    flutey2    src=flutey2src release=.03 relpower=1 slidetime=.125 predraw=0 stereodelay=default
+
+form distflutey0 foldshape src=flutey2src amount=1 threshold=0.1 whatever=2
+main distflutey src=distflutey0 release=.1 relpower=3 slidetime=1 stereodelay=0.002
 
 osc    FMP000 shape=fm lv1=127 lv2=111 lv3=127 lv4=95 fr1=1 fr2=4 fr3=1 fr4=.5 fb1=55 fb2=12 fb3=56 fb4=26 algo=9 parscale=127
 env    FMPE01 shape=antivelattack attack=.25 velmin=1 velmax=2

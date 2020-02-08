@@ -140,7 +140,7 @@ class May2ynBuilder:
 
     def getNodeTreeIfMainSrcMatches(self, name, mainSrc):
         synth = self.getSynth(name)
-        return synth.nodeTree if synth.mainSrc == mainSrc else None
+        return synth.nodeTree if synth is not None and synth.mainSrc == mainSrc else None
 
 
 ##################################### REQUIRED FUNCTION PORTS ###########################################

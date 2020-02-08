@@ -436,7 +436,7 @@ class Pattern:
     def moveNote(self, inc):
         # same as with stretch: rethink for special Käses?
         if self.notes:
-                if abs(self.getNote().note_len) < abs(inc): inc = abs(inc)/inc * self.getNote().note_len
+            if abs(self.getNote().note_len) < abs(inc): inc = abs(inc)/inc * self.getNote().note_len
 
         self.getNote().tag()
 
