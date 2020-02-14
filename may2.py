@@ -3,23 +3,21 @@
 ## by QM / Team210
 #########################################################################
 
+import json
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QVBoxLayout, QGroupBox, QSplitter, QFileDialog, \
-    QDoubleSpinBox, QCheckBox, QLabel,QInputDialog, QLineEdit, QMessageBox, QStackedLayout
-from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QItemSelectionModel, QFile, QTextStream, QStringListModel, QBuffer, QIODevice
-from PyQt5.QtGui import QFontDatabase, QIcon, QColor, QPainter
-from PyQt5.QtMultimedia import QAudioOutput, QAudioFormat, QAudioDeviceInfo, QAudio
 from math import ceil
 from copy import deepcopy
 from functools import partial
 from os import path
-from time import sleep
 from random import uniform, choice
 from numpy import clip
-from shutil import move, copyfile
+from shutil import copyfile
 from datetime import datetime
-import json
-import re
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QVBoxLayout, QGroupBox, QSplitter, QFileDialog, \
+    QDoubleSpinBox, QCheckBox, QLabel,QInputDialog, QLineEdit, QMessageBox, QStackedLayout
+from PyQt5.QtCore import Qt, QStringListModel, QBuffer, QIODevice
+from PyQt5.QtGui import QIcon, QColor, QPainter
+from PyQt5.QtMultimedia import QAudioOutput, QAudioFormat
 
 from May2TrackWidget import May2TrackWidget
 from May2PatternWidget import May2PatternWidget
@@ -27,11 +25,9 @@ from May2SynthWidget import May2SynthWidget
 from may2TrackModel import TrackModel
 from may2PatternModel import PatternModel
 from may2SynthModel import SynthModel
-from may2Objects import * #pylint: disable=unused-wildcard-import
-from may2Encoding import * #pylint: disable=unused-wildcard-import
-from May2ynatizer import synatize, synatize_build
+from may2Objects import * #pylint: disable=wildcard-import,unused-wildcard-import
+from may2Encoding import * #pylint: disable=wildcard-import,unused-wildcard-import
 from May2ynBuilder import May2ynBuilder
-from SFXGLWidget import SFXGLWidget
 from SettingsDialog import SettingsDialog
 from PatternDialogs import ImportPatternDialog
 from ParameterDialog import ParameterDialog
@@ -298,6 +294,7 @@ class MainWindow(QMainWindow):
             'masterSynthCodeR': 'sR',
             'masterCodeL': 'masterL',
             'masterCodeR': 'masterR',
+            'timeCode': 'time',
         }
         self.info = deepcopy(self.defaultInfo)
         self.patterns = []
@@ -375,9 +372,8 @@ class MainWindow(QMainWindow):
 
     def activateNext(self):
         self.toggleActivated(
-            activateTrack = self.synthWidget.active,
+            activateTrack = self.patternWidget.active,
             activatePattern = self.trackWidget.active,
-            activateSynth = self.patternWidget.active
         )
 
     def toggleActivated(self, activateTrack = False, activatePattern = False, activateSynth = False):
@@ -586,6 +582,7 @@ class MainWindow(QMainWindow):
             self.close()
 
         if self.noModifiers:
+
             if key == Qt.Key_F1:
                 self.shufflePatternColors()
             elif key == Qt.Key_F9:
@@ -838,6 +835,7 @@ class MainWindow(QMainWindow):
             self.info['masterCodeR'] = settingsDialog.masterCodeR()
             self.info['masterSynthCodeL'] = settingsDialog.masterSynthCodeL()
             self.info['masterSynthCodeR'] = settingsDialog.masterSynthCodeR()
+            self.info['timeCode'] = settingsDialog.timeCode()
             self.info['beatQuantum'] = 1/float(settingsDialog.beatQuantumDenominatorSpinBox.value())
             self.info['barsPerBeat'] = settingsDialog.barsPerBeatSpinBox.value()
             settingsDialogSynFile = settingsDialog.synFileEdit.text()
@@ -993,7 +991,7 @@ class MainWindow(QMainWindow):
             self.synthModel.setRandomValue(randomValue)
 
     def getRandom(self, randomID):
-        return self.parent.synthModel.randomValues.get(randomID, None)
+        return self.synthModel.randomValues.get(randomID, None)
 
     def reshuffleAllRandomValuesManyTimes(self):
         dialog = RandomizerDialog(self)

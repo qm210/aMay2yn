@@ -380,10 +380,13 @@ class May2ynBuilder:
         time_offset = self.getTimeOfBeat(B_offset, bpm_list)
         self.song_length -= time_offset
 
+        timecode = self.getInfo('timeCode')
+        timecode = f'float time = {timecode};' if timecode not in ['', 'time'] else ''
+
         if loop_mode != 'none':
             loopcode = ('time = mod(time, ' + GLfloat(self.song_length) + ');\n' + 4*' ')
         else:
-            loopcode = ('if (time > ' + GLfloat(self.song_length) + ') return vec2(0);\n' + 4*' ')
+            loopcode = ('if (time > ' + GLfloat(self.song_length) + ') return vec2(0.);\n' + 4*' ')
 
         if B_offset != 0:
             loopcode += f'time += {GLfloat(time_offset)};\n    '
@@ -469,6 +472,7 @@ class May2ynBuilder:
             .replace("DRUM_INDEX", drum_index)\
             .replace("//PARAMCODE", paramcode)\
             .replace("//FILTERCODE",filtercode)\
+            .replace("//TIMECODE", timecode)\
             .replace("//LOOPCODE", loopcode)\
             .replace("//BEATHEADER", beatheader)\
             .replace("STEREO_DELAY", GLfloat(self.getInfo('stereo_delay')))\
@@ -595,11 +599,11 @@ class May2ynBuilder:
         glwidget.hide()
         glwidget.destroy()
 
-        print(f'Sample Value Range: [{min(self.fmusic)}, {max(self.fmusic)}]', sep='')
-
         if not self.music:
             print('dämmit. music is empty.')
             return None
+
+        print(f'Sample Value Range: [{min(self.fmusic)}, {max(self.fmusic)}]', sep='')
 
         self.bytearray = QByteArray(self.music)
 

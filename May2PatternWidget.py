@@ -1,6 +1,6 @@
 from PyQt5.QtGui import QColor, QPainter, QFont
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, Qt
 from math import sqrt, floor
 from numpy import clip
 from copy import deepcopy
@@ -39,6 +39,7 @@ class May2PatternWidget(QWidget):
 
     def __init__(self, parent, drumMode = False):
         super().__init__()
+        self.setFocusPolicy(Qt.StrongFocus)
         self.parent = parent
         self.active = False
         self.numberInput = ''
@@ -338,7 +339,7 @@ class May2PatternWidget(QWidget):
         if corrNote is None:
             if event.button() == Qt.LeftButton:
                 if event.pos().x() < self.endX:
-                    self.insertNote(self.copyOfLastSelectedNote, event.pos(), copyParameters = False, initDrag = True)
+                    self.insertNote(self.copyOfLastSelectedNote, event.pos(), copyParameters = True, initDrag = True)
             elif event.button() == Qt.MiddleButton:
                 self.openInsertNoteDialog(self.copyOfLastSelectedNote, event.pos())
             return

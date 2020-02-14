@@ -17,6 +17,7 @@ class SettingsDialog(QtWidgets.QDialog):
         self.initMasterCodeR = self.parent.info.get('masterCodeR', '')
         self.initMasterSynthCodeL = self.parent.info.get('masterSynthCodeL', '')
         self.initMasterSynthCodeR = self.parent.info.get('masterSynthCodeR', '')
+        self.initTimeCode = self.parent.info.get('timeCode', '')
 
         self.layout = QtWidgets.QVBoxLayout(self)
 
@@ -71,6 +72,11 @@ class SettingsDialog(QtWidgets.QDialog):
         self.masterSynthCodeREdit.setTabChangesFocus(True)
         self.masterSynthCodeREdit.setText(self.initMasterSynthCodeR)
         self.formLayout.addRow(QtWidgets.QLabel('Master Synth Code Right: '), self.masterSynthCodeREdit)
+
+        self.timeCodeEdit = QtWidgets.QTextEdit(self)
+        self.timeCodeEdit.setTabChangesFocus(True)
+        self.timeCodeEdit.setText(self.initTimeCode)
+        self.formLayout.addRow(QtWidgets.QLabel('Time Code: '), self.timeCodeEdit)
 
         self.line2 = QtWidgets.QFrame(self)
         self.line2.setFrameShape(QtWidgets.QFrame.HLine)
@@ -148,3 +154,6 @@ class SettingsDialog(QtWidgets.QDialog):
         if newMasterSynthCodeR == '':
             newMasterSynthCodeR = self.masterSynthCodeL().replace('sL', 'sR')
         return newMasterSynthCodeR
+
+    def timeCode(self):
+        return self.timeCodeEdit.toPlainText().strip()

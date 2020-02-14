@@ -337,8 +337,9 @@ vec2 mainSynth(float time)
     BPS = pos_BPS[_it];
     SPB = pos_SPB[_it];
     BT = pos_B[_it] + (time - pos_t[_it]) * BPS;
-
+    //TIMECODE
     float time2 = time - STEREO_DELAY;
+
     float sidechain = 1.;
 
     float amaysynL, amaysynR, amaydrumL, amaydrumR, B, Bon, Boff, Bprog, Bproc, L, tL, _t, _t2, vel, rel, pre, f, amtL, amtR, env, slide, aux;

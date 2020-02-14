@@ -49,6 +49,7 @@ def decodeTrack(tDict):
             module.patternHash = m.get('patternHash', None)
             module.patternName = m.get('patternName', None)
             module.patternLength = m.get('patternLength', None)
+            module.patternSynthType = m.get('patternSynthType', NONETYPE)
         track.modules.append(module)
     track.volume = tDict.get('volume', tDict.get('par_norm', track.volume))
     track.mute = tDict.get('mute', track.mute)

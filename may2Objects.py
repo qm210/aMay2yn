@@ -41,7 +41,7 @@ class Track:
     def isDrumTrack(self):
         return self.synthType == DRUMTYPE
     def isEmpty(self):
-        return (self.modules == [])
+        return self.modules == []
 
     def selectFirstTaggedModule(self):
         self.currentModuleIndex = self.getFirstTaggedModuleIndex()
@@ -190,6 +190,7 @@ class Module:
     patternHash = None
     patternName = None
     patternLength = None
+    patternSynthType = NONETYPE
 
     def __init__(self, mod_on, pattern = None, transpose = 0, copyModule = None):
         self.mod_on = mod_on
@@ -201,11 +202,13 @@ class Module:
             self.patternHash = copyModule.patternHash
             self.patternName = copyModule.patternName
             self.patternLength = copyModule.patternLength
+            self.patternSynthType = copyModule.patternSynthType
 
     def setPattern(self, pattern):
         self.patternHash = pattern._hash
         self.patternName = pattern.name
         self.patternLength = pattern.length
+        self.patternSynthType = pattern.synthType
 
     def __repr__(self):
         return 'Module[' + ','.join(str(i) for i in [self.mod_on, self.getModuleOff(), self.patternName, self.transpose]) + ']'

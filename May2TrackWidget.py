@@ -35,6 +35,7 @@ class May2TrackWidget(QWidget):
 
     def __init__(self, parent):
         super().__init__()
+        self.setFocusPolicy(Qt.StrongFocus)
         self.parent = parent
 
         self.active = False
@@ -362,6 +363,8 @@ class May2TrackWidget(QWidget):
     def insertModule(self, track, modulePrototype, modOn, forceModOn = True):
         if track is None or modulePrototype is None:
             return # if modulePrototype is None, should open some window to choose pattern
+        if track.synthType != modulePrototype.patternSynthType:
+            return
         newModule = Module(mod_on = modOn, pattern = None, copyModule = modulePrototype, transpose = modulePrototype.transpose)
         track.addModule(newModule, forceModOn = forceModOn)
         self.finalizeTrackChangeAndEmit()
