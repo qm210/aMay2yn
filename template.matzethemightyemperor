@@ -433,8 +433,8 @@ vec2 mainSynth(float time)
             // this would be the place for track sum effects, if any (distortion / waveshape)
         }
     }
-    float masterL = LEVEL_SYN * sidechain * s_atan(MASTERCODE_sL) + LEVEL_DRUM * dL;
-    float masterR = LEVEL_SYN * sidechain * s_atan(MASTERCODE_sR) + LEVEL_DRUM * dR;
+    float masterL = LEVEL_SYN * sidechain * MASTERCODE_sL + LEVEL_DRUM * dL;
+    float masterR = LEVEL_SYN * sidechain * MASTERCODE_sR + LEVEL_DRUM * dR;
     return vec2(
         MASTERCODE_L,
         MASTERCODE_R);

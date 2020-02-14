@@ -1184,7 +1184,6 @@ class MainWindow(QMainWindow):
 
     def renderModule(self, _ = None, synthName = None):
         self.state['lastRendered'] = 'module'
-        self.toggleGlobalDeactivedState(active = False)
         track = deepcopy(self.getTrack())
         if synthName is not None:
             track.setSynth(name = synthName)
@@ -1192,6 +1191,7 @@ class MainWindow(QMainWindow):
         modInfo = deepcopy(self.info)
         modInfo['B_offset'] = self.getModule().getModuleOn()
         modInfo['B_stop'] = self.getModule().getModuleOff()
+        self.toggleGlobalDeactivedState(active = False)
         self.amaysyn.updateState(title = self.state['title'], info = modInfo)
         self.amaysyn.extra_time_shift = self.state.get('extraTimeShift', 0) # THIS HAS SOME DEBUGGING REASONS
         shader = self.amaysyn.build(tracks = [track], patterns = [self.getModulePattern()])
@@ -1205,11 +1205,11 @@ class MainWindow(QMainWindow):
         if anyOverlap is not None:
             QMessageBox.critical(self, 'Overlap!', anyOverlap)
             return
-        self.toggleGlobalDeactivedState(active = False)
         track = self.getTrack()
         restoreMute = track.mute
         track.mute = False
         self.amaysyn.extra_time_shift = self.state.get('extraTimeShift', 0)
+        self.toggleGlobalDeactivedState(active = False)
         self.amaysyn.updateState(title = self.state['title'], info = self.info)
         shader = self.amaysyn.build(tracks = [track], patterns = self.patternModel.patterns)
         track.mute = restoreMute
@@ -1222,8 +1222,8 @@ class MainWindow(QMainWindow):
         if anyOverlap is not None:
             QMessageBox.critical(self, 'Overlap!', anyOverlap)
             return
-        self.toggleGlobalDeactivedState(active = False)
         self.amaysyn.extra_time_shift = self.state.get('extraTimeShift', 0)
+        self.toggleGlobalDeactivedState(active = False)
         self.amaysyn.updateState(title = self.state['title'], info = self.info)
         shader = self.amaysyn.build(tracks = self.trackModel.tracks, patterns = self.patternModel.patterns)
         self.executeShader(shader)
@@ -1231,12 +1231,14 @@ class MainWindow(QMainWindow):
 
     def renderNote(self, _ = None, synthName = None):
         self.state['lastRendered'] = 'note'
-        self.toggleGlobalDeactivedState(active = False)
         track = deepcopy(self.getTrack())
         if synthName is not None:
             track.setSynth(name = synthName)
         track.mute = False
         note = deepcopy(self.getModulePattern().getNote())
+        if note is None:
+            print('No Note Selected')
+            return
         note.moveNoteOn(0)
         pattern = Pattern(length = note.note_len + 2)
         pattern.notes = [note]
@@ -1244,6 +1246,7 @@ class MainWindow(QMainWindow):
         modInfo = deepcopy(self.info)
         modInfo['B_offset'] = 0
         modInfo['B_stop'] = pattern.length
+        self.toggleGlobalDeactivedState(active = False)
         self.amaysyn.updateState(title = self.state['title'], info = modInfo)
         self.amaysyn.extra_time_shift = 0
         shader = self.amaysyn.build(tracks = [track], patterns = [pattern]) # self.getModulePattern()

@@ -595,6 +595,8 @@ class May2ynBuilder:
         glwidget.hide()
         glwidget.destroy()
 
+        print(f'Sample Value Range: [{min(self.fmusic)}, {max(self.fmusic)}]', sep='')
+
         if not self.music:
             print('dämmit. music is empty.')
             return None
