@@ -510,6 +510,8 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                     _return = 'exp(-'+instance(form['exponent'])+'*mod(_BPROG,'+instance(form['beats'])+'))'
                 elif form['shape'] == 'stepexpdecay':
                     _return = f"clamp(1.+({instance(form['hold'])}-{tvar})/({instance(form['decay'])}),exp(-{instance(form['exponent'])}*{tvar}),1.)"
+                elif form['shape'] == 'xexpdecay':
+                    _return = f"{tvar}*exp(1.-{form['exponent']}*{tvar})*{form['exponent']}"
                 elif form['shape'] == 'antivelattack':
                     try:
                         attack = str(round(float(form['attack'])/(float(form['velmax'])-float(form['velmin'])+1e-3), 5)) + '*('+ GLstr(form['velmax']) + '-' + instance(form['vel']) + '+1e-3)'
