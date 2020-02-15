@@ -156,4 +156,4 @@ class SettingsDialog(QtWidgets.QDialog):
         return newMasterSynthCodeR
 
     def timeCode(self):
-        return self.timeCodeEdit.toPlainText().strip()
+        return self.timeCodeEdit.toPlainText().strip().replace('\n', ' ')

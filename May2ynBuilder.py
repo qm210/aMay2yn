@@ -382,6 +382,7 @@ class May2ynBuilder:
 
         timecode = self.getInfo('timeCode')
         timecode = f'time = {timecode};' if timecode not in ['', 'time'] else ''
+        timecode = timecode.replace('time', '_t')
 
         if loop_mode != 'none':
             loopcode = ('time = mod(time, ' + GLfloat(self.song_length) + ');\n' + 4*' ')

@@ -23,6 +23,10 @@ float s_atan(float a) { return .636 * atan(a); }
 float s_crzy(float amp) { return clamp( s_atan(amp) - 0.1*cos(0.9*amp*exp(amp)), -1., 1.); }
 float squarey(float a, float edge) { return abs(a) < edge ? a : floor(4.*a+.5)*.25; }
 float doubleslope(float t, float a, float d, float s) { return smstep(-.00001,a,t) - (1.-s) * smstep(0.,d,t-a); }
+float s_moothmin(float a) { // might adjust the k=.5 factor later
+    float ha = max(1.-2.*abs(abs(a)-1.), 0.);
+    return a >= 0 ? min(a, 1.) - .5/6.*ha*ha*ha : max(a, -1.) + .5/6.*ha*ha*ha;
+}
 
 //BEATHEADER
 float BPS, SPB, BT;
@@ -168,11 +172,12 @@ float comp_SQU(int N, float inv_N, float PW) {return inv_N * (minus1hochN(N) * _
 float comp_HAE(int N, float inv_N, float PW) {return N % 2 == 0 ? 0. : inv_N * (1. - minus1hochNminus1halbe(N))*_sin(PW);}
 float comp_OBO(int N, float inv_N, float PW) {return sqrt(inv_N) * (1. + _sin(float(N)*(1.5+PW)+.5*PI));}
 
-float MADD(float t, float f, float p0, int NMAX, int NINC, float MIX, float CO, float NDECAY, float RES, float RES_Q, float DET, float PW, float LOWCUT, int keyF)
+float MADD(float t, float f, float p0, int NMAX, int NINC, float MIX, float CO, float NDECAY, float RES, float RES_Q, float DET, float PW, float LOWCUT, float keyF)
 {
     float ret = 0.;
-    float INR = keyF==1 ? 1./CO : f/CO;
-    float IRESQ = keyF==1 ? 1./RES_Q : 1./(RES_Q*f);
+    float f_ = keyF > .99 ? 1. : (keyF < 1.e-3 ? f : pow(f, 1.-keyF));
+    float INR = f_/CO;
+    float IRESQ = 1./(RES_Q*f_);
 
     float p = f*t;
     float float_N, inv_N, comp_mix, filter_N;
@@ -191,7 +196,7 @@ float MADD(float t, float f, float p0, int NMAX, int NINC, float MIX, float CO, 
 
         ret += comp_mix * filter_N * (_sin_(float_N * p, p0) + _sin_(float_N * p * (1.+DET), p0));
     }
-    return s_atan(ret);
+    return s_moothmin(ret);
 }
 
 float MADD(float t, float f, float p0, int NMAX, int NINC, float MIX, float CO, float NDECAY, float RES, float RES_Q, float DET, float PW, int keyF)
@@ -222,7 +227,7 @@ float BADD(float t, float f, float p0, float MIX, float AMP, float FPEAK, float 
 
         ret += comp_mix * filter_N * (_sin_(float_N * p, p0) + _sin_(float_N * p * (1.+DET), p0));
     }
-    return s_atan(AMP * ret);
+    return s_moothmin(AMP * ret);
 }
 
 float QFM_FB(float PH, float FB) // my guessing of feedback coefficients, FB>0 'saw', FB<0 'sq'
@@ -262,7 +267,7 @@ float QFM(float t, float f, float phase, float LV1, float LV2, float LV3, float 
     if(LINK31 + LINK32 > 0.) sum += OP3;
     if(LINK41 + LINK42 + LINK43 > 0.) sum += OP4;
 
-    return s_atan(sum);
+    return s_moothmin(sum);
 }
 
 //FILTERCODE
@@ -337,9 +342,8 @@ vec2 mainSynth(float time)
     BPS = pos_BPS[_it];
     SPB = pos_SPB[_it];
     BT = pos_B[_it] + (time - pos_t[_it]) * BPS;
-    //TIMECODE
-    float time2 = time - STEREO_DELAY;
 
+    float time2 = time - STEREO_DELAY;
     float sidechain = 1.;
 
     float amaysynL, amaysynR, amaydrumL, amaydrumR, B, Bon, Boff, Bprog, Bproc, L, tL, _t, _t2, vel, rel, pre, f, amtL, amtR, env, slide, aux;
@@ -387,7 +391,7 @@ vec2 mainSynth(float time)
                 tL    = L * SPB;
                 Bprog = B - Bon;
                 Bproc = Bprog / L;
-                _t    = Bprog * SPB;
+                _t    = Bprog * SPB; //TIMECODE
                 _t2   = _t - STEREO_DELAY;
                 vel   = note_vel(_note);
                 amtL  = clamp(1. - note_pan(_note), 0., 1.);
@@ -402,8 +406,8 @@ vec2 mainSynth(float time)
                     //DRUMSYNCODE
                     if(drum > 0)
                     {
-                        dL += amtL * s_atan(env * amaydrumL);
-                        dR += amtR * s_atan(env * amaydrumR);
+                        dL += amtL * s_moothmin(env * amaydrumL);
+                        dR += amtR * s_moothmin(env * amaydrumR);
                     }
                 }
                 else
@@ -427,8 +431,8 @@ vec2 mainSynth(float time)
 
                     env = theta(Bprog) * (1. - smstep(Boff-rel, Boff, B));
                     //SYNCODE
-                    sL += amtL * trk_norm(trk) * s_atan(clamp(env,0.,1.) * amaysynL);
-                    sR += amtR * trk_norm(trk) * s_atan(clamp(env,0.,1.) * amaysynR);
+                    sL += amtL * trk_norm(trk) * s_moothmin(clamp(env,0.,1.) * amaysynL);
+                    sR += amtR * trk_norm(trk) * s_moothmin(clamp(env,0.,1.) * amaysynR);
                 }
             }
             // this would be the place for track sum effects, if any (distortion / waveshape)

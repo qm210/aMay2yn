@@ -288,11 +288,10 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                         _return = '_tri(' + phi + '+' + instance(form['phase']) + ')'
 
                     elif form['shape'] == 'madd':
-                        keyF = '0' if not 'follow' in form['mode'] else '1'
                         inst_nmax = instance(str(int(float(form['nmax']))), force_int=True)
                         inst_ninc = instance(str(int(float(form['ninc']))), force_int=True)
                         _return ='MADD(_PROG,'+instance(form['freq']) + ',' + instance(form['phase']) + ',' + inst_nmax + ',' + inst_ninc + ',' \
-                                             + ','.join(instance(form[p]) for p in ['mix', 'cutoff', 'q', 'res', 'resq', 'detune', 'pw', 'lowcut'])+ ',' + keyF + ')'
+                                             + ','.join(instance(form[p]) for p in ['mix', 'cutoff', 'q', 'res', 'resq', 'detune', 'pw', 'lowcut', 'keyfollow'])+ ')'
 
                     elif form['shape'] == 'badd':
                         _return ='BADD(_PROG,' + ','.join(instance(form[p]) for p in ['freq', 'phase', 'mix', 'amp', 'peak', 'sigma', 'q', 'ncut', 'detune', 'pw']) + ')'
@@ -511,7 +510,10 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                 elif form['shape'] == 'stepexpdecay':
                     _return = f"clamp(1.+({instance(form['hold'])}-{tvar})/({instance(form['decay'])}),exp(-{instance(form['exponent'])}*{tvar}),1.)"
                 elif form['shape'] == 'xexpdecay':
-                    _return = f"{tvar}*exp(1.-{form['exponent']}*{tvar})*{form['exponent']}"
+                    if form['kappa'] == '1':
+                        _return = f"{tvar}*exp(1.-{form['lambda']}*{tvar})*{form['lambda']}"
+                    else:
+                        _return = f"pow({tvar},{form['kappa']})*exp(1.-{form['lambda']}*{tvar})*{form['lambda']}"
                 elif form['shape'] == 'antivelattack':
                     try:
                         attack = str(round(float(form['attack'])/(float(form['velmax'])-float(form['velmin'])+1e-3), 5)) + '*('+ GLstr(form['velmax']) + '-' + instance(form['vel']) + '+1e-3)'

@@ -1,7 +1,7 @@
 float resolpTEMPLATE(float time, float f, float tL, float vel, float fa, float reso) // CHEERS TO metabog https://www.shadertoy.com/view/XljSD3 - thanks for letting me steal
 {
-    int maxTaps = 128;
-    fa = sqrt(fa*Tsample);
+    int maxTaps = 16    ; //128;
+    fa = sqrt(fa*Tsample); // sqrt(fa)*Tsample ??
     float c = pow(0.5, (128.0-fa*128.0)  / 16.0);
     float r = 1. - c*pow(0.5, (reso*128.0+24.0) / 16.0);
 

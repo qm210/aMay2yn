@@ -23,7 +23,7 @@ def set_remaining_defaults(cid, cmd, form):
 
         try:
             if form['shape'] == 'madd':
-                defaults.update({'nmax':'128', 'ninc':'1', 'mix':'.5', 'cutoff':'1000', 'q':'10', 'res':'0', 'resq': '3', 'detune':'1e-3', 'lowcut': '0'})
+                defaults.update({'nmax':'128', 'ninc':'1', 'mix':'.5', 'cutoff':'1000', 'q':'10', 'res':'0', 'resq': '3', 'detune':'1e-3', 'lowcut': '0', 'keyfollow': '0'})
                 # TODO: calibrate q (and rename)
                 # TODO: calibrate (resQ)
             elif form['shape'] == 'badd':
@@ -89,8 +89,10 @@ def set_remaining_defaults(cid, cmd, form):
         #TODO: calibrate attack and decay
 
         try:
-            if form['shape'] == 'expdecay' or form['shape'] == 'expdecayrepeat' or form['shape'] == 'stepexpdecay' or form['shape'] == 'xexpdecay':
+            if form['shape'] == 'expdecay' or form['shape'] == 'expdecayrepeat' or form['shape'] == 'stepexpdecay':
                 defaults.update({'exponent':'1', 'beats':'1'})
+            elif form['shape'] == 'xexpdecay':
+                defaults.update({'lambda':'1', 'kappa':'1'})
             elif form['shape'] == 'antivelattack':
                 defaults.update({'vel':'vel', 'velmin':'0', 'velmax':'1'})
             elif form['shape'] == 'limitlength':
