@@ -322,7 +322,7 @@ class May2PatternWidget(QWidget):
 
     def stretchNoteTo(self, pos):
         noteDistance = self.getDistanceInNoteUnits(pos.x() - self.stretchOrigin.x(), 0)
-        self.stretchNote.note_len = quantize(max(self.stretchNoteOrigin + noteDistance[0], self.beatQuantum()), self.beatQuantum())
+        self.stretchNote.stretchNoteLen(quantize(max(self.stretchNoteOrigin + noteDistance[0], self.beatQuantum()), self.beatQuantum()))
 
     def mousePressEvent(self, event):
         if not self.active:
@@ -369,7 +369,6 @@ class May2PatternWidget(QWidget):
         self.dragNote = None
         self.stretchNote = None
         self.update()
-        # TODO: re-sort notes upon drop
 
     def wheelEvent(self, event):
         if self.parent.ctrlPressed:
@@ -389,7 +388,6 @@ class May2PatternWidget(QWidget):
 
     def activate(self):
         self.active = True
-        print("emit activated pattern shit")
         self.activated.emit()
 
     def setScale(self, H = None, V = None, deltaH = None, deltaV = None):
@@ -413,7 +411,6 @@ class May2PatternWidget(QWidget):
         self.copyOfLastSelectedNote = deepcopy(note)
 
     def finalizeDragAndStretch(self):
-        # do I want to bring the notes in sorted order now?
         if self.dragNote is not None:
             if self.dragNote.note_on < self.offsetH or self.dragNote.note_on > self.offsetH + self.numberBeatsVisible + 1 \
                 or self.dragNote.note_off > self.pattern.length \
@@ -423,12 +420,13 @@ class May2PatternWidget(QWidget):
                 self.finalizePatternChangeAndEmit()
         if self.stretchNote is not None:
             if self.stretchNote.note_off > self.pattern.length:
-                self.moveNoteOff(self.pattern.length)
+                self.stretchNote.cropNoteOff(self.pattern.length)
             if self.stretchNote.note_len < 0:
                 self.stretchNoteTo(self.stretchOrigin)
             else:
                 self.copyOfLastSelectedNote = deepcopy(self.stretchNote)
                 self.finalizePatternChangeAndEmit()
+
 
     def finalizePatternChangeAndEmit(self):
         self.pattern.ensureOrder()

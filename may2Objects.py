@@ -100,7 +100,8 @@ class Track:
     def moveModule(self, inc, move_home = None, move_end = None, total_length = None):
         if self.modules:
             move_to = self.getModuleOn() + inc
-            if move_to < 0: return
+            if move_to < 0:
+                return
             try_leap = 0
 
             if inc < 0:
@@ -108,15 +109,18 @@ class Track:
                     while move_to < self.getModuleOff(try_leap-1):
                         try_leap -=1
                         move_to = self.getModuleOn(try_leap) - self.getModuleLen()
-                        if move_to < 0: return
-                        if move_to + self.getModuleLen() <= self.getFirstModuleOn(): break
+                        if move_to < 0:
+                            return
+                        if move_to + self.getModuleLen() <= self.getFirstModuleOn():
+                            break
 
             else:
                 if self.getModule() != self.getLastModule():
                     while move_to + self.getModuleLen() > self.getModuleOn(try_leap+1):
                         try_leap += 1
                         move_to = self.getModuleOff(try_leap)
-                        if move_to >= self.getLastModuleOff(): break
+                        if move_to >= self.getLastModuleOff():
+                            break
 
             self.getModule().move(move_to)
             self.currentModuleIndex += try_leap
@@ -517,7 +521,7 @@ class Pattern:
 
     def getCopy(self):
         newPattern = Pattern(name = self.name, length=self.length, synthType = self.synthType, max_note = self.max_note)
-        newPattern.notes = copy(self.notes)
+        newPattern.notes = deepcopy(self.notes)
         return newPattern
 
     ### DEBUG ###
@@ -574,6 +578,10 @@ class Note:
     def cropNoteOff(self, to):
         self.note_off = to
         self.note_len = self.note_off - self.note_on
+
+    def stretchNoteLen(self, length):
+        self.note_len = length
+        self.note_off = self.note_on + self.note_len
 
     def tag(self, tagged = True):
         self.tagged = tagged
