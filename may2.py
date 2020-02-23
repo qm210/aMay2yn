@@ -25,7 +25,8 @@ from May2SynthWidget import May2SynthWidget
 from may2TrackModel import TrackModel
 from may2PatternModel import PatternModel
 from may2SynthModel import SynthModel
-from may2Objects import *
+from may2Pattern import *
+from may2Note import Note
 from may2Encoding import *
 from May2ynBuilder import May2ynBuilder
 from SettingsDialog import SettingsDialog

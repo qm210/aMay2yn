@@ -5,7 +5,7 @@ from PyQt5.QtGui import QColor, QPainter, QFont
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import pyqtSignal, Qt
 
-from may2Objects import Note
+from may2Note import Note
 from may2Utils import *
 from NoteDialog import NoteDialog
 import may2Style
@@ -441,8 +441,8 @@ class May2PatternWidget(QWidget):
         if noteDialog.exec_():
             self.pattern.delNote(specificNote = note)
             newNote = noteDialog.getNewNote()
-            self.pattern.addNote(newNote)
-            self.select(self.pattern.findSuchANote(newNote))
+            addedNewNote = self.pattern.addNote(newNote)
+            self.select(addedNewNote)
             self.finalizePatternChangeAndEmit()
 
     def insertNote(self, notePrototype, pos, copyParameters = False, initDrag = False):
@@ -472,8 +472,8 @@ class May2PatternWidget(QWidget):
             newNote = noteDialog.getNewNote()
             if newNote is None:
                 return
-            self.pattern.addNote(newNote)
-            self.select(self.pattern.findSuchANote(newNote))
+            addedNewNote = self.pattern.addNote(newNote)
+            self.select(addedNewNote)
             self.finalizePatternChangeAndEmit()
 
     def deleteNote(self, note):

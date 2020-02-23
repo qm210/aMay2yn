@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore
-from may2Objects import SYNTHTYPE, DRUMTYPE, NONETYPE
+from may2Pattern import SYNTHTYPE, DRUMTYPE, NONETYPE
 
 
 class TrackSettingsDialog(QtWidgets.QDialog):

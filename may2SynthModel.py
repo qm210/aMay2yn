@@ -1,6 +1,6 @@
 from copy import deepcopy
 from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex
-from may2Objects import SYNTHTYPE
+from may2Pattern import SYNTHTYPE
 from may2Synth import Synth
 
 

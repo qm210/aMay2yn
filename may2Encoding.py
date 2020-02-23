@@ -1,7 +1,10 @@
 from functools import partial
 import json
 
-from may2Objects import *
+from may2Track import Track
+from may2Module import Module
+from may2Pattern import Pattern, NONETYPE
+from may2Note import Note
 from may2Synth import *
 from may2Param import *
 from may2RandomValue import *
@@ -154,7 +157,7 @@ class SynthNodeDecoder(json.JSONDecoder):
     def object_hook(self, objDict):
         if not objDict:
             return {}
-        node = SynthNode(root = self.root, id = objDict['id'])
+        node = SynthNode(root = self.root, ID = objDict['id'])
         node.type = objDict['type']
         node.value = objDict['value']
         node.subNodes = json.loads(objDict['subNodes'], cls = partial(SynthNodeDecoder, root = self.root))

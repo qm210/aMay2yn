@@ -2,7 +2,9 @@ from math import ceil
 import xml.etree.ElementTree as ET
 from PyQt5 import QtWidgets, QtCore
 
-import may2Objects
+from may2Module import Module
+from may2Pattern import *
+from may2Note import Note
 
 
 class PatternDialog(QtWidgets.QDialog):
@@ -43,7 +45,7 @@ class PatternDialog(QtWidgets.QDialog):
         self.transposeSpinBox.setPrefix('transpose ')
         self.transposeSpinBox.setSuffix(' semitones')
         self.transposeSpinBox.setSingleStep(12)
-        self.transposeSpinBox.setEnabled(self.track.synthType == may2Objects.SYNTHTYPE)
+        self.transposeSpinBox.setEnabled(self.track.synthType == SYNTHTYPE)
         self.topLayout.addWidget(self.transposeSpinBox)
 
         self.layout.addLayout(self.topLayout)
@@ -86,7 +88,7 @@ class PatternDialog(QtWidgets.QDialog):
         self.layout.addLayout(self.buttonGrid)
 
         self.importPatternButton = QtWidgets.QPushButton('Import LMMS patterns', self)
-        self.importPatternButton.setVisible(self.synthType == may2Objects.SYNTHTYPE)
+        self.importPatternButton.setVisible(self.synthType == SYNTHTYPE)
         self.layout.addWidget(self.importPatternButton)
 
         self.layout.addWidget(self.buttonBox)
@@ -109,7 +111,7 @@ class PatternDialog(QtWidgets.QDialog):
         if module is not None:
             self.module = module
         else:
-            self.module = may2Objects.Module(mod_on = self.initBeat, pattern = self.getPattern())
+            self.module = Module(mod_on = self.initBeat, pattern = self.getPattern())
 
         self.nameEdit.setText(self.initName)
         self.modOnSpinBox.setValue(self.module.mod_on)
@@ -228,9 +230,9 @@ class NewPatternDialog(QtWidgets.QDialog):
         self.lengthSpin.setSuffix(' Beats')
         self.layout.addWidget(self.lengthSpin)
 
-        if self.synthType == may2Objects.SYNTHTYPE:
+        if self.synthType == SYNTHTYPE:
             typeLabel = 'Instrument Synth'
-        elif self.synthType == may2Objects.DRUMTYPE:
+        elif self.synthType == DRUMTYPE:
             typeLabel = 'Drum Synth'
         else:
             typeLabel = 'Undefined'
@@ -244,7 +246,7 @@ class NewPatternDialog(QtWidgets.QDialog):
         self.setLayout(self.layout)
 
     def createPattern(self):
-        return may2Objects.Pattern(
+        return Pattern(
             name = self.nameEdit.text(),
             length = self.lengthSpin.value(),
             synthType = self.synthType
@@ -399,14 +401,14 @@ class ImportPatternDialog(QtWidgets.QDialog):
         self.parsedPatterns = []
         for selectedIndex in self.selectedIndices:
             xmlData = self.patternData[selectedIndex]
-            selected_pattern = may2Objects.Pattern(name = xmlData['text'], synthType = may2Objects.SYNTHTYPE)
+            selected_pattern = Pattern(name = xmlData['text'], synthType = SYNTHTYPE)
             pattern_length = 1
             for elementNote in xmlData['element']:
                 if elementNote.tag == 'note':
                     note_on = float(elementNote.attrib['pos'])/self.LMMS_scalenotes
                     note_len = float(elementNote.attrib['len'])/self.LMMS_scalenotes
                     selected_pattern.notes.append(
-                        may2Objects.Note(
+                        Note(
                             note_on    = note_on,
                             note_len   = note_len,
                             note_pitch = int(float(elementNote.attrib['key']) + self.LMMS_transpose),

@@ -1,5 +1,5 @@
-from PyQt5 import QtWidgets, QtCore
-from may2Objects import Note
+from PyQt5 import QtWidgets
+from may2Note import Note
 
 
 class NoteDialog(QtWidgets.QDialog):

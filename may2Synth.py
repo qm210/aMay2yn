@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 from may2Utils import inQuotes, isNumber, collectValuesRecursively
-from may2Objects import SYNTHTYPE
+from may2Pattern import SYNTHTYPE
 
 
 class Synth:

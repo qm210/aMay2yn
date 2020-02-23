@@ -1,7 +1,7 @@
 from copy import deepcopy
 from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex
 
-from may2Objects import Track
+from may2Track import Track
 
 
 class TrackModel(QAbstractListModel):

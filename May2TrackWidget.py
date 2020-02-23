@@ -5,7 +5,9 @@ from PyQt5.QtGui import QColor, QPainter, QFont
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from may2Objects import Track, Module, SYNTHTYPE
+from may2Track import Track
+from may2Module import Module
+from may2Pattern import SYNTHTYPE
 from may2Utils import drawText, drawTextDoubleInX, quantize, GLfloat
 from SynthDialog import SynthDialog
 from PatternDialogs import PatternDialog

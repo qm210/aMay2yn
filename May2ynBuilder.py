@@ -15,7 +15,10 @@ from May2ynatizer import synatize, synatize_build
 from SFXGLWidget import SFXGLWidget
 from may2Utils import GLfloat, createListMapping
 from may2Synth import Synth
-import may2Objects
+from may2Track import Track
+from may2Module import Module
+from may2Pattern import *
+from may2Note import Note
 
 
 class May2ynBuilder:
@@ -212,17 +215,17 @@ class May2ynBuilder:
         return len(self.synthNames)
 
     def synthIndex(self, track):
-        if track.synthType == may2Objects.SYNTHTYPE:
+        if track.synthType == SYNTHTYPE:
             return self.synthNames.index(track.synthName)
-        elif track.synthType == may2Objects.DRUMTYPE:
+        elif track.synthType == DRUMTYPE:
             return self.drumIndex()
-        elif track.synthType == may2Objects.NONETYPE:
+        elif track.synthType == NONETYPE:
             return 0
         else:
             raise ValueError("Tried to handle track {track.name} of unknown type: '{track.synthType}'")
 
     def trackSynthValid(self, track):
-        return track.synthName in self.synthNames or track.synthType != may2Objects.SYNTHTYPE
+        return track.synthName in self.synthNames or track.synthType != SYNTHTYPE
 
     def build(self, tracks, patterns, renderWAV = False):
         if not self.validSynFile():
@@ -294,8 +297,8 @@ class May2ynBuilder:
         gf.close()
 
         self.tokenizeSynFile(self.synFile)
-        actuallyUsedSynths = set(t.synthName for t in self.tracks if not t.synthType == may2Objects.NONETYPE)
-        actuallyUsedDrums = set(n.note_pitch for p in self.patterns if p.synthType == may2Objects.DRUMTYPE for n in p.notes)
+        actuallyUsedSynths = set(t.synthName for t in self.tracks if not t.synthType == NONETYPE)
+        actuallyUsedDrums = set(n.note_pitch for p in self.patterns if p.synthType == DRUMTYPE for n in p.notes)
 
         if self.MODE_debug:
             print("ACTUALLY USED:", actuallyUsedSynths, actuallyUsedDrums)
