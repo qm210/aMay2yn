@@ -1,4 +1,4 @@
-from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtGui import QColor
 
 default_textcolor = (200, 230, 130)
 group_bgcolor = (10, 0, 30)

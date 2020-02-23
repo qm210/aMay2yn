@@ -1,5 +1,5 @@
-from PyQt5 import QtWidgets, QtCore
 from random import random
+from PyQt5 import QtWidgets, QtCore
 
 
 class ParameterDialog(QtWidgets.QDialog):

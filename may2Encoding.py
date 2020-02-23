@@ -179,7 +179,7 @@ def encodeParam(obj):
     return objDict
 
 def decodeParam(objDict):
-    param = Param(objDict['form'], id = objDict['id'], default = objDict['default'])
+    param = Param(objDict['form'], ID = objDict['id'], default = objDict['default'])
     param.segments =  [decodeParamSegment(segDict) for segDict in objDict['segments']]
     param.syncWithModule = objDict.get('syncWithModule', False)
     return param
@@ -197,7 +197,7 @@ def encodeParamSegment(obj):
     return objDict
 
 def decodeParamSegment(objDict):
-    segment = ParamSegment(id = objDict['id'])
+    segment = ParamSegment(ID = objDict['id'])
     segment.start = objDict['start']
     segment.end = objDict['end']
     segment.type = objDict['type']
@@ -222,7 +222,7 @@ def encodeRandomValue(obj):
 def decodeRandomValue(objDict):
     obj = RandomValue(
         form = objDict['form'],
-        id = objDict['id'],
+        ID = objDict['id'],
         value = objDict['value'],
         fixed = objDict['fixed'],
     )

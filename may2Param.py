@@ -1,10 +1,10 @@
 
 class Param:
 
-    def __init__(self, form, id = None, default = None):
+    def __init__(self, form, ID = None, default = None):
         self.form = form
         self.segments = []
-        self.id = id or form['id']
+        self.id = ID or form['id']
         self.default = default or float(form.get('default', 0))
         self.syncWithModule = ('module' in form['mode']) # think about how to implement this in a flexible way. for now: just add mode=module in the .syn file
 
@@ -68,11 +68,11 @@ class ParamSegment:
 
     LINEAR, CONST, LITERAL = ['linear', 'const', 'literal']
 
-    def __init__(self, id = None, start = None, end = None, type = None, **kwargs):
-        self.id = id
+    def __init__(self, ID = None, start = None, end = None, segmentType = None, **kwargs):
+        self.id = ID
         self.start = start
         self.end = end
-        self.type = type
+        self.type = segmentType
         self.args = {**kwargs}
 
     def __str__(self):
@@ -85,8 +85,8 @@ class ParamSegment:
         else:
             return f"[{self.start or '?'}..{self.end or '?'}] unknown segment"
 
-    def setArgs(self, type, **kwargs):
-        self.type = type
+    def setArgs(self, segmentType, **kwargs):
+        self.type = segmentType
         self.args.update(kwargs)
         if self.type != ParamSegment.LITERAL:
             for arg in self.args:

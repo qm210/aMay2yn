@@ -6,9 +6,9 @@ class RandomValue:
 
     idColumn, valueColumn, minColumn, maxColumn, digitsColumn, fixedColumn = range(6)
 
-    def __init__(self, form, id = None, value = None, fixed = False):
+    def __init__(self, form, ID = None, value = None, fixed = False):
         self.form = form
-        self.id = id or form['id']
+        self.id = ID or form['id']
         self.min = float(form['min'])
         self.max = float(form['max'])
         self.value = value or form['value']

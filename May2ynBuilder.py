@@ -15,8 +15,6 @@ from May2ynatizer import synatize, synatize_build
 from SFXGLWidget import SFXGLWidget
 from may2Utils import GLfloat, createListMapping
 from may2Synth import Synth
-from may2Track import Track
-from may2Module import Module
 from may2Pattern import *
 from may2Note import Note
 
