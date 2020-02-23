@@ -13,7 +13,8 @@ osc  rndOsc shape=madd  mix=rndShape pw=rndPW nmax=72 cutoff=rndCutoff*rndEnvFre
 main rndTest src=rndOsc*rndEnv release=.03
 
 osc  fm0         shape=fm
-main FM0         src=fm0 slidetime=.2
+main FM0         src=vel*fm0 slidetime=.2 shape=parabellshape,FM0_whatever,.8,13,1,1
+param FM0_whatever
 
 osc fm1op2fb
 osc fm1op2   freq=.999*f phase=.35*fm1op2fb
@@ -214,8 +215,12 @@ maindrum HCybKick36 src=.9*kcky_body_mod+.9*kcky_trans+.64*clasp_body release=.2
 # <-- this is KCKY+Clasp
 
 maindrum HCybHHCl src="vel*(_HCybHHClENV0(_t)*(.13*sinshape(pseudorandom(_HCybHHClENV2(_t)*_t+1.*_HCybHHClENV0(_t)*(.5*lpnoise(_t,14142.828)+.5*lpnoise(_t,.463*14142.828))), _HCybHHClENV3(_t), 3.))+_HCybHHClENV1(_t)*(.04*(.5*lpnoise(_t,14142.828)+.5*lpnoise(_t,.463*14142.828))))" srcr="vel*(_HCybHHClENV0(_t)*(.13*sinshape(pseudorandom(_HCybHHClENV2(_t)*(_t-.00044)+1.*_HCybHHClENV0(_t)*(.5*lpnoise((_t-.00044),14142.828)+.5*lpnoise((_t-.00044),.463*14142.828))), _HCybHHClENV3(_t), 3.))+_HCybHHClENV1(_t)*(.04*(.5*lpnoise((_t-.00127),14142.828)+.5*lpnoise((_t-.00127),.463*14142.828))))" release=0.1
+
 drum cybkickclean shape=protokickass freq0=157 freq1=76 freqdecay=0.13 attack=0.002 decay=0.13 drive=1.15 rev1_amt=0.81 rev1_tone=2401.0 rev1_exp=14.8 rev1_drive=0.24 rev2_amt=0.5 rev2_tone=5164 rev2_exp=19.79 rev3_amt=0.76 rev3_tone=8446 rev3_exp=24 noise_amt=0.01 noise_hold=0.12 noise_decay=0.7 noise_tone=4079
 maindrum HCybKick26 src=.85*cybkickclean release=.36 stereodelay=2e-6
+
+form cybkickclean_drop timescale src=cybkickclean scale=.5
+maindrum HDropKick26 src=.85*cybkickclean_drop release=.36 stereodelay=2e-6
 
 drum shaker shape=fmnoise attack=0.03 decay=0.1 sustain=0.1 timbre1=0.9 timbre2=0.9
 maindrum SHK src=.2*shaker

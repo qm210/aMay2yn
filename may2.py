@@ -10,9 +10,9 @@ from copy import deepcopy
 from functools import partial
 from os import path
 from random import uniform, choice
-from numpy import clip
 from shutil import copyfile
 from datetime import datetime
+from numpy import clip
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QVBoxLayout, QGroupBox, QSplitter, QFileDialog, \
     QDoubleSpinBox, QCheckBox, QLabel,QInputDialog, QLineEdit, QMessageBox, QStackedLayout
 from PyQt5.QtCore import Qt, QStringListModel, QBuffer, QIODevice
@@ -974,11 +974,11 @@ class MainWindow(QMainWindow):
     def setRandomSynth(self):
         track = self.getTrack()
         if track:
-            track.setSynth(type = track.synthType, name = self.getRandomSynthName(track.synthType))
+            track.setSynth(synthType = track.synthType, name = self.getRandomSynthName(track.synthType))
 
-    def getRandomSynthName(self, type):
-        if type != SYNTHTYPE or self.synthModel.rowCount() == 0:
-            return type
+    def getRandomSynthName(self, synthType):
+        if synthType != SYNTHTYPE or self.synthModel.rowCount() == 0:
+            return synthType
         return choice(self.synthModel.synthList())
 
     def reshuffleAllRandomValues(self):
@@ -1119,7 +1119,6 @@ class MainWindow(QMainWindow):
 
         nameSuggestion = findFreeSerial(f"{synth.name}.", self.synthModel.synthList())
         name, ok = QInputDialog.getText(self, "Hardcopy Synth", f"Clone '{synth.name}' under new Name:", QLineEdit.Normal, nameSuggestion)
-        # TODO: implement own QDialog with some options, e.g. "keep free randoms free (fix only those with FIXED tag)" and "set current Track to new Synth"
         if not ok:
             return
         try:

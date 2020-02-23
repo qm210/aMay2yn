@@ -1,12 +1,11 @@
-from PyQt5.QtGui import QColor, QPainter, QFont
-from PyQt5.QtWidgets import QWidget, QInputDialog, QLineEdit
-from PyQt5.QtCore import Qt, pyqtSignal
 from math import sqrt, floor
-from numpy import clip
 from copy import deepcopy
+from numpy import clip
+from PyQt5.QtGui import QColor, QPainter, QFont
+from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import Qt, pyqtSignal
 
-from may2Objects import Track, Module, SYNTHTYPE, DRUMTYPE
-from may2TrackModel import TrackModel
+from may2Objects import Track, Module, SYNTHTYPE
 from may2Utils import drawText, drawTextDoubleInX, quantize, GLfloat
 from SynthDialog import SynthDialog
 from PatternDialogs import PatternDialog
@@ -185,7 +184,8 @@ class May2TrackWidget(QWidget):
         pen = qp.pen()
         for m in self.markerList:
             markerPos = m['pos'] - self.offsetH
-            if markerPos < 0 or markerPos >= self.numberBeatsVisible: continue
+            if markerPos < 0 or markerPos >= self.numberBeatsVisible:
+                continue
 
             x = self.gridX + markerPos * self.beatW
 
@@ -274,9 +274,9 @@ class May2TrackWidget(QWidget):
                     self.insertModule(corrTrack, self.copyOfLastSelectedModule, beat)
             else:
                 if event.button() == Qt.LeftButton:
-                        self.initDragModule(corrTrack, corrModule, event.pos())
+                    self.initDragModule(corrTrack, corrModule, event.pos())
                 elif event.button() == Qt.RightButton:
-                        self.openPatternDialog(corrTrack, module = corrModule)
+                    self.openPatternDialog(corrTrack, module = corrModule)
                 elif event.button() == Qt.MiddleButton:
                     self.deleteModule(corrTrack, corrModule)
 
@@ -450,7 +450,7 @@ class May2TrackWidget(QWidget):
         if track.isEmpty():
             trackTypeDialog = TrackTypeDialog(self.parent)
             if trackTypeDialog.exec_():
-                track.setSynth(type = trackTypeDialog.chosenType, name = self.parent.getRandomSynthName(trackTypeDialog.chosenType))
+                track.setSynth(synthType = trackTypeDialog.chosenType, name = self.parent.getRandomSynthName(trackTypeDialog.chosenType))
                 self.repaintAndEmitTrackChanged()
 
     def openPatternDialog(self, track, beat = None, module = None):

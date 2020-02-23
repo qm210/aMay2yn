@@ -1,8 +1,6 @@
-from PyQt5 import QtWidgets, QtCore
-from random import randint
-from copy import deepcopy
 from math import ceil
 import xml.etree.ElementTree as ET
+from PyQt5 import QtWidgets, QtCore
 
 import may2Objects
 
@@ -12,7 +10,7 @@ class PatternDialog(QtWidgets.QDialog):
     WIDTH = 600
     HEIGHT = 800
 
-    def __init__(self, parent, track, module = None, pattern = None, beat = None, *args, **kwargs):
+    def __init__(self, parent, track, *args, module = None, pattern = None, beat = None, **kwargs):
         super(PatternDialog, self).__init__(parent, *args, **kwargs)
         self.setWindowTitle('Pattern Dialog')
         self.setGeometry(parent.x() + 0.5 * (parent.width() - self.WIDTH), parent.y() + 0.5 * (parent.height() - self.HEIGHT), self.WIDTH, self.HEIGHT)
@@ -106,8 +104,6 @@ class PatternDialog(QtWidgets.QDialog):
         self.importPatternButton.clicked.connect(self.openImportPatternDialog)
 
         self.init(module)
-
-        # TODO: think about introducing a separate module volume
 
     def init(self, module):
         if module is not None:
@@ -212,11 +208,11 @@ class PatternDialog(QtWidgets.QDialog):
 
 class NewPatternDialog(QtWidgets.QDialog):
 
-    def __init__(self, parent, type, *args, **kwargs):
+    def __init__(self, parent, synthType, *args, **kwargs):
         super(NewPatternDialog, self).__init__(parent, *args, **kwargs)
         self.setWindowTitle('New Pattern')
         self.parent = parent
-        self.synthType = type
+        self.synthType = synthType
 
         self.layout = QtWidgets.QVBoxLayout(self)
 
@@ -339,8 +335,8 @@ class ImportPatternDialog(QtWidgets.QDialog):
         self.filter = text
         self.parseFile()
 
-    def setData(self, patternData = []):
-        self.patternData = patternData
+    def setData(self, patternData = None):
+        self.patternData = patternData or []
         patternListLabels = []
         for element in patternData:
             patternListLabels.append(element['text'].replace('@', ' @ '))
@@ -384,11 +380,11 @@ class ImportPatternDialog(QtWidgets.QDialog):
         XML_root = ET.parse(self.xmlFilename).getroot()
         parseData = []
         for element in XML_root.iter():
-                if element.tag == 'pattern':
-                        elem_name = element.attrib['name'] or '<noname>'
-                        if self.filter.lower() in elem_name[0:len(self.filter)].lower():
-                            elem_pos = float(element.attrib['pos'])/self.LMMS_scalenotes
-                            parseData.append({'text': f"{elem_name}@{elem_pos}", 'name': elem_name, 'pos': elem_pos, 'element': element})
+            if element.tag == 'pattern':
+                elem_name = element.attrib['name'] or '<noname>'
+                if self.filter.lower() in elem_name[0:len(self.filter)].lower():
+                    elem_pos = float(element.attrib['pos'])/self.LMMS_scalenotes
+                    parseData.append({'text': f"{elem_name}@{elem_pos}", 'name': elem_name, 'pos': elem_pos, 'element': element})
         parseData.sort(key = lambda item: (item['name'], item['pos']))
         self.setData(parseData)
 
@@ -421,5 +417,3 @@ class ImportPatternDialog(QtWidgets.QDialog):
             self.parsedPatterns.append(selected_pattern)
             print(f"pattern {xmlData['text']} imported. ({len(selected_pattern.notes)} notes)")
         self.accept()
-
-

@@ -1,7 +1,6 @@
 from copy import deepcopy
-import re
 
-from may2Utils import inQuotes, isNumber
+from may2Utils import inQuotes, isNumber, collectValuesRecursively
 from may2Objects import SYNTHTYPE
 
 
@@ -16,7 +15,7 @@ class Synth:
         self.overwrites = {}
         self.mainSrc = None
         # TODO: allow for mainSrcR (e.g. allow for a list of two, then also two nodeTrees, or one with two sources? don't know yet.)
-        self.nodeTree = SynthRoot(id = name)
+        self.nodeTree = SynthRoot(ID = name)
         self.usedParams = self.nodeTree.usedParams
         self.usedRandoms = self.nodeTree.usedRandoms
 
@@ -40,9 +39,10 @@ class Synth:
             self.mainSrc = mainSrc
         self.nodeTree.verbose = verbose
         self.nodeTree.parse(formList, self.mainSrc)
+        self.nodeTree.parseExtra(self.args, 'shape')
 
     def resetNodeTree(self):
-        self.nodeTree = SynthRoot(id = self.name)
+        self.nodeTree = SynthRoot(ID = self.name)
         self.usedParams = self.nodeTree.usedParams
         self.usedRandoms = self.nodeTree.usedRandoms
 
@@ -55,19 +55,20 @@ class Synth:
         return not self.mainSrc
 
     def isUnparsed(self):
-        return self.nodeTree.src == None
+        return self.nodeTree.src is None
 
 
 class SynthRoot:
 
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, ID):
+        self.id = ID
         self.usedParams = {}
         self.usedRandoms = {}
         self.formList = []
         self.formIDs = {}
         self.countSubID = 0
         self.src = None
+        self.extraNodes = set()
         self.verbose = False
         self.errorStack = []
 
@@ -85,8 +86,15 @@ class SynthRoot:
         if self.formList is None:
             print("ERROR! tried to parse nodeTree without given formList!")
             raise ValueError
-        self.src = SynthNode(root = self, id = self.id)
+        self.src = SynthNode(root = self, ID = self.id)
         self.src.parse('src', mainSrc)
+
+    def parseExtra(self, extraDict, extraKey):
+        if not isinstance(extraDict, dict) or extraDict.get(extraKey) is None:
+            return
+        for extraID in collectValuesRecursively(extraDict.get(extraKey)):
+            extraNode = SynthNode(root = self, ID = extraID)
+            extraNode.parse(extraID, extraID)
 
     def newSubID(self):
         newSubID = f'{self.id}__{self.countSubID}'
@@ -106,9 +114,9 @@ class SynthNode:
 
     SUM, PRODUCT, CONST, LITERAL, UNIFORM = ('sum', 'product', 'const', 'literal', 'uniform')
 
-    def __init__(self, root, id = None):
+    def __init__(self, root, ID = None):
         self.root = root
-        self.id = id or self.root.newSubID()
+        self.id = ID or self.root.newSubID()
         self.type = None
         self.subNodes = {}
         self.value = None
@@ -132,6 +140,7 @@ class SynthNode:
             self.subNodes[node].printNested(oldPrefix + '    ' if subNodeCount == len(self.subNodes) - 1 else '  │ ')
             subNodeCount += 1
 
+    #pylint: disable=redefined-builtin
     def setType(self, type):
         if self.type is not None:
             print(f"ERROR! TYPE ALREADY SET! in{self.root.id}: {self.id} is {self.type}, not {type}")
@@ -154,7 +163,7 @@ class SynthNode:
             self.setType(SynthNode.SUM)
             for term in argSource.split('+'): #TODO: is it hard to switch the ',' to '+' now?
                 subID = f"{self.id}__{term}" if term in self.root.formIDs else None
-                subNode = SynthNode(root = self.root, id = subID)
+                subNode = SynthNode(root = self.root, ID = subID)
                 subNode.parse('src', term)
                 self.subNodes.update({subNode.id: subNode})
             return
@@ -163,7 +172,7 @@ class SynthNode:
             self.setType(SynthNode.PRODUCT)
             for term in argSource.split('*'):
                 subID = f"{self.id}__{term}" if term in self.root.formIDs else None
-                subNode = SynthNode(root = self.root, id = subID)
+                subNode = SynthNode(root = self.root, ID = subID)
                 subNode.parse('src', term)
                 self.subNodes.update({subNode.id: subNode})
             return
@@ -179,7 +188,7 @@ class SynthNode:
         subID = form.get('id', None)
         if self.root.verbose:
             print("VERBOSE: ", subID, form)
-        subNode = SynthNode(root = self.root, id = subID)
+        subNode = SynthNode(root = self.root, ID = subID)
         subNode.parseForm(form)
         self.subNodes.update({argKey: subNode})
 
@@ -193,7 +202,7 @@ class SynthNode:
             elif key in ['op', 'shape']:
                 self.value = form[key]
             else:
-                subNode = SynthNode(root = self.root, id = f"{self.id}__{key}")
+                subNode = SynthNode(root = self.root, ID = f"{self.id}__{key}")
                 if self.root.verbose:
                     print(f"PARSE NOW {self.id} -- FORM[{key}] = {form[key]} in {form}")
                 subNode.parse(key, form[key])

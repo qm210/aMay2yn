@@ -1,12 +1,9 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QTreeWidget, QTreeWidgetItem, QInputDialog, QTableWidget, QTableWidgetItem, QHeaderView
-from PyQt5.QtGui import QStandardItemModel
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QTreeWidget, QTreeWidgetItem, QInputDialog, QTableWidget, QTableWidgetItem
 from PyQt5.QtCore import pyqtSignal, Qt
 
-from may2Synth import Synth
 from may2Param import Param
 from may2RandomValue import RandomValue
 from SegmentDialog import SegmentDialog
-import may2Style
 
 
 class May2SynthWidget(QWidget):
@@ -189,7 +186,7 @@ class May2SynthWidget(QWidget):
                 elif col == random.fixedColumn:
                     item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
                     item.setText('fixed')
-                    item.setCheckState(Qt.Checked if content == True else Qt.Unchecked)
+                    item.setCheckState(Qt.Checked if content else Qt.Unchecked)
                 else:
                     item.setFlags(Qt.ItemIsEditable | Qt.ItemIsEnabled)
                 self.randomWidget.setItem(row, col, item)
@@ -204,7 +201,7 @@ class May2SynthWidget(QWidget):
             item = self.randomWidget.item(row, col)
             newContent = self.randoms[row].getRow()[col]
             if col == RandomValue.fixedColumn:
-                item.setCheckState(Qt.Checked if newContent == True else Qt.Unchecked)
+                item.setCheckState(Qt.Checked if newContent else Qt.Unchecked)
             else:
                 item.setText(str(newContent))
         self.randomWidget.resizeColumnsToContents()
@@ -272,3 +269,7 @@ class May2SynthWidget(QWidget):
         print("RANDOM VALUES STORED IN SYNTH MODEL:")
         for r in self.parent.synthModel.randomValues:
             print(r)
+
+        print("SYNTH FORMS WITH ARGUMENTS")
+        for s in self.parent.synthModel.synths:
+            print(s.name,' --> ', s.args)

@@ -1,15 +1,15 @@
 #pylint: disable=anomalous-backslash-in-string
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import Qt, QByteArray
+import datetime
+import re
+from math import ceil, sqrt
 from struct import pack, unpack
 from itertools import accumulate
 from copy import deepcopy
 from os import path, mkdir
 from scipy.io import wavfile
-from math import ceil, sqrt
-import datetime
-import re
 import numpy as np
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QByteArray
 
 from May2ynatizer import synatize, synatize_build
 from SFXGLWidget import SFXGLWidget
@@ -17,7 +17,7 @@ from may2Utils import GLfloat
 from may2Synth import Synth
 import may2Objects
 
-# TODO: split this into May2ynTokenizer and May2ynBuilder
+
 class May2ynBuilder:
 
     templateFile = "template.matzethemightyemperor"
@@ -164,9 +164,11 @@ class May2ynBuilder:
         return './' + self.outdir + '/' + self.getInfo('title') + '_' + str(count) + '.wav'
 
     def getWAVFileCount(self):
-        if not path.isdir('./' + self.outdir): return '001'
+        if not path.isdir('./' + self.outdir):
+            return '001'
         count = 1
-        while path.isfile(self.getWAVFileName(f'{count:03d}')): count += 1
+        while path.isfile(self.getWAVFileName(f'{count:03d}')):
+            count += 1
         return f'{count:03d}'
 
     def getTimeOfBeat(self, beat, bpmlist = None):
@@ -174,7 +176,7 @@ class May2ynBuilder:
 
     def getTimeOfBeat_raw(self, beat, bpmlist):
         beat = float(beat)
-        if(type(bpmlist) != str):
+        if not isinstance(bpmlist, str):
             return beat * 60./bpmlist
 
         bpmdict = {float(part.split(':')[0]): float(part.split(':')[1]) for part in bpmlist.split()}
@@ -293,7 +295,8 @@ class May2ynBuilder:
         actuallyUsedSynths = set(t.synthName for t in self.tracks if not t.synthType == may2Objects.NONETYPE)
         actuallyUsedDrums = set(n.note_pitch for p in self.patterns if p.synthType == may2Objects.DRUMTYPE for n in p.notes)
 
-        if self.MODE_debug: print("ACTUALLY USED:", actuallyUsedSynths, actuallyUsedDrums)
+        if self.MODE_debug:
+            print("ACTUALLY USED:", actuallyUsedSynths, actuallyUsedDrums)
 
         #### Sadly, this structure is already quite abstruse. Rewrite when given time. For now, just update the Param List from the main Synth Models Param Overrides..!
         paramOverrides = self.parent.synthModel.paramOverrides
@@ -306,7 +309,7 @@ class May2ynBuilder:
             if random['id'] in randomOverrides:
                 self.synatize_form_list[index] = randomOverrides[random['id']].getUpdatedForm()
 
-        self.synatized_code_syn, self.synatized_code_drum, paramcode, filtercode, self.last_synatized_forms = \
+        self.synatized_code_syn, self.synatized_code_drum, paramcode, filtercode, synshapecode, self.last_synatized_forms = \
             synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, actuallyUsedSynths, actuallyUsedDrums)
 
         self.file_extra_information = ''
@@ -323,7 +326,8 @@ class May2ynBuilder:
         drum_rel = [0]
         max_rel = 0
         max_drum_rel = 0
-        if self.MODE_debug: print(self.synatize_main_list)
+        if self.MODE_debug:
+            print(self.synatize_main_list)
         for m in self.synatize_main_list:
             rel = float(m['release']) if 'release' in m else 0
             pre = float(m['predraw']) if 'predraw' in m else 0
@@ -472,6 +476,7 @@ class May2ynBuilder:
             .replace("//DRUMSYNCODE", self.synatized_code_drum)\
             .replace("DRUM_INDEX", drum_index)\
             .replace("//PARAMCODE", paramcode)\
+            .replace("//SHAPECODE", synshapecode)\
             .replace("//FILTERCODE",filtercode)\
             .replace("//TIMECODE", timecode)\
             .replace("//LOOPCODE", loopcode)\
@@ -531,11 +536,12 @@ class May2ynBuilder:
 
             expendable = []
             self.printIfDebug("The following functions will be purged")
-            for f in func_list.keys():
+            for f in func_list:
                 #print(f, code.count(f), len(re.findall(f + '[ \n]*\(', code)))
                 if len(re.findall(f + '[ \n]*\(', code)) == 1:
                     f_from = code.find('float '+f)
-                    if f_from == -1: continue
+                    if f_from == -1:
+                        continue
                     f_iter = f_from
                     n_open = 0
                     n_closed = 0
@@ -543,12 +549,14 @@ class May2ynBuilder:
                         n_open += int(code[f_iter] == '{')
                         n_closed += int(code[f_iter] == '}')
                         f_iter += 1
-                        if n_open > 0 and n_closed == n_open: break
+                        if n_open > 0 and n_closed == n_open:
+                            break
 
                     expendable.append(code[f_from:f_iter])
                     self.printIfDebug(f, 'line', func_list[f], '/', f_iter-f_from, 'chars')
 
-            for e in expendable: code = code.replace(e + '\n', '')
+            for e in expendable:
+                code = code.replace(e + '\n', '')
 
             if code == purged_code:
                 break

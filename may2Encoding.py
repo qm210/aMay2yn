@@ -1,13 +1,10 @@
-from copy import copy, deepcopy
-from numpy import clip
 from functools import partial
-import random
 import json
 
-from may2Objects import * #pylint: disable=unused-wildcard-import
-from may2Synth import * #pylint: disable=unused-wildcard-import
-from may2Param import * #pylint: disable=unused-wildcard-import
-from may2RandomValue import * #pylint: disable=unused-wildcard-import
+from may2Objects import *
+from may2Synth import *
+from may2Param import *
+from may2RandomValue import *
 
 
 ################### EN/DECODING FUNCTIONALITY #####################
@@ -135,7 +132,7 @@ def decodeSynth(sDict):
 
 class SynthNodeEncoder(json.JSONEncoder):
 
-    #pylint: disable=method-hidden
+    #pylint: disable=method-hidden,arguments-differ
     def default(self, obj):
         if isinstance(obj, SynthNode):
             return {
@@ -153,7 +150,7 @@ class SynthNodeDecoder(json.JSONDecoder):
         json.JSONDecoder.__init__(self, object_hook = self.object_hook, *args, **kwargs)
         self.root = root
 
-    #pylint: disable=method-hidden
+    #pylint: disable=method-hidden,arguments-differ
     def object_hook(self, objDict):
         if not objDict:
             return {}
@@ -236,7 +233,7 @@ def decodeRandomValue(objDict):
 
 class MaysonEncoder(json.JSONEncoder):
 
-    #pylint: disable=method-hidden
+    #pylint: disable=method-hidden,arguments-differ
     def default(self, obj):
         if isinstance(obj, Track):
             return encodeTrack(obj)

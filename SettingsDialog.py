@@ -1,5 +1,5 @@
-from PyQt5 import QtWidgets, QtCore
 import re
+from PyQt5 import QtWidgets
 
 
 class SettingsDialog(QtWidgets.QDialog):

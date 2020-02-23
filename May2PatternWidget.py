@@ -1,13 +1,12 @@
+from math import sqrt
+from copy import deepcopy
+from numpy import clip
 from PyQt5.QtGui import QColor, QPainter, QFont
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import pyqtSignal, Qt
-from math import sqrt, floor
-from numpy import clip
-from copy import deepcopy
 
-from may2Objects import Pattern, Note
-from may2PatternModel import PatternModel
-from may2Utils import * # pylint: disable=unused-wildcard-import
+from may2Objects import Note
+from may2Utils import *
 from NoteDialog import NoteDialog
 import may2Style
 
@@ -344,7 +343,7 @@ class May2PatternWidget(QWidget):
                 self.openInsertNoteDialog(self.copyOfLastSelectedNote, event.pos())
             return
 
-        noteAlreadySelected = (corrNote == self.pattern.getNote()) # TOOD: use this, or ctrlPressed, to somehow change the parameters
+        # noteAlreadySelected = (corrNote == self.pattern.getNote()) # need this?
         self.select(corrNote)
         if event.button() == Qt.LeftButton:
             if self.parent.ctrlPressed:
@@ -413,9 +412,9 @@ class May2PatternWidget(QWidget):
     def finalizeDragAndStretch(self):
         if self.dragNote is not None:
             if self.dragNote.note_on < self.offsetH or self.dragNote.note_on > self.offsetH + self.numberBeatsVisible + 1 \
-                or self.dragNote.note_off > self.pattern.length \
-                or self.dragNote.note_pitch < self.offsetV or self.dragNote.note_pitch >= self.offsetV + self.numberKeysVisible:
-                    self.dragNoteTo(self.dragOrigin)
+            or self.dragNote.note_off > self.pattern.length \
+            or self.dragNote.note_pitch < self.offsetV or self.dragNote.note_pitch >= self.offsetV + self.numberKeysVisible:
+                self.dragNoteTo(self.dragOrigin)
             else:
                 self.finalizePatternChangeAndEmit()
         if self.stretchNote is not None:

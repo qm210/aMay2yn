@@ -23,10 +23,12 @@ float s_atan(float a) { return .636 * atan(a); }
 float s_crzy(float amp) { return clamp( s_atan(amp) - 0.1*cos(0.9*amp*exp(amp)), -1., 1.); }
 float squarey(float a, float edge) { return abs(a) < edge ? a : floor(4.*a+.5)*.25; }
 float doubleslope(float t, float a, float d, float s) { return smstep(-.00001,a,t) - (1.-s) * smstep(0.,d,t-a); }
-float s_moothmin(float a) { // might adjust the k=.5 factor later
+float s_moothmin(float a, float k) {
     float ha = max(1.-2.*abs(abs(a)-1.), 0.);
-    return a >= 0 ? min(a, 1.) - .5/6.*ha*ha*ha : max(a, -1.) + .5/6.*ha*ha*ha;
+    return a >= 0. ? min(a, 1.) - .5/6.*ha*ha*ha : max(a, -1.) + .5/6.*ha*ha*ha;
 }
+float s_moothmin(float a) { return s_moothmin(a,.5); }
+
 
 //BEATHEADER
 float BPS, SPB, BT;
@@ -69,6 +71,10 @@ float drop2_phase(float time, float t1, float t2, float f0, float f1, float f2)
 float metalnoise(float t, float fac1, float fac2)
 {
     return .666*pseudorandom(t) - 1.333*pseudorandom(t-Tsample) + .333*(pseudorandom(t+fac1*Tsample)+pseudorandom(t+fac2*Tsample));
+}
+float annoyse(float t, float sampleFac, float exponent)
+{ // try e.g. with sampleFac=44100. and exponent=100. or 10000.
+    return exp(-exponent * pseudorandom(x*sampleFac) * x);
 }
 
 float blackmannoise(float t, float ton, float M)
@@ -158,6 +164,12 @@ float distshape(float x, float amt, float threshold)
 float foldshape(float x, float amt, float threshold, float whatever)
 {
     return (abs(x) >= threshold) ? ((1.-amt) * x + amt * abs(abs(mod(x - threshold, threshold * 2. * whatever)) - threshold * whatever) - threshold) : x;
+}
+
+float parabellshape(float x, float amt, float pC, float pS, float bA, float bS)
+{
+    float xDist = (x-pC)*pS;
+    return clip(x + amt * pC * (xDist*xDist-1.)*(bA * exp(-bS*xDist*xDist) + (1.-bA) * float(abs(xDist) < 1.)) );
 }
 
 float GAC(float t, float offset, float a, float b, float c, float d, float e, float f, float g)
@@ -355,7 +367,7 @@ vec2 mainSynth(float time)
         tsep1 = trk_sep(trk + 1);
 
         syn = trk_syn(trk);
-        rel = trk_rel(trk);
+        rel = trk_rel(trk) + 1.e-3;
         pre = trk_pre(trk);
 
         for(_modU = tsep0; (_modU < tsep1 - 1) && (BT > mod_on(_modU + 1) - pre); _modU++);
@@ -377,7 +389,7 @@ vec2 mainSynth(float time)
                 if(syn == DRUM_INDEX)
                 {
                     drum = int(note_pitch(_note));
-                    rel = drum_rel(drum);
+                    rel = drum_rel(drum) + 1.e-3;
                 }
 
                 amaysynL  = 0.;
@@ -435,7 +447,7 @@ vec2 mainSynth(float time)
                     sR += amtR * trk_norm(trk) * s_moothmin(clamp(env,0.,1.) * amaysynR);
                 }
             }
-            // this would be the place for track sum effects, if any (distortion / waveshape)
+            //SHAPECODE
         }
     }
     float masterL = LEVEL_SYN * sidechain * MASTERCODE_sL + LEVEL_DRUM * dL;

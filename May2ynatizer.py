@@ -1,13 +1,12 @@
-#import math
 from random import random
 from re import sub
 
 from May2ynatizerDefaults import set_remaining_defaults
 from may2Utils import GLfloat, GLstr, inQuotes, split_if_not_quoted, newlineindent, newlineplus
 from may2ParamBuilder import buildParamFunction
-from may2Utils import newlineindent, newlineplus
 
-def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = False):
+
+def synatize(syn_file = 'default.syn', stored_randoms = None, reshuffle_randoms = False):
 
     # reserved names you cannot name a form after ~ f,t are essential, and maybe we want to use the other
     # time              time elapsed globally
@@ -16,12 +15,17 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
     # BT                beats elapsed globally
     # Bprog             beats elapsed since beginning of note
     # Bproc             elapsed percent of note
-    var_list = ['f', 'time', 'time2', '_t', '_t2', 'B', 'BT', 'vel', 'Bsyn', 'Bproc', 'Bprog', 'L', 'tL', 'SPB', 'BPS', 'BPM', 'iSampleRate', 'Tsample', 'rel', 'aux', 'note', 'slide']
-
+    var_list = [
+        'f', 'time', 'time2', '_t', '_t2', 'B', 'BT', 'Bon', 'Boff',
+        'vel', 'Bsyn', 'Bproc', 'Bprog', 'L', 'tL', 'SPB', 'BPS', 'BPM',
+        'iSampleRate', 'Tsample', 'rel', 'aux', 'note', 'slide'
+    ]
     form_list = [{'id': var, 'type': 'uniform'} for var in var_list]
     main_list = []
     param_list = []
 
+    if stored_randoms is None:
+        stored_randoms = []
     stored_random_values = {r['id']: r['value'] for r in stored_randoms}
 
     print('PARSING', './' + syn_file)
@@ -31,8 +35,10 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
 
     # parse lines -- # are comments, ! is a EOF character
     for l in lines:
-        if l=='\n' or l[0]=='#': continue
-        elif l[0]=='!': break
+        if l=='\n' or l[0]=='#':
+            continue
+        elif l[0]=='!':
+            break
 
         line = sub(' *, *',',',sub(' +',' ',sub(' *= *','=',l))).split()
         cmd = line[0].lower()
@@ -82,6 +88,10 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
                     form['src'] = sub('(?<![*+])-','+-',form['src']).replace(',','+')
             except KeyError:
                 print('PARSING - ERROR IN LINE (src not given)\n', l)
+
+            if 'shape' in form and form['shape'] is not None:
+                parseShape = form['shape'].split(',')
+                form['shape'] = {parseShape[0]: parseShape[1:] if len(parseShape) > 1 else []}
 
         if cmd == 'random': # TODO: 'tag' functionality not accessible yet - idea is: if tag is set, then only reshuffle if the tag is in the taglist
             if form['id'] in stored_random_values and not reshuffle_randoms:
@@ -144,12 +154,12 @@ def synatize(syn_file = 'default.syn', stored_randoms = [], reshuffle_randoms = 
 
 def synatize_build(form_list, main_list, param_list, actually_used_synths = None, actually_used_drums = None):
 
-    def instance(ID, mod={}, force_int = False):
+    def instance(ID, mod = None, force_int = False):
         _return = ''
         form = next((f for f in form_list if f['id']==ID), None)
 
         try:
-            if mod:
+            if isinstance(mod, dict):
                 form = form.copy()
                 form.update(mod)
 
@@ -157,11 +167,11 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                 return '('+ID[1:-1]+')'
 
             elif '+' in ID:
-                IDsum = ID.split('+')
-                sum = ''
-                for sumID in IDsum:
-                    sum += instance(sumID) + '+'
-                return sum[:-1]
+                IDtotal = ID.split('+')
+                total = ''
+                for totalID in IDtotal:
+                    total += instance(totalID) + '+'
+                return total[:-1]
 
             elif '*' in ID:
                 IDproduct = ID.split('*')
@@ -202,7 +212,7 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                 elif form['op'] == 'overdrive':
                     return 'clip(' + instance(form['gain']) + '*' + instance(form['src']) + ')'
                 elif form['op'] == 'chorus':
-                    return '(' + newlineplus.join([instance(form['src']).replace('_PROG','(_PROG-'+'{:.1e}'.format(i*float(form['step']))+'*(1.+'+instance(form['intensity'])
+                    return '(' + newlineplus.join([instance(form['src']).replace('_PROG','(_PROG-'+'{:.1e}'.format(i*float(form['step']))+'*(1.+'+instance(form['intensity']) \
                         +'*_sin('+instance(form['rate'])+'*_PROG)))') for i in range(int(form['number']))]) + ')'
                 elif form['op'] == 'delay':
                     if 'time' in form['mode']:
@@ -225,6 +235,8 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                     return 'distshape(' + instance(form['src']) + ',' + ','.join(instance(form[p]) for p in ['amount','threshold']) + ')'
                 elif form['op'] == 'foldshape':
                     return 'foldshape(' + instance(form['src']) + ',' + ','.join(instance(form[p]) for p in ['amount','threshold','whatever']) + ')'
+                elif form['op'] == 'parabellshape':
+                    return 'parabellshape(' + ','.join(instance(form[p]) for p in ['src','amount','parabolacenter','parabolasqueeze','bellamount','bellsqueeze']) + ')'
 
                 elif form['op'] == 'saturate':
                     if 'crazy' in form['mode']:
@@ -249,225 +261,225 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
 
             elif form['type'] == 'osc' or form['type'] == 'lfo':
 
-                    if form['type'] == 'osc':
-                        phi = instance(form['freq']) + '*_PROG'
+                if form['type'] == 'osc':
+                    phi = instance(form['freq']) + '*_PROG'
 
-                    elif form['type'] == 'lfo':
-                        tvar = '*_BPROG' if 'global' not in form['mode'] else '*_BEAT'
-                        if 'module' in form['mode']:
-                            tvar = '*_BMODPROG'
-                        elif 'time' in form['mode']:
-                            tvar = '*_PROG' if 'global' not in form['mode'] else '*_TIME'
+                elif form['type'] == 'lfo':
+                    tvar = '*_BPROG' if 'global' not in form['mode'] else '*_BEAT'
+                    if 'module' in form['mode']:
+                        tvar = '*_BMODPROG'
+                    elif 'time' in form['mode']:
+                        tvar = '*_PROG' if 'global' not in form['mode'] else '*_TIME'
 
-                        phi = instance(form['freq']) + tvar
-                        if form['shape'] == 'squ': form['shape'] = 'psq'
+                    phi = instance(form['freq']) + tvar
+                    if form['shape'] == 'squ': form['shape'] = 'psq'
 
 
-                    if form['shape'] == 'sin':
-                        if form['phase'] == '0':
-                            _return = '_sin(' + phi + ')'
-                        else:
-                            _return = '_sin_(' + phi + ',' + instance(form['phase']) + ')'
-
-                    elif form['shape'] == 'saw':
-                        _return = '(2.*fract(' + phi + '+' + instance(form['phase']) + ')-1.)'
-
-                    elif form['shape'] == 'squ':
-                        if form['pw'] == '0':
-                            _return = '_sq(' + phi + ')'
-                        else:
-                            _return = '_sq_(' + phi + ',' + instance(form['pw']) + ')'
-
-                    elif form['shape'] == 'psq':
-                        if form['pw'] == '0':
-                            _return = '_psq(' + phi + ')'
-                        else:
-                            _return = '_psq_(' + phi + ',' + instance(form['pw']) + ')'
-
-                    elif form['shape'] == 'tri':
-                        _return = '_tri(' + phi + '+' + instance(form['phase']) + ')'
-
-                    elif form['shape'] == 'madd':
-                        inst_nmax = instance(str(int(float(form['nmax']))), force_int=True)
-                        inst_ninc = instance(str(int(float(form['ninc']))), force_int=True)
-                        _return ='MADD(_PROG,'+instance(form['freq']) + ',' + instance(form['phase']) + ',' + inst_nmax + ',' + inst_ninc + ',' \
-                                             + ','.join(instance(form[p]) for p in ['mix', 'cutoff', 'q', 'res', 'resq', 'detune', 'pw', 'lowcut', 'keyfollow'])+ ')'
-
-                    elif form['shape'] == 'badd':
-                        _return ='BADD(_PROG,' + ','.join(instance(form[p]) for p in ['freq', 'phase', 'mix', 'amp', 'peak', 'sigma', 'q', 'ncut', 'detune', 'pw']) + ')'
-
-                    elif form['shape'] == 'fract':
-                        _return = 'fract(' + phi + '+' + instance(form['phase']) + ')'
-
-                    elif form['shape'] == 'fm':
-                        pars = []
-                        for p in ['lv1', 'lv2', 'lv3', 'lv4', 'fr1', 'fr2', 'fr3', 'fr4', 'fb1', 'fb2', 'fb3', 'fb4', 'algo']:
-                            if 'parscale' not in form or form['parscale'] == '1' or p[0:2] not in ['lv', 'fb']:
-                                pars.append(instance(form[p]))
-
-                            else:
-                                try:
-                                    scale = instance('{:.3g}'.format(eval('1./'+form['parscale'])))
-                                    pars.append(scale + '*' + instance(form[p]))
-                                except:
-                                    pars.append(instance(form[p]))
-                                    print("QFM error: something stupid happens with parscale =", form['parscale'])
-
-                        _return = 'QFM(_PROG,' + instance(form['freq']) + ',' + instance(form['phase']) + ',' + ','.join(pars) + ')'
-
-                    #elif form['shape'] == 'guitar':
-                    #        _return = 'karplusstrong(_PROG,'+instance(form['freq'])+')' # this doesn't work yet... sryboutthat
-
-                    elif form['shape'] == 'lpnoise':
-                        _return = 'lpnoise(_PROG + ' + instance(form['phase']) + ',' + instance(form['freq']) + ')'
-
-                    elif form['shape'] == 'noise':
-                        _return = 'pseudorandom(' + instance(form['freq']) + '*_PROG + ' + instance(form['phase']) + ')'
-
+                if form['shape'] == 'sin':
+                    if form['phase'] == '0':
+                        _return = '_sin(' + phi + ')'
                     else:
-                        print("PARSING - ERROR! THIS OSC/LFO SHAPE DOES NOT EXIST: "+form['shape'], form, sep='\n')
+                        _return = '_sin_(' + phi + ',' + instance(form['phase']) + ')'
 
-                    if 'overdrive' in form and form['overdrive'] != '0':
-                        _return = 'clip((1.+' + instance(form['overdrive']) + ')*' + _return + ')'
+                elif form['shape'] == 'saw':
+                    _return = '(2.*fract(' + phi + '+' + instance(form['phase']) + ')-1.)'
 
-                    if 'scale' in form and form['scale'] != '1':
-                        _return = instance(form['scale']) + '*' + _return
+                elif form['shape'] == 'squ':
+                    if form['pw'] == '0':
+                        _return = '_sq(' + phi + ')'
+                    else:
+                        _return = '_sq_(' + phi + ',' + instance(form['pw']) + ')'
 
-                    if 'shift' in form and form['shift'] != '0':
-                        _return = '(' + instance(form['shift']) + '+(' + _return + '))'
+                elif form['shape'] == 'psq':
+                    if form['pw'] == '0':
+                        _return = '_psq(' + phi + ')'
+                    else:
+                        _return = '_psq_(' + phi + ',' + instance(form['pw']) + ')'
 
-                    return _return
+                elif form['shape'] == 'tri':
+                    _return = '_tri(' + phi + '+' + instance(form['phase']) + ')'
+
+                elif form['shape'] == 'madd':
+                    inst_nmax = instance(str(int(float(form['nmax']))), force_int=True)
+                    inst_ninc = instance(str(int(float(form['ninc']))), force_int=True)
+                    _return ='MADD(_PROG,'+instance(form['freq']) + ',' + instance(form['phase']) + ',' + inst_nmax + ',' + inst_ninc + ',' \
+                                            + ','.join(instance(form[p]) for p in ['mix', 'cutoff', 'q', 'res', 'resq', 'detune', 'pw', 'lowcut', 'keyfollow'])+ ')'
+
+                elif form['shape'] == 'badd':
+                    _return ='BADD(_PROG,' + ','.join(instance(form[p]) for p in ['freq', 'phase', 'mix', 'amp', 'peak', 'sigma', 'q', 'ncut', 'detune', 'pw']) + ')'
+
+                elif form['shape'] == 'fract':
+                    _return = 'fract(' + phi + '+' + instance(form['phase']) + ')'
+
+                elif form['shape'] == 'fm':
+                    pars = []
+                    for p in ['lv1', 'lv2', 'lv3', 'lv4', 'fr1', 'fr2', 'fr3', 'fr4', 'fb1', 'fb2', 'fb3', 'fb4', 'algo']:
+                        if 'parscale' not in form or form['parscale'] == '1' or p[0:2] not in ['lv', 'fb']:
+                            pars.append(instance(form[p]))
+
+                        else:
+                            try:
+                                scale = instance('{:.3g}'.format(eval('1./'+form['parscale'])))
+                                pars.append(scale + '*' + instance(form[p]))
+                            except:
+                                pars.append(instance(form[p]))
+                                print("QFM error: something stupid happens with parscale =", form['parscale'])
+
+                    _return = 'QFM(_PROG,' + instance(form['freq']) + ',' + instance(form['phase']) + ',' + ','.join(pars) + ')'
+
+                #elif form['shape'] == 'guitar':
+                #        _return = 'karplusstrong(_PROG,'+instance(form['freq'])+')' # this doesn't work yet... sryboutthat
+
+                elif form['shape'] == 'lpnoise':
+                    _return = 'lpnoise(_PROG + ' + instance(form['phase']) + ',' + instance(form['freq']) + ')'
+
+                elif form['shape'] == 'noise':
+                    _return = 'pseudorandom(' + instance(form['freq']) + '*_PROG + ' + instance(form['phase']) + ')'
+
+                else:
+                    print("PARSING - ERROR! THIS OSC/LFO SHAPE DOES NOT EXIST: "+form['shape'], form, sep='\n')
+
+                if 'overdrive' in form and form['overdrive'] != '0':
+                    _return = 'clip((1.+' + instance(form['overdrive']) + ')*' + _return + ')'
+
+                if 'scale' in form and form['scale'] != '1':
+                    _return = instance(form['scale']) + '*' + _return
+
+                if 'shift' in form and form['shift'] != '0':
+                    _return = '(' + instance(form['shift']) + '+(' + _return + '))'
+
+                return _return
 
             elif form['type'] == 'drum':
 
-                    if form['shape'] == 'kick' or form['shape'] == 'kick2':
+                if form['shape'] == 'kick' or form['shape'] == 'kick2':
 
-                        freq_env = '('+instance(form['freq_start'])+'+('+instance(form['freq_end'])+'-'+instance(form['freq_start'])+')*smstep(-'+instance(form['freq_decay'])+', 0.,-_PROG))'
-                        amp_env = 'smstep(0.,'+instance(form['attack'])+',_PROG)*smstep('+instance(form['hold'])+'+'+instance(form['decay'])+','+instance(form['decay'])+',_PROG)'
+                    freq_env = '('+instance(form['freq_start'])+'+('+instance(form['freq_end'])+'-'+instance(form['freq_start'])+')*smstep(-'+instance(form['freq_decay'])+', 0.,-_PROG))'
+                    amp_env = 'smstep(0.,'+instance(form['attack'])+',_PROG)*smstep('+instance(form['hold'])+'+'+instance(form['decay'])+','+instance(form['decay'])+',_PROG)'
 
-                        if form['shape'] == 'kick':
-                            return 's_atan('+amp_env+'*(clip((1.+'+instance(form['overdrive'])+')*_tri('+freq_env+'*_PROG))+_sin(.5*'+freq_env+'*_PROG)))+'+instance(form['click_amp'])+'*step(_PROG,'+instance(form['click_delay'])+')*_sin(5000.*_PROG*'+instance(form['click_timbre'])+'*_saw(1000.*_PROG*'+instance(form['click_timbre'])+'))'
+                    if form['shape'] == 'kick':
+                        return 's_atan('+amp_env+'*(clip((1.+'+instance(form['overdrive'])+')*_tri('+freq_env+'*_PROG))+_sin(.5*'+freq_env+'*_PROG)))+'+instance(form['click_amp'])+'*step(_PROG,'+instance(form['click_delay'])+')*_sin(5000.*_PROG*'+instance(form['click_timbre'])+'*_saw(1000.*_PROG*'+instance(form['click_timbre'])+'))'
 
-                        elif form['shape'] == 'kick2':
-                            sq_PHASE = instance(form['sq_phase'])
-                            sq_NMAX = str(int(float(form['sq_nmax'])))
-                            sq_MIX = instance(form['sq_mix'])
-                            sq_INR = instance(form['sq_inr'])
-                            sq_NDECAY = instance(form['sq_ndecay'])
-                            sq_RES = instance(form['sq_res'])
-                            sq_RESQ = instance(form['sq_resq'])
-                            sq_DET = instance(form['sq_detune'])
-                            return 's_atan('+amp_env+'*MADD(_PROG,'+freq_env+','+sq_PHASE+','+sq_NMAX+',1,'+sq_MIX+','+sq_INR+','+sq_NDECAY+','+sq_RES+','+sq_RESQ+','+sq_DET+',0.,1) + '+instance(form['click_amp'])+'*.5*step(_PROG,'+instance(form['click_delay'])+')*_sin(_PROG*1100.*'+instance(form['click_timbre'])+'*_saw(_PROG*800.*'+instance(form['click_timbre'])+')) + '+instance(form['click_amp'])+'*(1.-exp(-1000.*_PROG))*exp(-40.*_PROG)*_sin((400.-200.*_PROG)*_PROG*_sin(1.*'+freq_env+'*_PROG)))'
+                    elif form['shape'] == 'kick2':
+                        sq_PHASE = instance(form['sq_phase'])
+                        sq_NMAX = str(int(float(form['sq_nmax'])))
+                        sq_MIX = instance(form['sq_mix'])
+                        sq_INR = instance(form['sq_inr'])
+                        sq_NDECAY = instance(form['sq_ndecay'])
+                        sq_RES = instance(form['sq_res'])
+                        sq_RESQ = instance(form['sq_resq'])
+                        sq_DET = instance(form['sq_detune'])
+                        return 's_atan('+amp_env+'*MADD(_PROG,'+freq_env+','+sq_PHASE+','+sq_NMAX+',1,'+sq_MIX+','+sq_INR+','+sq_NDECAY+','+sq_RES+','+sq_RESQ+','+sq_DET+',0.,1) + '+instance(form['click_amp'])+'*.5*step(_PROG,'+instance(form['click_delay'])+')*_sin(_PROG*1100.*'+instance(form['click_timbre'])+'*_saw(_PROG*800.*'+instance(form['click_timbre'])+')) + '+instance(form['click_amp'])+'*(1.-exp(-1000.*_PROG))*exp(-40.*_PROG)*_sin((400.-200.*_PROG)*_PROG*_sin(1.*'+freq_env+'*_PROG)))'
 
-                    elif form['shape'] == 'snare':
-                        freq_0 = instance(form['freq0'])
-                        freq_1 = instance(form['freq1'])
-                        freq_2 = instance(form['freq2'])
-                        fdec01 = instance(form['freqdecay0'])
-                        fdec12 = instance(form['freqdecay1'])
-                        envdec = instance(form['decay'])
-                        envsus = instance(form['sustain'])
-                        envrel = instance(form['release'])
-                        ns_amt = instance(form['noise_amount'])
-                        ns_att = instance(form['noise_attack'])
-                        ns_dec = instance(form['noise_decay'])
-                        ns_sus = instance(form['noise_sustain'])
-                        overdr = instance(form['overdrive'])
+                elif form['shape'] == 'snare':
+                    freq_0 = instance(form['freq0'])
+                    freq_1 = instance(form['freq1'])
+                    freq_2 = instance(form['freq2'])
+                    fdec01 = instance(form['freqdecay0'])
+                    fdec12 = instance(form['freqdecay1'])
+                    envdec = instance(form['decay'])
+                    envsus = instance(form['sustain'])
+                    envrel = instance(form['release'])
+                    ns_amt = instance(form['noise_amount'])
+                    ns_att = instance(form['noise_attack'])
+                    ns_dec = instance(form['noise_decay'])
+                    ns_sus = instance(form['noise_sustain'])
+                    overdr = instance(form['overdrive'])
 
-                        freq_env = '('+freq_2+'+('+freq_0+'-'+freq_1+')*(1.-smstep(0.,'+fdec01+',_PROG))+('+freq_1+'-'+freq_2+')*(1.-smstep('+fdec01+','+fdec01+'+'+fdec12+',_PROG)))'
-                        return '(clip((1.+'+overdr+')*(_tri(_PROG*'+freq_env+')*(1.-smstep('+fdec01+'+'+fdec12+','+envrel+'+'+fdec01+'+'+fdec12+',_PROG))) + '+ns_amt+'*pseudorandom(_PROG)*doubleslope(_PROG,'+ns_att+','+ns_dec+','+ns_sus+'))*doubleslope(_PROG,0.,'+envdec+','+envsus+'))'
+                    freq_env = '('+freq_2+'+('+freq_0+'-'+freq_1+')*(1.-smstep(0.,'+fdec01+',_PROG))+('+freq_1+'-'+freq_2+')*(1.-smstep('+fdec01+','+fdec01+'+'+fdec12+',_PROG)))'
+                    return '(clip((1.+'+overdr+')*(_tri(_PROG*'+freq_env+')*(1.-smstep('+fdec01+'+'+fdec12+','+envrel+'+'+fdec01+'+'+fdec12+',_PROG))) + '+ns_amt+'*pseudorandom(_PROG)*doubleslope(_PROG,'+ns_att+','+ns_dec+','+ns_sus+'))*doubleslope(_PROG,0.,'+envdec+','+envsus+'))'
 
-                    elif form['shape'] == 'fmnoise':
-                        env_attack = instance(form['attack'])
-                        env_decay = instance(form['decay'])
-                        env_sustain = instance(form['sustain'])
-                        timbre1 = instance(form['timbre1'])
-                        timbre2 = instance(form['timbre2'])
-                        return 'fract(sin(_PROG*100.*'+timbre1+')*50000.*'+timbre2+')*doubleslope(_PROG,'+env_attack+','+env_decay+','+env_sustain+')'
+                elif form['shape'] == 'fmnoise':
+                    env_attack = instance(form['attack'])
+                    env_decay = instance(form['decay'])
+                    env_sustain = instance(form['sustain'])
+                    timbre1 = instance(form['timbre1'])
+                    timbre2 = instance(form['timbre2'])
+                    return 'fract(sin(_PROG*100.*'+timbre1+')*50000.*'+timbre2+')*doubleslope(_PROG,'+env_attack+','+env_decay+','+env_sustain+')'
 
-                    elif form['shape'] == 'bitexplosion':
-                        inst_nvar = instance(form['nvar'], force_int = True)
-                        return 'bitexplosion(_PROG, _BPROG, ' + inst_nvar + ',' + ','.join(instance(form[p]) for p in ['freqvar', 'twostepvar', 'var1', 'var2', 'var3', 'decay']) + ')'
+                elif form['shape'] == 'bitexplosion':
+                    inst_nvar = instance(form['nvar'], force_int = True)
+                    return 'bitexplosion(_PROG, _BPROG, ' + inst_nvar + ',' + ','.join(instance(form[p]) for p in ['freqvar', 'twostepvar', 'var1', 'var2', 'var3', 'decay']) + ')'
 
-                    elif form['shape'] == 'protokick':
-                        freq_0 = instance(form['freq0'])
-                        freq_1 = instance(form['freq1'])
-                        fdec = instance(form['freqdecay'])
-                        return 'protokick(_PROG,' + ','.join(instance(form[p]) for p in ['freq0', 'freq1', 'freqdecay', 'hold', 'decay', 'drive', 'detune',\
-                                                                                         'rev_amount', 'rev_hold', 'rev_decay', 'rev_drive']) + ')'
+                elif form['shape'] == 'protokick':
+                    freq_0 = instance(form['freq0'])
+                    freq_1 = instance(form['freq1'])
+                    fdec = instance(form['freqdecay'])
+                    return 'protokick(_PROG,' + ','.join(instance(form[p]) for p in ['freq0', 'freq1', 'freqdecay', 'hold', 'decay', 'drive', 'detune',\
+                                                                                        'rev_amount', 'rev_hold', 'rev_decay', 'rev_drive']) + ')'
 
-                    elif form['shape'] == 'protokickass':
-                        phase = 'drop_phase(_PROG,' + ','.join(instance(form[p]) for p in ['freqdecay', 'freq0', 'freq1']) + ')'
-                        return '(clamp(' + instance(form['drive']) + '*_tri(' + phase + '),-1.,1.)*(1.-smstep(-1e-3,0.,_PROG-'+instance(form['decay'])+'))'\
-                         + '+' + instance(form['rev1_amt']) +'*clamp(' + instance(form['rev1_drive']) + '*_tri('+phase+'+'+ instance(form['rev1_amt'])\
-                         + '*lpnoise(_PROG,' + instance(form['rev1_tone']) + ')),-1.,1.)*exp(-' + instance(form['rev1_exp']) + '*_PROG)'\
-                         + '+' + instance(form['noise_amt']) + '*lpnoise(_PROG,' + instance(form['noise_tone']) + ')*(1.-smstep(0.,'\
-                         + instance(form['noise_decay']) + ',_PROG-' + instance(form['noise_hold']) + '))'\
-                         + '+' + instance(form['rev2_amt']) + '*lpnoise(_PROG,' + instance(form['rev2_tone']) + ')*exp(-_PROG*' + instance(form['rev2_exp']) + ')'\
-                         + '+' + instance(form['rev3_amt']) + '*lpnoise(_PROG,' + instance(form['rev3_tone']) + ')*exp(-_PROG*' + instance(form['rev3_exp']) + '))'\
-                         + '*smstep(0.,' + instance(form['attack']) + ',_PROG)'
+                elif form['shape'] == 'protokickass':
+                    phase = 'drop_phase(_PROG,' + ','.join(instance(form[p]) for p in ['freqdecay', 'freq0', 'freq1']) + ')'
+                    return '(clamp(' + instance(form['drive']) + '*_tri(' + phase + '),-1.,1.)*(1.-smstep(-1e-3,0.,_PROG-'+instance(form['decay'])+'))'\
+                        + '+' + instance(form['rev1_amt']) +'*clamp(' + instance(form['rev1_drive']) + '*_tri('+phase+'+'+ instance(form['rev1_amt'])\
+                        + '*lpnoise(_PROG,' + instance(form['rev1_tone']) + ')),-1.,1.)*exp(-' + instance(form['rev1_exp']) + '*_PROG)'\
+                        + '+' + instance(form['noise_amt']) + '*lpnoise(_PROG,' + instance(form['noise_tone']) + ')*(1.-smstep(0.,'\
+                        + instance(form['noise_decay']) + ',_PROG-' + instance(form['noise_hold']) + '))'\
+                        + '+' + instance(form['rev2_amt']) + '*lpnoise(_PROG,' + instance(form['rev2_tone']) + ')*exp(-_PROG*' + instance(form['rev2_exp']) + ')'\
+                        + '+' + instance(form['rev3_amt']) + '*lpnoise(_PROG,' + instance(form['rev3_tone']) + ')*exp(-_PROG*' + instance(form['rev3_exp']) + '))'\
+                        + '*smstep(0.,' + instance(form['attack']) + ',_PROG)'
 
-                    elif form['shape'] == 'protosnare':
-                        return instance(form['noise_amp']) + '*(' + instance(form['noise1_amount']) + '*lpnoise(_PROG,' + instance(form['noise1_freq']) + ')'\
-                            + '+' + instance(form['noise2_amount']) + '*lpnoise(_PROG,' + instance(form['noise2_freq']) + ')'\
-                            + '+' + instance(form['noise3_amount']) + '*lpnoise(_PROG,' + instance(form['noise3_freq']) + '))'\
-                            + '*(smstep(0.,'+instance(form['attack'])+',_PROG)-smstep(0.,'+instance(form['release'])+',_PROG-'+instance(form['decay'])+'))'\
-                            + ' + _sin(drop_phase(_PROG,'+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
-                            + '*exp(-_PROG*' + instance(form['tone_decayexp'])+')*' + instance(form['tone_amp'])\
-                            + '+ _sin(drop_phase(_PROG*' + instance(form['fmtone_freq'])+','+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
-                            + '*exp(-_PROG*' + instance(form['fmtone_decayexp'])+')*' + instance(form['fmtone_amp'])
+                elif form['shape'] == 'protosnare':
+                    return instance(form['noise_amp']) + '*(' + instance(form['noise1_amount']) + '*lpnoise(_PROG,' + instance(form['noise1_freq']) + ')'\
+                        + '+' + instance(form['noise2_amount']) + '*lpnoise(_PROG,' + instance(form['noise2_freq']) + ')'\
+                        + '+' + instance(form['noise3_amount']) + '*lpnoise(_PROG,' + instance(form['noise3_freq']) + '))'\
+                        + '*(smstep(0.,'+instance(form['attack'])+',_PROG)-smstep(0.,'+instance(form['release'])+',_PROG-'+instance(form['decay'])+'))'\
+                        + ' + _sin(drop_phase(_PROG,'+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
+                        + '*exp(-_PROG*' + instance(form['tone_decayexp'])+')*' + instance(form['tone_amp'])\
+                        + '+ _sin(drop_phase(_PROG*' + instance(form['fmtone_freq'])+','+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
+                        + '*exp(-_PROG*' + instance(form['fmtone_decayexp'])+')*' + instance(form['fmtone_amp'])
 
-                    elif form['shape'] == 'protosnaresimple':
-                        if form['fmtone_amp'] == '0':
-                            return '(' + instance(form['noise_amp']) + '*lpnoise(_PROG,' + instance(form['noise_freq']) + ')'\
-                            + '*(smstep(0.,'+instance(form['attack'])+',_PROG)-smstep(0.,'+instance(form['release'])+',_PROG-'+instance(form['decay'])+'))'\
-                            + ' + _sin(drop_phase(_PROG,'+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
-                            + '*exp(-_PROG*' + instance(form['tone_decayexp'])+')*' + instance(form['tone_amp']) + ')'
-                        else:
-                            return '(' + instance(form['noise_amp']) + '*lpnoise(_PROG,' + instance(form['noise_freq']) + ')'\
-                            + '*(smstep(0.,'+instance(form['attack'])+',_PROG)-smstep(0.,'+instance(form['release'])+',_PROG-'+instance(form['decay'])+'))'\
-                            + ' + _sin(drop_phase(_PROG,'+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
-                            + '*exp(-_PROG*' + instance(form['tone_decayexp'])+')*' + instance(form['tone_amp'])\
-                            + '+ _sin(drop_phase(_PROG*' + instance(form['fmtone_freq'])+','+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
-                            + '*exp(-_PROG*' + instance(form['fmtone_decayexp'])+')*' + instance(form['fmtone_amp']) + ')'
+                elif form['shape'] == 'protosnaresimple':
+                    if form['fmtone_amp'] == '0':
+                        return '(' + instance(form['noise_amp']) + '*lpnoise(_PROG,' + instance(form['noise_freq']) + ')'\
+                        + '*(smstep(0.,'+instance(form['attack'])+',_PROG)-smstep(0.,'+instance(form['release'])+',_PROG-'+instance(form['decay'])+'))'\
+                        + ' + _sin(drop_phase(_PROG,'+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
+                        + '*exp(-_PROG*' + instance(form['tone_decayexp'])+')*' + instance(form['tone_amp']) + ')'
+                    else:
+                        return '(' + instance(form['noise_amp']) + '*lpnoise(_PROG,' + instance(form['noise_freq']) + ')'\
+                        + '*(smstep(0.,'+instance(form['attack'])+',_PROG)-smstep(0.,'+instance(form['release'])+',_PROG-'+instance(form['decay'])+'))'\
+                        + ' + _sin(drop_phase(_PROG,'+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
+                        + '*exp(-_PROG*' + instance(form['tone_decayexp'])+')*' + instance(form['tone_amp'])\
+                        + '+ _sin(drop_phase(_PROG*' + instance(form['fmtone_freq'])+','+','.join(instance(form[p]) for p in ['freqdecay','freq0','freq1'])+'))'\
+                        + '*exp(-_PROG*' + instance(form['fmtone_decayexp'])+')*' + instance(form['fmtone_amp']) + ')'
 
-                    elif form['shape'] == 'protoshake':
-                        return instance(form['amp']) + '*lpnoise(_PROG, 1.+' + instance(form['timbre']) + '*_PROG)'\
-                            + '*(smstep(0.,1e-3,_PROG)-smstep(0.,' + instance(form['release']) + ',_PROG-' + instance(form['decay']) + '))'
+                elif form['shape'] == 'protoshake':
+                    return instance(form['amp']) + '*lpnoise(_PROG, 1.+' + instance(form['timbre']) + '*_PROG)'\
+                        + '*(smstep(0.,1e-3,_PROG)-smstep(0.,' + instance(form['release']) + ',_PROG-' + instance(form['decay']) + '))'
 
-                    elif form['shape'] == 'protoride':
-                        base_freq = instance(form['base_freq'])
-                        base_pw = instance(form['base_pw']) + '+' + instance(form['vibe_pw']) + '*cos(' + instance(form['vibe_freq']) + ')'
-                        mod_freq = instance(form['mod_freq'])
-                        mod_pw = instance(form['mod_pw'])
-                        noise = instance(form['noise_amt']) + '*lpnoise(_PROG,' + instance(form['noise_freq']) + ')'
-                        env_att = instance(form['env_attack'])
-                        env_dec = instance(form['env_decay'])
-                        base_template = '_sq_('+base_freq+'*_PROG*_sq_('+mod_freq+'*_PROG+'+noise +','+mod_pw+'),'+base_pw+')'
-                        return base_template + '*(_PROG <= ' + env_att + ' ? _PROG/' + env_att + ' : exp(-(_PROG-' + env_att + ')/' + env_dec + '))'
+                elif form['shape'] == 'protoride':
+                    base_freq = instance(form['base_freq'])
+                    base_pw = instance(form['base_pw']) + '+' + instance(form['vibe_pw']) + '*cos(' + instance(form['vibe_freq']) + ')'
+                    mod_freq = instance(form['mod_freq'])
+                    mod_pw = instance(form['mod_pw'])
+                    noise = instance(form['noise_amt']) + '*lpnoise(_PROG,' + instance(form['noise_freq']) + ')'
+                    env_att = instance(form['env_attack'])
+                    env_dec = instance(form['env_decay'])
+                    base_template = '_sq_('+base_freq+'*_PROG*_sq_('+mod_freq+'*_PROG+'+noise +','+mod_pw+'),'+base_pw+')'
+                    return base_template + '*(_PROG <= ' + env_att + ' ? _PROG/' + env_att + ' : exp(-(_PROG-' + env_att + ')/' + env_dec + '))'
 
-                    elif form['shape'] == 'protocrash':
-                        base_freq = instance(form['base_freq'])
-                        base_pw = instance(form['base_pw']) + '+' + instance(form['vibe_pw']) + '*cos(' + instance(form['vibe_freq']) + ')'
-                        mod_freq = instance(form['mod_freq'])
-                        mod_pw = instance(form['mod_pw'])
-                        noise = instance(form['noise_amt']) + '*lpnoise(_PROG,' + instance(form['noise_freq']) + ')'
-                        env_att = instance(form['env_attack'])
-                        env_dec = instance(form['env_decay'])
-                        comb_delay = instance(form['comb_delay'])
-                        base_template = '_sq_('+base_freq+'*_PROG*_sq_('+mod_freq+'*_PROG+'+noise +','+mod_pw+'),'+base_pw+')'
-                        return '.33*(' + base_template + '+' \
-                                        + base_template.replace('_PROG','(_PROG+'+comb_delay+')') + '+' \
-                                        + base_template.replace('_PROG','(_PROG-'+comb_delay+')') + ')' \
-                                        + '*(_PROG <= ' + env_att + ' ? _PROG/' + env_att + ' : exp(-(_PROG-' + env_att + ')/' + env_dec + '))'
+                elif form['shape'] == 'protocrash':
+                    base_freq = instance(form['base_freq'])
+                    base_pw = instance(form['base_pw']) + '+' + instance(form['vibe_pw']) + '*cos(' + instance(form['vibe_freq']) + ')'
+                    mod_freq = instance(form['mod_freq'])
+                    mod_pw = instance(form['mod_pw'])
+                    noise = instance(form['noise_amt']) + '*lpnoise(_PROG,' + instance(form['noise_freq']) + ')'
+                    env_att = instance(form['env_attack'])
+                    env_dec = instance(form['env_decay'])
+                    comb_delay = instance(form['comb_delay'])
+                    base_template = '_sq_('+base_freq+'*_PROG*_sq_('+mod_freq+'*_PROG+'+noise +','+mod_pw+'),'+base_pw+')'
+                    return '.33*(' + base_template + '+' \
+                                    + base_template.replace('_PROG','(_PROG+'+comb_delay+')') + '+' \
+                                    + base_template.replace('_PROG','(_PROG-'+comb_delay+')') + ')' \
+                                    + '*(_PROG <= ' + env_att + ' ? _PROG/' + env_att + ' : exp(-(_PROG-' + env_att + ')/' + env_dec + '))'
 
-                    elif form['shape'] == 'metalnoise':
-                        tvar = '_PROG'
-                        if form['modfreq'] != '0':
-                            tvar = f"mod({tvar},1./({instace(form['modfreq'])})"
-                        if form['timescale'] != '1':
-                            tvar = instance(form['timescale']) + '*' + tvar
-                        return f"metalnoise({tvar}, {instance(form['factor1'])}, {instance(form['factor2'])})"
+                elif form['shape'] == 'metalnoise':
+                    tvar = '_PROG'
+                    if form['modfreq'] != '0':
+                        tvar = f"mod({tvar},1./({instace(form['modfreq'])})"
+                    if form['timescale'] != '1':
+                        tvar = instance(form['timescale']) + '*' + tvar
+                    return f"metalnoise({tvar}, {instance(form['factor1'])}, {instance(form['factor2'])})"
 
 
             elif form['type'] == 'env' or form['type'] == 'seg':
@@ -571,6 +583,7 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
             else:
                 print("PARSING - ERROR! THIS FORM TYPE DOES NOT EXIST: "+form['type'], form, sep='\n')
 
+        #pylint: disable=bare-except
         except:
             print("PARSING - UNEXPECTED UNEXPECTEDNESS (which was not expected) - IN FORM", form if form else str(ID), '', sep='\n')
 
@@ -595,6 +608,7 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
         #print('BUILDING MAIN LIST:', main_list, actually_used_synths)
         syncount = 1
         syncode = 'if(syn == 0){amaysynL = _sin(f*_t); amaysynR = _sin(f*_t2);}\n' + 20*' '
+        synshapecode = ''
         for form_main in main_list:
             if form_main['type']!='main': continue
             sources = split_if_not_quoted(form_main['src'], '+')
@@ -617,8 +631,15 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                 if 'relpower' in form_main and form_main['relpower'] != '1':
                     syncode += '\nenv = theta(Bprog)*pow(1.-smstep(Boff-rel, Boff, B),'+form_main['relpower']+');'
                 syncode += '\n' + 20*' ' + '}\n' + 20*' '
+
+                if form_main['shape'] is not None:
+                    synshapecode += 'if(syn == ' + str(syncount) + '){\n'
+                    for channel in ['sL', 'sR']:
+                        for shape in form_main['shape']:
+                            synshapecode += f"{16*' '}{channel} = {shape}({channel},{','.join(instance(form) for form in form_main['shape'][shape])});\n"
+                    synshapecode += 12*' ' + '}\n'
+
             syncount += 1
-        syncode = syncode.replace('_TIME','time').replace('_PROG','_t').replace('_BPROG','Bprog').replace('_BEAT','BT').replace('_BMODPROG','B')
 
         drumcount = 1
         drumsyncode = ''
@@ -648,7 +669,12 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                             +  'amaydrumL = ' + drumsyncodeL + '\n' + 24*' ' + 'amaydrumR = ' + drumsyncodeR \
                             +  '\n' + 20*' ' + '}\n' + 20*' '
             drumcount += 1
-        drumsyncode = drumsyncode.replace('_TIME','time').replace('_PROG','_t').replace('_BPROG','Bprog').replace('_BEAT','BT').replace('_BMODPROG','B')
+
+        replaceTime = lambda code: code.replace('_TIME','time').replace('_PROG','_t').replace('_BPROG','Bprog').replace('_BEAT','BT').replace('_BMODPROG','B')
+
+        syncode = replaceTime(syncode)
+        synshapecode = replaceTime(synshapecode)
+        drumsyncode = replaceTime(drumsyncode)
 
     paramcode = ''
     param_oldskool, param_includes, param_overrides = [], [], []
@@ -685,7 +711,7 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                             .replace('_PROG','_TIME').replace('_BPROG','Bprog').replace('Bprog','_TIME*SPB')
         # think again... do we really prefer _TIME over _PROG?? (what is with slides?)
 
-    return syncode, drumsyncode, paramcode, filtercode, synatized_forms
+    return syncode, drumsyncode, paramcode, filtercode, synshapecode, synatized_forms
 
 
 if __name__ == '__main__':

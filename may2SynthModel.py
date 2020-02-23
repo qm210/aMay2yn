@@ -1,6 +1,5 @@
-from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex, pyqtSignal
 from copy import deepcopy
-import json
+from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex
 from may2Objects import SYNTHTYPE
 from may2Synth import Synth
 
@@ -33,9 +32,8 @@ class SynthModel(QAbstractListModel):
             if synth.name == existingSynth.name:
                 self.synths[index] = synth
                 return index
-        else:
-            self.synths.append(synth)
-            return -1
+        self.synths.append(synth)
+        return -1
 
     def synthList(self):
         return [synth.name for synth in self.synths if synth.type == SYNTHTYPE]
@@ -93,7 +91,7 @@ class SynthModel(QAbstractListModel):
         for randomID in self.randomValues:
             self.randomValues[randomID].store(key)
 
-    def setRandomValuesFixed(self, ids, fixed = True):
-        for id in ids:
-            if id in self.randomValues:
-                self.randomValues[id].fixed = fixed
+    def setRandomValuesFixed(self, IDs, fixed = True):
+        for ID in IDs:
+            if ID in self.randomValues:
+                self.randomValues[ID].fixed = fixed

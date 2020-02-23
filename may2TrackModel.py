@@ -1,7 +1,6 @@
-from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex, pyqtSignal
-from PyQt5.QtWidgets import QMessageBox
 from copy import deepcopy
-import json
+from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex
+
 from may2Objects import Track
 
 
@@ -54,8 +53,8 @@ class TrackModel(QAbstractListModel):
     def getAllModules(self):
         return [m for t in self.tracks for m in t.modules]
 
-    def getAllModulesOfHash(self, hash):
-        return [m for t in self.tracks for m in t.modules if m.patternHash == hash]
+    def getAllModulesOfHash(self, patternHash):
+        return [m for t in self.tracks for m in t.modules if m.patternHash == patternHash]
 
 ########################## TRACK FUNCTIONALITY ############################
 
@@ -110,10 +109,6 @@ class TrackModel(QAbstractListModel):
         tracks = [self.currentTrack()] if onlyCurrentTrack else self.tracks
         self.collisionInterval = (0, 0)
         for track in tracks:
-            print("LIST OF TRACKS")
-            for m in track.modules:
-                print(m)
-            print("NOOOW...")
             for module, nextModule in zip(track.modules, track.modules[1:]):
                 print(module, nextModule)
                 if module.getModuleOff() > nextModule.getModuleOn():

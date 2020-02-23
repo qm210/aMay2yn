@@ -1,6 +1,6 @@
-from PyQt5.QtCore import Qt, QRectF
 from math import floor
 from re import match
+from PyQt5.QtCore import Qt, QRectF
 
 quantize = lambda x, q: floor(x/q)*q
 
@@ -48,14 +48,26 @@ def GLstr(s):
 
 def isNumber(string):
     regex = match(r'[+-]?[\d]*[\.]?[\d]*([eE][+-]?[\d]+)?', string).group()
-    return (regex == string)
+    return regex == string
 
-def findFreeSerial(serialPrefix, takenSerials = []):
+def findFreeSerial(serialPrefix, takenSerials = None):
     count = 0
     while True:
         newSubID = f'{serialPrefix}{count}'
-        if newSubID not in takenSerials:
+        if takenSerials is None or newSubID not in takenSerials:
             return newSubID
         count += 1
         if count > 999:
             print(f"findFreeSerial() tries {newSubID}...")
+
+def collectValuesRecursively(dic):
+    newSet = set()
+    for value in dic.values():
+        if isinstance(value, dict):
+            newSubSet = collectValuesRecursively(value)
+        elif isinstance(value, list):
+            newSubSet = set(value)
+        else:
+            newSubSet = {value}
+        newSet.update(newSubSet)
+    return newSet

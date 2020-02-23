@@ -1,7 +1,4 @@
 from copy import copy, deepcopy
-from numpy import clip
-import random
-import json
 
 SYNTHTYPE, DRUMTYPE, NONETYPE = ['I', 'D', '_']
 
@@ -148,7 +145,7 @@ class Track:
 
     def moveAllModules(self, inc):
         if self.modules:
-            if (self.getFirstModuleOn() + inc < 0):
+            if self.getFirstModuleOn() + inc < 0:
                 return
         for m in self.modules:
             m.mod_on += inc
@@ -156,13 +153,13 @@ class Track:
     def clearModules(self):
         self.modules=[]
 
-    def setSynth(self, name = None, type = None, fullName = None):
+    def setSynth(self, name = None, synthType = None, fullName = None):
         if fullName is not None:
             self.synthType = fullName[0]
             self.synthName = fullName[2:]
         else:
-            if type is not None:
-                self.synthType = type
+            if synthType is not None:
+                self.synthType = synthType
             if name is not None:
                 if self.synthType == SYNTHTYPE:
                     self.synthName = name
@@ -303,7 +300,8 @@ class Pattern:
         if note is None:
             note = Note()
             append = False
-        if clone: select = False
+        if clone:
+            select = False
 
         note = Note( \
             note_on = note.note_on + append * note.note_len + self.currentGap, \
@@ -325,11 +323,13 @@ class Pattern:
         self.currentNoteIndex = self.getFirstTaggedNoteIndex()
         self.untagAllNotes()
         # cloning: since we have polyphonic mode now, we can not just assign the right gap - have to do it via space/backspace - will be changed to polyphonic cloning
-        if not clone: self.setGap(to = 0)
+        if not clone:
+            self.setGap(to = 0)
 
 
     def fillNote(self, note = None): #this is for instant pattern creation... copy the content during the current note (plus gap) and repeat it as long as the pattern allows to
-        if note is None: return
+        if note is None:
+            return
 
         copy_span = note.note_len + self.currentGap
         copy_pos = note.note_off + self.currentGap
@@ -443,7 +443,8 @@ class Pattern:
     def moveNote(self, inc):
         # same as with stretch: rethink for special Käses?
         if self.notes:
-            if abs(self.getNote().note_len) < abs(inc): inc = abs(inc)/inc * self.getNote().note_len
+            if abs(self.getNote().note_len) < abs(inc):
+                inc = abs(inc)/inc * self.getNote().note_len
 
         self.getNote().tag()
 
@@ -472,7 +473,8 @@ class Pattern:
             n.note_off += inc
 
     def stretchPattern(self, inc, scale = False):
-        if self.length + inc <= 0: return
+        if self.length + inc <= 0:
+            return
 
         old_length = self.length
         self.length = self.length + inc
@@ -501,7 +503,7 @@ class Pattern:
         for n in self.notes:
             try:
                 n.note_pitch = new_drumkit.index(old_drumkit[n.note_pitch])
-            except:
+            except: #pylint: disable=bare-except
                 pass
         self.max_note = len(new_drumkit)
 
@@ -516,8 +518,7 @@ class Pattern:
         for note in self.notes:
             if note == notePrototype:
                 return note
-        else:
-            return None
+        return None
 
     def getCopy(self):
         newPattern = Pattern(name = self.name, length=self.length, synthType = self.synthType, max_note = self.max_note)
@@ -542,19 +543,18 @@ class Note:
         self.note_slide = float(note_slide)
         self.note_aux = float(note_aux)
         self.tagged = False
-        # some safety checks TODO
 
     def __repr__(self):
         return ','.join(str(i) for i in [self.note_on, self.note_off, self.note_pitch])
 
     def __eq__(self, other):
         return (self.note_on == other.note_on
-            and self.note_off == other.note_off
-            and self.note_pitch == other.note_pitch
-            and self.note_pan == other.note_pan
-            and self.note_vel == other.note_vel
-            and self.note_slide == other.note_slide
-            and self.note_aux == other.note_aux)
+                and self.note_off == other.note_off
+                and self.note_pitch == other.note_pitch
+                and self.note_pan == other.note_pan
+                and self.note_vel == other.note_vel
+                and self.note_slide == other.note_slide
+                and self.note_aux == other.note_aux)
 
     def __add__(self, other):
         newNote = copy(self)
@@ -611,8 +611,10 @@ class Note:
     def setParameter(self, parameter, value = None, min_value = None, max_value = None):
         if value is not None:
             value = float(value)
-            if min_value is not None and value < min_value: value = min_value
-            if max_value is not None and value > max_value: value = max_value
+            if min_value is not None and value < min_value:
+                value = min_value
+            if max_value is not None and value > max_value:
+                value = max_value
         if parameter == 'pan':
             self.setPan(value)
         elif parameter == 'vel':
@@ -645,26 +647,14 @@ class Note:
             print("WARNING. TRIED TO SET NONEXISTENT PARAMETER:", parameter)
             return
 
-    def setPan(self, value = None):
-        try:
-            self.note_pan = min(100, max(-100, int(value)))
-        except:
-            self.note_pan = 0
+    def setPan(self, value = 0):
+        self.note_pan = min(100, max(-100, int(value)))
 
-    def setVelocity(self, value = None):
-        try:
-            self.note_vel = min(999, max(0, int(value)))
-        except:
-            self.note_vel = 100
+    def setVelocity(self, value = 100):
+        self.note_vel = min(999, max(0, int(value)))
 
-    def setSlide(self, value = None):
-        try:
-            self.note_slide = min(96, max(-96, float(value)))
-        except:
-            self.note_slide = 0
+    def setSlide(self, value = 0):
+        self.note_slide = min(96, max(-96, float(value)))
 
-    def setAuxParameter(self, value = None):
-        try:
-            self.note_aux = min(999, max(-999, float(value)))
-        except:
-            self.note_aux = 0
+    def setAuxParameter(self, value = 0):
+        self.note_aux = min(999, max(-999, float(value)))
