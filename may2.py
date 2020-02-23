@@ -25,8 +25,8 @@ from May2SynthWidget import May2SynthWidget
 from may2TrackModel import TrackModel
 from may2PatternModel import PatternModel
 from may2SynthModel import SynthModel
-from may2Objects import * #pylint: disable=wildcard-import,unused-wildcard-import
-from may2Encoding import * #pylint: disable=wildcard-import,unused-wildcard-import
+from may2Objects import *
+from may2Encoding import *
 from May2ynBuilder import May2ynBuilder
 from SettingsDialog import SettingsDialog
 from PatternDialogs import ImportPatternDialog
@@ -244,6 +244,7 @@ class MainWindow(QMainWindow):
         self.writeWavCheckBox.stateChanged.connect(self.updateWriteWav)
         self.loopCheckBox.stateChanged.connect(self.updateLoop)
         self.useSequenceCheckBox.stateChanged.connect(self.updateUseSequence)
+
 
     def initModelView(self):
         self.trackModel = TrackModel()
@@ -558,6 +559,7 @@ class MainWindow(QMainWindow):
             self.amaysyn.updateState(title = self.state['title'], synFile = self.state['synFile'])
             self.amaysyn.tokenizeSynFile()
             self.amaysyn.parseSynths(skipExisting = False)
+            self.patternModel.updateDrumPatterns(self.amaysyn.drumkitMap)
         self.synthModel.setSynths(self.amaysyn.synths)
         self.drumModel.setStringList(self.amaysyn.drumkit)
         self.state['synFileTimestamp'] = self.getActualSynFileTimestamp()
@@ -912,12 +914,6 @@ class MainWindow(QMainWindow):
     def getModulePatternHash(self):
         return self.getModule().patternHash if self.getModule() else None
 
-#    def getPatternLen(self, offset=0):  return self.getPattern(offset).length if self.getPattern(offset) else None
-#    def getPatternName(self):           return self.getPattern().name if self.getPattern() else 'None'
-#    def getPatternIndex(self):          return self.patterns.index(self.getPattern()) if self.patterns and self.getPattern() and self.getPattern() in self.patterns else -1
-#    def getNote(self):                  return self.getPattern().getNote() if self.getPattern() else None
-#    def existsPattern(self, pattern):   return pattern in self.patterns
-
     # THE MOST IMPORTANT FUNCTION!
     def randomColor(self):
         colorHSV = QColor()
@@ -1006,10 +1002,10 @@ class MainWindow(QMainWindow):
                 self.renderWhateverWasLast()
             self.amaysyn.MODE_justRenderWAV = False
 
-
     def getActualSynFileTimestamp(self):
         if self.state.get('synFile', None) is not None:
             return path.getmtime(self.state['synFile'])
+
 
 ###################### MODEL FUNCTIONALITY ########################
 
@@ -1052,6 +1048,7 @@ class MainWindow(QMainWindow):
             self.patternWidget = self.drumPatternWidget
         else:
             self.patternWidget = self.synthPatternWidget
+        print(self.patternWidget.active, self.drumPatternWidget.active, self.synthPatternWidget.active)
         self.patternGroupLayout.setCurrentWidget(self.patternWidget)
 
     def patternChanged(self):
@@ -1142,6 +1139,7 @@ class MainWindow(QMainWindow):
 
     def randomizeSynatizer(self):
         print("this is heavy stuff!")
+        quit() # but when is this called..?
         # TODO: synatize should tell us which main forms include random content ;)
 
     def updateAMay2yn(self):

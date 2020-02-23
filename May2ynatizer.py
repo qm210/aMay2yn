@@ -473,13 +473,13 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                                     + base_template.replace('_PROG','(_PROG-'+comb_delay+')') + ')' \
                                     + '*(_PROG <= ' + env_att + ' ? _PROG/' + env_att + ' : exp(-(_PROG-' + env_att + ')/' + env_dec + '))'
 
-                elif form['shape'] == 'metalnoise':
+                elif form['shape'] == 'metalnoise' or form['shape'] == 'annoyse':
                     tvar = '_PROG'
                     if form['modfreq'] != '0':
                         tvar = f"mod({tvar},1./({instace(form['modfreq'])})"
                     if form['timescale'] != '1':
                         tvar = instance(form['timescale']) + '*' + tvar
-                    return f"metalnoise({tvar}, {instance(form['factor1'])}, {instance(form['factor2'])})"
+                    return f"{form['shape']}({tvar}, {instance(form['factor1'])}, {instance(form['factor2'])})"
 
 
             elif form['type'] == 'env' or form['type'] == 'seg':

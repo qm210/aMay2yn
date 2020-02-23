@@ -497,15 +497,13 @@ class Pattern:
             else:
                 break
 
-    def updateDrumkit(self, old_drumkit, new_drumkit):
-        if not self.synthType == DRUMTYPE or not self.notes:
+    def applyDrumMap(self, drumMap):
+        if self.synthType != DRUMTYPE or not self.notes:
             return
-        for n in self.notes:
-            try:
-                n.note_pitch = new_drumkit.index(old_drumkit[n.note_pitch])
-            except: #pylint: disable=bare-except
-                pass
-        self.max_note = len(new_drumkit)
+        print(self.max_note, len(drumMap))
+        self.max_note = len(drumMap) - 1
+        for note in self.notes:
+            note.note_pitch = drumMap[note.note_pitch] if note.note_pitch < len(drumMap) else self.max_note
 
     def ensureOrder(self):
         if self.notes:

@@ -1,7 +1,5 @@
-from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex, pyqtSignal
 from copy import deepcopy
-import json
-from may2Objects import Pattern
+from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex
 
 
 class PatternModel(QAbstractListModel):
@@ -50,12 +48,12 @@ class PatternModel(QAbstractListModel):
         self.patterns.insert(row, pattern)
         self.endInsertRows()
 
-    def getPatternOfHash(self, hash):
-        return next(p for p in self.patterns if p._hash == hash)
+    def getPatternOfHash(self, patternHash):
+        return next(p for p in self.patterns if p._hash == patternHash)
 
-    def getPatternIndexOfHash(self, hash):
+    def getPatternIndexOfHash(self, patternHash):
         for i, p in enumerate(self.patterns):
-            if p._hash == hash:
+            if p._hash == patternHash:
                 return i
         return None
 
@@ -101,3 +99,8 @@ class PatternModel(QAbstractListModel):
                     note.cropNoteOff(pattern.length + beatsInc)
         pattern.length += beatsInc
 
+    def updateDrumPatterns(self, drumMap):
+        print('lel', [(p.name, p.synthType) for p in self.patterns])
+        if drumMap is not None:
+            for pattern in self.patterns:
+                pattern.applyDrumMap(drumMap)

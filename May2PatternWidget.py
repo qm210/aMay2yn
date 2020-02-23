@@ -324,6 +324,7 @@ class May2PatternWidget(QWidget):
         self.stretchNote.stretchNoteLen(quantize(max(self.stretchNoteOrigin + noteDistance[0], self.beatQuantum()), self.beatQuantum()))
 
     def mousePressEvent(self, event):
+        print(event)
         if not self.active:
             self.activate()
 

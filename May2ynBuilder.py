@@ -13,7 +13,7 @@ from PyQt5.QtCore import QByteArray
 
 from May2ynatizer import synatize, synatize_build
 from SFXGLWidget import SFXGLWidget
-from may2Utils import GLfloat
+from may2Utils import GLfloat, createListMapping
 from may2Synth import Synth
 import may2Objects
 
@@ -43,6 +43,7 @@ class May2ynBuilder:
         self.synths = []
         self.synthNames = None
         self.drumkit = None
+        self.drumkitMap = None
         self.synatize_form_list = None
         self.synatize_main_list = None
         self.synatize_param_list = None
@@ -93,8 +94,9 @@ class May2ynBuilder:
         self.synthNames = [m['id'] for m in self.synatize_main_list if m['type'] == 'main']
         self.synths = [Synth(name = synthName) for synthName in self.synthNames]
 
-        def_drumkit = ['SideChn']
-        self.drumkit = def_drumkit + drumkit
+        newDrumkit = ['SideChn'] + drumkit
+        self.drumkitMap = createListMapping(self.drumkit, newDrumkit)
+        self.drumkit = newDrumkit
 
         # TODO: WE STILL NEED THIS? -- might also require some exception handling, we'll see
         # _, _, _, _, self.last_synatized_forms = synatize_build(self.synatize_form_list, self.synatize_main_list, self.synatize_param_list, self.synths, self.drumkit)
@@ -264,15 +266,15 @@ class May2ynBuilder:
         filename = self.getInfo('title') + '.glsl'
 
         # TODO: after several changes, I'm not sure whether this is now still required or makes any sense at all, even..!
-        if B_offset > 0:
-            for part in self.getInfo('BPM').split():
-                bpm_point = float(part.split(':')[0])
-                if bpm_point <= B_offset:
-                    bpm_list = ['0:' + part.split(':')[1]]
-                else:
-                    bpm_list.append(str(bpm_point - B_offset) + ':' + part.split(':')[1])
-        else:
-            bpm_list = self.getInfo('BPM').split()
+        #if B_offset > 0:
+        #    for part in self.getInfo('BPM').split():
+        #        bpm_point = float(part.split(':')[0])
+        #        if bpm_point <= B_offset:
+        #            bpm_list = ['0:' + part.split(':')[1]]
+        #        else:
+        #            bpm_list.append(str(bpm_point - B_offset) + ':' + part.split(':')[1])
+        #else:
+        bpm_list = self.getInfo('BPM').split()
 
         self.track_sep = [0] + list(accumulate([len(t.modules) for t in self.tracks]))
         self.pattern_sep = [0] + list(accumulate([len(p.notes) for p in self.patterns]))

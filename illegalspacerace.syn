@@ -694,7 +694,7 @@ form  bl0002  saturate  src=bl0001+0.8*bl0010  gain="1.+aux"
 form  bl0003 op=chorus src=bl0002 number=3 step=1.3e-3 intensity=5. rate=0.08
 form  bl0004  sinshape src=bl0003  amount=0.8 parts=3
 env   bl0101  attack=0.034 release=.08
-main  BLies src=bl0101*bl0004 release=.08 slidetime=.8
+main  BLies src=bl0101*bl0004 release=.14 slidetime=.33
 
 lfo   bl1201 shape=sin scale=0.24 shift=0.2 freq=.09 phase=.7
 osc   bl1001  shape=madd freq=.5*f nmax=32 ninc=1 mix=bl1201 cutoff=200 q=100 res=0 resq=0 pw=.48 detune=0.05
@@ -855,5 +855,5 @@ osc    fqmbace200C shape=fm freq=f lv1=126.0 lv2=19.0 lv3=fqmbace200shape*107.0 
 form   fqmbace200D quantize src=fqmbace200C bits=8000
 form   fqmbace200E op=chorus src=fqmbace200D number=2 step=.002 intensity=5. rate=5.5
 form fqmbace200src mix src=fqmbace200C+fqmbace200Sub
-main   fQMbace200  src=vel*fqmbace200src*fqmbace200_env*fqmbace200vel release=1.95 relpower=8.4 slidetime=.116
+main   fQMbace200  src="sqrt(vel)"*fqmbace200src*fqmbace200_env*fqmbace200vel release=1.95 relpower=8.4 slidetime=.116
 param fqmbace200vel

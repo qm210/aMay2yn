@@ -72,6 +72,7 @@ float metalnoise(float t, float fac1, float fac2)
 {
     return .666*pseudorandom(t) - 1.333*pseudorandom(t-Tsample) + .333*(pseudorandom(t+fac1*Tsample)+pseudorandom(t+fac2*Tsample));
 }
+
 float annoyse(float t, float sampleFac, float exponent)
 { // try e.g. with sampleFac=44100. and exponent=100. or 10000.
     return exp(-exponent * pseudorandom(x*sampleFac) * x);

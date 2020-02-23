@@ -71,3 +71,8 @@ def collectValuesRecursively(dic):
             newSubSet = {value}
         newSet.update(newSubSet)
     return newSet
+
+def createListMapping(oldList, newList):
+    if oldList is None:
+        return list(range(len(newList)))
+    return [(newList if item in newList else oldList).index(item) for item in oldList]

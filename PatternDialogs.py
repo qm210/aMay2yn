@@ -153,7 +153,8 @@ class PatternDialog(QtWidgets.QDialog):
     def clonePattern(self):
         print("cloning pattern", self.getPattern().name, self.getPattern().getCopy().name)
         self.parent.addPattern(self.getPattern().getCopy())
-        #self.accept()
+        self.module.setPattern(pattern)
+        self.accept()
 
     def purgeEmptyPatterns(self):
         currentPatternHash = self.patternModel.patterns[self.patternIndex]._hash

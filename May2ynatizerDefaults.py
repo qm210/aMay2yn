@@ -79,6 +79,8 @@ def set_remaining_defaults(cid, cmd, form):
                                 'vibe_pw': '.2', 'vibe_freq': '20', 'comb_delay': '.445e-4', 'env_attack': '0', 'env_decay': '.6'})
         elif form['shape'] == 'metalnoise':
             defaults.update({'timescale': '1', 'factor1': '1', 'factor2': '2', 'modfreq': '0'})
+        elif form['shape'] == 'annoyse':
+            defaults.update({'samplefactor': '44100', 'exponent': '100'})
 
 
     elif cmd == 'env':
