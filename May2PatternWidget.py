@@ -344,17 +344,20 @@ class May2PatternWidget(QWidget):
                 self.openInsertNoteDialog(self.copyOfLastSelectedNote, event.pos())
             return
 
-        # noteAlreadySelected = (corrNote == self.pattern.getNote()) # need this?
+        #noteAlreadySelected = (corrNote == self.pattern.getNote()) # need this?
         self.select(corrNote)
         if event.button() == Qt.LeftButton:
-            if self.parent.ctrlPressed:
-                self.openNoteDialog(corrNote)
-            else:
-                self.initDragNote(corrNote, event.pos())
+            self.initDragNote(corrNote, event.pos())
         if event.button() == Qt.RightButton:
             self.initStretchNote(corrNote, event.pos())
         if event.button() == Qt.MiddleButton:
             self.deleteNote(corrNote)
+
+    def mouseDoubleClickEvent(self, event):
+        corrNote = self.findCorrespondingNote(event.pos().x(), event.pos().y())
+        if corrNote is not None:
+            if event.button() == Qt.LeftButton:
+                self.openNoteDialog(corrNote)
 
     def mouseMoveEvent(self, event):
         if self.dragNote is not None:
@@ -433,6 +436,7 @@ class May2PatternWidget(QWidget):
         self.patternChanged.emit()
 
     def openNoteDialog(self, note):
+        self.parent.setModifiers()
         noteDialog = NoteDialog(self.parent, note = note)
         if noteDialog.exec_():
             self.pattern.delNote(specificNote = note)
@@ -457,6 +461,7 @@ class May2PatternWidget(QWidget):
         self.finalizePatternChangeAndEmit()
 
     def openInsertNoteDialog(self, notePrototype, pos):
+        self.parent.setModifiers()
         notePos = self.getPositionInNoteUnits(pos.x(), pos.y())
         if notePrototype is None:
             notePrototype = Note()

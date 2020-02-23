@@ -152,7 +152,8 @@ class PatternDialog(QtWidgets.QDialog):
 
     def clonePattern(self):
         print("cloning pattern", self.getPattern().name, self.getPattern().getCopy().name)
-        self.parent.addPattern(self.getPattern().getCopy())
+        pattern = self.getPattern().getCopy()
+        self.parent.addPattern(pattern)
         self.module.setPattern(pattern)
         self.accept()
 
