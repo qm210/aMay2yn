@@ -14,6 +14,9 @@ split_if_not_quoted = lambda string, delimiter: string.split(delimiter) if not i
 
 mixcolor = lambda t1,t2: tuple((v1+v2)/2 for v1,v2 in zip(t1,t2))
 
+def printDebug(*args):
+    print("[DEBUG]", *args)
+
 def drawText(qp, x, y, flags, text):
     size = 2**15 - 1
     y -= size

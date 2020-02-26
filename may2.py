@@ -33,7 +33,7 @@ from SettingsDialog import SettingsDialog
 from PatternDialogs import ImportPatternDialog
 from ParameterDialog import ParameterDialog
 from RandomizerDialog import RandomizerDialog
-from may2Utils import findFreeSerial
+from may2Utils import findFreeSerial, printDebug
 from may2Style import notACrime, deactivatedColor
 
 globalStateFile = 'global.state'
@@ -619,6 +619,14 @@ class MainWindow(QMainWindow):
                     self.trackWidget.selectTrack(+1)
                 elif key == Qt.Key_Up:
                     self.trackWidget.selectTrack(-1)
+                elif key == Qt.Key_Right:
+                    self.trackWidget.selectModuleOnTrack(+1)
+                elif key == Qt.Key_Left:
+                    self.trackWidget.selectModuleOnTrack(-1)
+                elif key == Qt.Key_Home:
+                    self.trackWidget.selectFirstModuleOnTrack()
+                elif key == Qt.Key_End:
+                    self.trackWidget.selectLastModuleOnTrack()
 
                 elif key == Qt.Key_C:
                     self.trackWidget.cloneCurrentModuleNearby()
@@ -644,12 +652,28 @@ class MainWindow(QMainWindow):
                     self.rehashPattern()
 
 
+            elif not self.ctrlPressed and self.shiftPressed:
+
+                if key == Qt.Key_Left:
+                    self.trackModel.moveCurrentModule(-1)
+                elif key == Qt.Key_Right:
+                    self.trackModel.moveCurrentModule(+1)
+                elif key == Qt.Key_Up:
+                    self.trackWidget.moveCurrentModuleToTrack(-1)
+                elif key == Qt.Key_Down:
+                    self.trackWidget.moveCurrentModuleToTrack(+1)
+
+
             elif self.ctrlPressed and self.shiftPressed:
 
                 if key == Qt.Key_Up:
                     self.trackModel.transposeModule(+12)
                 elif key == Qt.Key_Down:
                     self.trackModel.transposeModule(-12)
+                elif key == Qt.Key_Left:
+                    self.trackModel.moveAllModulesFromBeatOn(-1, self.getModuleOn())
+                elif key == Qt.Key_Right:
+                    self.trackModel.moveAllModulesFromBeatOn(+1, self.getModuleOn())
 
             self.trackWidget.update()
 
@@ -902,6 +926,10 @@ class MainWindow(QMainWindow):
     def getModule(self, offset = 0):
         return self.getTrack().getModule(offset) if self.getTrack() else None
 
+    def getModuleOn(self, offset = 0):
+        module = self.getModule(offset)
+        return module.getModuleOn() if module is not None else None
+
     def getModulePattern(self):
         if self.getModule() is None or self.getModule().patternHash is None:
             return None
@@ -1049,7 +1077,7 @@ class MainWindow(QMainWindow):
             self.patternWidget = self.drumPatternWidget
         else:
             self.patternWidget = self.synthPatternWidget
-        print(self.patternWidget.active, self.drumPatternWidget.active, self.synthPatternWidget.active)
+        printDebug(self.patternWidget.active, self.drumPatternWidget.active, self.synthPatternWidget.active)
         self.patternGroupLayout.setCurrentWidget(self.patternWidget)
 
     def patternChanged(self):

@@ -45,7 +45,7 @@ class TrackModel(QAbstractListModel):
         for track in self.tracks:
             for module in track.modules:
                 if module.pattern.name == pattern.name:
-                    module.pattern = pattern # deepcopy(pattern)
+                    module.setPattern(pattern)
 
     def totalLength(self):
         return max(t.getLastModuleOff() for t in self.tracks)
@@ -63,8 +63,11 @@ class TrackModel(QAbstractListModel):
             return None
         return self.tracks[index % self.rowCount()]
 
-    def currentTrack(self):
-        return self.track(self.currentTrackIndex)
+    def currentTrack(self, delta = 0):
+        if delta != 0:
+            return self.track((self.currentTrackIndex + delta) % len(self.tracks))
+        else:
+            return self.track(self.currentTrackIndex)
 
     def currentTrackType(self):
         return self.currentTrack().synthType if self.currentTrack() is not None else None
@@ -122,3 +125,22 @@ class TrackModel(QAbstractListModel):
         for track in self.tracks:
             for module in track.modules:
                 module.mod_on += deltaBeats
+            track.ensureOrder()
+
+    def moveAllModulesFromBeatOn(self, deltaBeats, fromBeatOn):
+        if fromBeatOn + deltaBeats < 0:
+            return
+        for track in self.tracks:
+            for module in track.modules:
+                if module.mod_on >= fromBeatOn:
+                    module.mod_on += deltaBeats
+            track.ensureOrder()
+
+    def moveCurrentModule(self, deltaBeats):
+        currentModule = self.currentTrack().getModule()
+        firstModule = self.currentTrack().getFirstModule()
+        destinationBeat = currentModule.getModuleOn() + deltaBeats
+        if currentModule == firstModule and destinationBeat < 0:
+            return
+        currentModule.mod_on = destinationBeat
+        self.currentTrack().ensureOrder()

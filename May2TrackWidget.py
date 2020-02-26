@@ -372,10 +372,19 @@ class May2TrackWidget(QWidget):
         self.finalizeTrackChangeAndEmit()
         self.select(track, newModule)
 
+    def getCurrentModule(self):
+        return self.model.currentTrack().getModule()
+
+    def getCurrentModuleClone(self, mod_on = None):
+        modulePrototype = self.getCurrentModule()
+        if modulePrototype is None:
+            return None
+        mod_on = mod_on or modulePrototype.getModuleOn()
+        return Module(mod_on = mod_on, pattern = None, copyModule = modulePrototype, transpose = modulePrototype.transpose)
+
     def cloneCurrentModuleNearby(self):
         track = self.model.currentTrack()
-        modulePrototype = track.getModule()
-        newModule = Module(mod_on = modulePrototype.getModuleOff(), pattern = None, copyModule = modulePrototype, transpose = modulePrototype.transpose)
+        newModule = self.getCurrentModuleClone(mod_on = self.getCurrentModule().getModuleOff())
         track.addModule(newModule, forceModOn = False)
         self.finalizeTrackChangeAndEmit()
         self.select(track, newModule)
@@ -406,9 +415,25 @@ class May2TrackWidget(QWidget):
 
     ############ BASIC FUNCTIONALITY ###############
 
-    def selectTrack(self, inc):
-        index = self.model.currentTrackIndex + inc
-        self.select(self.model.track(index))
+    def selectTrack(self, delta):
+        self.select(self.model.track(self.model.currentTrackIndex + delta))
+
+    def selectModuleOnTrack(self, delta):
+        self.select(None, self.model.currentTrack().getModule(delta))
+
+    def selectFirstModuleOnTrack(self):
+        self.select(None, self.model.currentTrack().getFirstModule())
+
+    def selectLastModuleOnTrack(self):
+        self.select(None, self.model.currentTrack().getLastModule())
+
+    def moveCurrentModuleToTrack(self, deltaTracks):
+        print("[TODO] this function is dangerous, make sure not to move modules to tracks of different track type !!")
+        moduleClone = self.getCurrentModuleClone()
+        self.model.currentTrack().delModule()
+        self.model.currentTrack(deltaTracks).addModule(moduleClone, forceModOn = True)
+        self.select(self.model.track(self.model.currentTrackIndex + deltaTracks), moduleClone)
+        self.finalizeTrackChangeAndEmit()
 
     def toggleMute(self, track = None):
         if track is None:

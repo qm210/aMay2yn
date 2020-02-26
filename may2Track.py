@@ -79,18 +79,14 @@ class Track:
                 self.modules.sort(key = lambda m: m.mod_on)
                 self.selectFirstTaggedModule()
             self.untagAllModules()
+        else:
+            self.ensureOrder()
 
     def delModule(self):
         if self.modules:
             del self.modules[self.currentModuleIndex if self.currentModuleIndex is not None else -1]
             self.currentModuleIndex = min(self.currentModuleIndex, len(self.modules)-1)
-
-    def switchModule(self, inc, to = None):
-        if self.modules:
-            if to is None:
-                self.currentModuleIndex = (self.currentModuleIndex + inc) % len(self.modules)
-            else:
-                self.currentModuleIndex = (to + len(self.modules)) % len(self.modules)
+            self.ensureOrder()
 
     def transposeModule(self, inc):
         if self.modules:
