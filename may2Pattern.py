@@ -183,29 +183,39 @@ class Pattern:
 
     def shiftAllNotes(self, inc):
         notes = self.notes if not self.synthType == DRUMTYPE else [n for n in self.notes if n.note_pitch == self.getNote().note_pitch]
-        if notes:
-            for n in notes:
-                n.note_pitch = (n.note_pitch + inc) % self.max_note
-                #idea: for drum patterns - skip those drums ('notes') that already have something in there
-                #TODO: different kind of drum editor! completely grid-based!!
+        if not notes:
+            return
+        for n in notes:
+            n.note_pitch = (n.note_pitch + inc) % self.max_note
 
-    def stretchNote(self, inc):
+    def stretchNote(self, inc, note = None):
+        if note is None:
+            note = self.getNote()
+        if not self.notes:
+            return
         # here I had lots of possibilities .. is inc > or < 0? but these where on the monophonic synth. Let's rethink polyphonic!
-        if self.notes:
-            if inc < 0:
-                if self.getNote().note_len <= 1/32:
-                    self.getNote().note_len = 1/64
-                elif self.getNote().note_len <= -inc:
-                    self.getNote().note_len /= 2
-                else:
-                    self.getNote().note_len -= -inc
+        if inc < 0:
+            if note.note_len <= 1/32:
+                note.note_len = 1/64
+            elif note.note_len <= -inc:
+                note.note_len /= 2
             else:
-                if self.getNote().note_len <= inc:
-                    self.getNote().note_len *= 2
-                else:
-                    self.getNote().note_len = max(0, min(self.length - self.getNote().note_on, self.getNote().note_len + inc))
+                note.note_len -= -inc
+        else:
+            if note.note_len <= inc:
+                note.note_len *= 2
+            else:
+                note.note_len = max(0, min(self.length - note.note_on, note.note_len + inc))
+        note.note_off = note.note_on + note.note_len
 
-            self.getNote().note_off = self.getNote().note_on + self.getNote().note_len
+    def stretchAllNotes(self, inc):
+        if not self.notes:
+            return
+        for n in self.notes:
+            if n.note_len + inc < abs(inc) or n.note_off + inc > self.length:
+                return
+        for n in self.notes:
+            self.stretchNote(inc, note = n)
 
     def moveNote(self, inc):
         # same as with stretch: rethink for special Käses?
@@ -267,7 +277,6 @@ class Pattern:
     def applyDrumMap(self, drumMap):
         if self.synthType != DRUMTYPE or not self.notes:
             return
-        print(self.max_note, len(drumMap))
         self.max_note = len(drumMap) - 1
         for note in self.notes:
             note.note_pitch = drumMap[note.note_pitch] if note.note_pitch < len(drumMap) else self.max_note
@@ -280,7 +289,7 @@ class Pattern:
             self.untagAllNotes()
 
     def getCopy(self):
-        newPattern = Pattern(name = self.name, length=self.length, synthType = self.synthType, max_note = self.max_note)
+        newPattern = Pattern(name = f"{self.name}Copy", length=self.length, synthType = self.synthType, max_note = self.max_note)
         newPattern.notes = deepcopy(self.notes)
         return newPattern
 

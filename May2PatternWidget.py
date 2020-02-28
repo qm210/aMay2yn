@@ -434,6 +434,7 @@ class May2PatternWidget(QWidget):
     def finalizePatternChangeAndEmit(self):
         self.pattern.ensureOrder()
         self.patternChanged.emit()
+        self.repaint()
 
     def openNoteDialog(self, note):
         self.parent.setModifiers()
@@ -444,6 +445,18 @@ class May2PatternWidget(QWidget):
             addedNewNote = self.pattern.addNote(newNote)
             self.select(addedNewNote)
             self.finalizePatternChangeAndEmit()
+
+    def moveAllNotes(self, inc):
+        self.pattern.moveAllNotes(inc * self.beatQuantum())
+        self.finalizePatternChangeAndEmit()
+
+    def shiftAllNotes(self, inc):
+        self.pattern.shiftAllNotes(inc)
+        self.finalizePatternChangeAndEmit()
+
+    def stretchAllNotes(self, inc):
+        self.pattern.stretchAllNotes(inc * self.beatQuantum())
+        self.finalizePatternChangeAndEmit()
 
     def insertNote(self, notePrototype, pos, copyParameters = False, initDrag = False):
         if notePrototype is None:

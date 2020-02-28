@@ -679,7 +679,7 @@ class MainWindow(QMainWindow):
 
         elif self.patternWidget.active:
 
-            if not self.shiftPressed and not self.ctrlPressed:
+            if not self.ctrlPressed and not self.shiftPressed:
 
                 if key == Qt.Key_V:
                     self.setParameterFromNumberInput('vel')
@@ -708,6 +708,25 @@ class MainWindow(QMainWindow):
 
                 elif key == Qt.Key_P:
                     self.openParameterDialog()
+
+            elif not self.ctrlPressed and self.shiftPressed:
+
+                if key == Qt.Key_Right:
+                    self.patternWidget.moveAllNotes(+1)
+                elif key == Qt.Key_Left:
+                    self.patternWidget.moveAllNotes(-1)
+                elif key == Qt.Key_Up:
+                    self.patternWidget.shiftAllNotes(+1)
+                elif key == Qt.Key_Down:
+                    self.patternWidget.shiftAllNotes(-1)
+
+            elif self.ctrlPressed and self.shiftPressed:
+
+                if key == Qt.Key_Right:
+                    self.patternWidget.stretchAllNotes(+1)
+                elif key == Qt.Key_Left:
+                    self.patternWidget.stretchAllNotes(-1)
+
 
         elif self.synthWidget.active:
             pass
@@ -1077,7 +1096,6 @@ class MainWindow(QMainWindow):
             self.patternWidget = self.drumPatternWidget
         else:
             self.patternWidget = self.synthPatternWidget
-        printDebug(self.patternWidget.active, self.drumPatternWidget.active, self.synthPatternWidget.active)
         self.patternGroupLayout.setCurrentWidget(self.patternWidget)
 
     def patternChanged(self):
