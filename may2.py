@@ -165,7 +165,7 @@ class MainWindow(QMainWindow):
         self.toolBar.addAction(renderModuleAction)
 
         renderSongAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderSong', self)
-        renderSongAction.setShortcut('Ctrl+Enter')
+        renderSongAction.setShortcut('Ctrl+Shift+T')
         renderSongAction.triggered.connect(self.renderSong)
         self.toolBar.addWidget(QLabel(' All: '))
         self.toolBar.addAction(renderSongAction)
@@ -391,6 +391,8 @@ class MainWindow(QMainWindow):
         self.synthWidget.active = activateSynth
         self.synthGroup.style().polish(self.synthGroup)
 
+        printDebug(self.trackWidget.active, self.patternWidget.active, self.synthPatternWidget.active, self.drumPatternWidget.active)
+
         if activateTrack:
             self.trackWidget.setFocus()
         elif activatePattern:
@@ -432,7 +434,6 @@ class MainWindow(QMainWindow):
         self.state['title'], self.state['synFile'] = self.getTitleAndSynFromMayson(name)
         self.autoSave()
         self.importMayson()
-
 
     def importMayson(self):
         maysonData = {}
@@ -681,7 +682,12 @@ class MainWindow(QMainWindow):
 
             if not self.ctrlPressed and not self.shiftPressed:
 
-                if key == Qt.Key_V:
+                if key == Qt.Key_Right:
+                    self.patternWidget.selectNextNote(+1)
+                elif key == Qt.Key_Left:
+                    self.patternWidget.selectNextNote(-1)
+
+                elif key == Qt.Key_V:
                     self.setParameterFromNumberInput('vel')
                 elif key == Qt.Key_P:
                     self.setParameterFromNumberInput('pan')
@@ -804,7 +810,7 @@ class MainWindow(QMainWindow):
             # now we take care of the module / pattern hash issue
             for module in track.modules:
                 for pattern in patterns:
-                    if module.patternName == pattern.name:
+                    if module.patternHash == pattern._hash:
                         module.setPattern(pattern)
             tracks.append(track)
 
@@ -1349,6 +1355,11 @@ class MainWindow(QMainWindow):
             print("\nTIME OF EVERY BEAT:")
             for beat in range(ceil(self.trackModel.totalLength())):
                 print("BEAT", beat, "\t TIME", self.amaysyn.getTimeOfBeat_raw(beat, self.info['BPM']))
+
+        print()
+
+        for pattern in self.patternModel.patterns:
+            print(pattern._hash, " -- ", pattern.name)
 
         print()
 

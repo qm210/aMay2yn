@@ -324,17 +324,13 @@ class May2PatternWidget(QWidget):
         self.stretchNote.stretchNoteLen(quantize(max(self.stretchNoteOrigin + noteDistance[0], self.beatQuantum()), self.beatQuantum()))
 
     def mousePressEvent(self, event):
-        print(event)
         if not self.active:
             self.activate()
-
         if self.parent.ctrlPressed and event.button() == Qt.MiddleButton:
             self.setScale(H = 1, V = 1)
             return
-
         if self.pattern is None:
             return
-
         corrNote = self.findCorrespondingNote(event.pos().x(), event.pos().y())
         if corrNote is None:
             if event.button() == Qt.LeftButton:
@@ -412,6 +408,9 @@ class May2PatternWidget(QWidget):
         self.noteSelected.emit(note)
         self.repaint()
         self.copyOfLastSelectedNote = deepcopy(note)
+
+    def selectNextNote(self, delta):
+        self.select(self.pattern.getNote(delta))
 
     def finalizeDragAndStretch(self):
         if self.dragNote is not None:

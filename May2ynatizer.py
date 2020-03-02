@@ -236,7 +236,7 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                 elif form['op'] == 'foldshape':
                     return 'foldshape(' + instance(form['src']) + ',' + ','.join(instance(form[p]) for p in ['amount','threshold','whatever']) + ')'
                 elif form['op'] == 'parabellshape':
-                    return 'parabellshape(' + ','.join(instance(form[p]) for p in ['src','amount','parabolacenter','parabolasqueeze','bellamount','bellsqueeze']) + ')'
+                    return 'parabellshape(' + ','.join(instance(form[p]) for p in ['src','amount','parabola_center','parabola_squeeze','bell_amount','bell_squeeze']) + ')'
 
                 elif form['op'] == 'saturate':
                     if 'crazy' in form['mode']:
@@ -533,7 +533,8 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                     except:
                         attack = instance(form['attack']) + '*('+instance(form['velmax']) + '-' + instance(form['vel']) + '+1e-3)/(' + instance(form['velmax']) + '-' + instance(form['velmin']) + '+1e-3)'
                         _return = 'smstep(0.,'+attack+','+tvar+')'
-
+                elif form['shape'] == 'sawspense':
+                    _return = f"env_sawspense({tvar}, {','.join(instance(form[par]) for par in ['attack', 'power', 'decay', 'subdecay', 'repeat'])})"
                 elif form['shape'] == 'generic':
                     _return = instance(form['src']).replace('_BPROG', '(_BEAT-' + instance(form['offset']) + ')') # hm. might I do this better?
                 elif form['shape'] == 'linear':
@@ -583,9 +584,9 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
             else:
                 print("PARSING - ERROR! THIS FORM TYPE DOES NOT EXIST: "+form['type'], form, sep='\n')
 
-        #pylint: disable=bare-except
         except:
             print("PARSING - UNEXPECTED UNEXPECTEDNESS (which was not expected) - IN FORM", form if form else str(ID), '', sep='\n')
+            raise
 
     def param(ID, key):
         form = next((f for f in form_list if f['id']==ID), None)
@@ -629,7 +630,7 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                 syncode += 'else if(syn == ' + str(syncount) + '){\n' + 24*' ' + extracode + '\n' + 24*' ' \
                         +  'amaysynL = ' + syncodeL + '\n' + 24*' ' + 'amaysynR = ' + syncodeR
                 if 'relpower' in form_main and form_main['relpower'] != '1':
-                    syncode += '\nenv = theta(Bprog)*pow(1.-smstep(Boff-rel, Boff, B),'+form_main['relpower']+');'
+                    syncode += '\n' + 24*' ' + 'env = theta(Bprog)*pow(1.-smstep(Boff-rel, Boff, B),'+GLstr(form_main['relpower'])+');'
                 syncode += '\n' + 20*' ' + '}\n' + 20*' '
 
                 if form_main['shape'] is not None:
@@ -666,8 +667,10 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                 drumsyncodeR = drumsyncodeR.replace('_TIME','time2').replace('_PROG','_t2' if form_main['srcr'] == '' else '_t')
                 drumsyncodeL = drumsyncodeL.replace('_TIME','time').replace('_PROG','_t')
                 drumsyncode += 'else if(drum == ' + str(drumcount) + '){\n' + 24*' ' \
-                            +  'amaydrumL = ' + drumsyncodeL + '\n' + 24*' ' + 'amaydrumR = ' + drumsyncodeR \
-                            +  '\n' + 20*' ' + '}\n' + 20*' '
+                            +  'amaydrumL = ' + drumsyncodeL + '\n' + 24*' ' + 'amaydrumR = ' + drumsyncodeR
+                if 'relpower' in form_main and form_main['relpower'] != '1':
+                    drumsyncode += 24*' ' + '\nenv = theta(Bprog)*pow(1.-smstep(Boff-rel, Boff, B),'+GLstr(form_main['relpower'])+');'
+                drumsyncode += '\n' + 20*' ' + '}\n' + 20*' '
             drumcount += 1
 
         replaceTime = lambda code: code.replace('_TIME','time').replace('_PROG','_t').replace('_BPROG','Bprog').replace('_BEAT','BT').replace('_BMODPROG','B')

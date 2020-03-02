@@ -16,7 +16,7 @@ class Param:
             label += ' (mod sync)'
         return label
 
-    def initSegments(self): # TODO: implement this
+    def initSegments(self): # TODO: implement this # Ok, I forgot what I planned to do with this
         pass
 
 
@@ -72,24 +72,25 @@ class ParamSegment:
         self.id = ID
         self.start = start
         self.end = end
-        self.type = segmentType
+        self.segmentType = segmentType
         self.args = {**kwargs}
 
     def __str__(self):
-        if self.type == ParamSegment.LINEAR:
+        if self.segmentType == ParamSegment.LINEAR:
             return f"[{self.start}..{self.end}] linear: {self.args['startValue']} -> {self.args['endValue']}"
-        elif self.type == ParamSegment.CONST:
+        elif self.segmentType == ParamSegment.CONST:
             return f"[{self.start}..{self.end}] const: {self.args['value']}"
-        elif self.type == ParamSegment.LITERAL:
+        elif self.segmentType == ParamSegment.LITERAL:
             return f"[{self.start}..{self.end}] \"{self.args['value']}\""
         else:
             return f"[{self.start or '?'}..{self.end or '?'}] unknown segment"
 
     def setArgs(self, segmentType, **kwargs):
-        self.type = segmentType
+        self.segmentType = segmentType
         self.args.update(kwargs)
-        if self.type != ParamSegment.LITERAL:
+        if self.segmentType != ParamSegment.LITERAL:
             for arg in self.args:
+                print(self.segmentType, self.args, self.args[arg])
                 self.args[arg] = round(self.args[arg], 3)
 
     def length(self):

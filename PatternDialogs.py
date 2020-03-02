@@ -5,7 +5,7 @@ from PyQt5 import QtWidgets, QtCore
 from may2Module import Module
 from may2Pattern import *
 from may2Note import Note
-
+from may2Utils import createShittyName
 
 class PatternDialog(QtWidgets.QDialog):
 
@@ -153,10 +153,10 @@ class PatternDialog(QtWidgets.QDialog):
             self.accept()
 
     def clonePattern(self):
-        print("cloning pattern", self.getPattern().name, self.getPattern().getCopy().name)
-        pattern = self.getPattern().getCopy()
-        self.parent.addPattern(pattern)
-        self.module.setPattern(pattern)
+        patternClone = self.getPattern().getCopy()
+        print("cloning pattern", self.getPattern().name, patternClone.name)
+        self.parent.addPattern(patternClone)
+        self.module.setPattern(patternClone)
         self.accept()
 
     def purgeEmptyPatterns(self):
@@ -222,6 +222,8 @@ class NewPatternDialog(QtWidgets.QDialog):
 
         self.nameEdit = QtWidgets.QLineEdit(self)
         self.nameEdit.setPlaceholderText('Pattern Name')
+        self.nameEdit.setText(createShittyName())
+        self.nameEdit.selectAll()
         self.layout.addWidget(self.nameEdit)
 
         self.lengthSpin = QtWidgets.QSpinBox(self)

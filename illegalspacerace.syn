@@ -12,8 +12,8 @@ env rndEnvFreq attack=rndFreqAttack
 osc  rndOsc shape=madd  mix=rndShape pw=rndPW nmax=72 cutoff=rndCutoff*rndEnvFreq q=rndCutoffDecay res=rndReso detune=0.013
 main rndTest src=rndOsc*rndEnv release=.03
 
-osc  fm0         shape=fm
-main FM0         src=vel*fm0 slidetime=.2 shape=parabellshape,FM0_whatever,.8,13,1,1
+osc  fm0         shape=fm fb1="Bproc*.8*pseudorandom(Bon)+aux*pseudorandom(3.+f)*Bproc*(.5+.5+sin(64.*B))"
+main FM0         src=vel*fm0 slidetime=.2 shape=parabellshape,FM0_whatever,.8,13,"1.+Bproc",1 release=.27 relpower=7
 param FM0_whatever
 
 osc fm1op2fb
@@ -171,7 +171,8 @@ form   fvib         mix src=f+f*0.00013*stringvib*stringenv
 osc    saw2         shape=saw freq=fvib
 form   saw2D        op=detune src=saw2 factor=1.01, 1.011, .998
 env    stringfilter attack=2+aux decay=0.5 sustain=0.4 release=0. mode=beat
-main   stryngth2    src=stringenv*saw2D release=2. relpower=3.4 predraw=0.1 stereodelay=.1
+main   stryngth2    src=stringenv*strynght2_vol*saw2D release=2. relpower=3.4 predraw=0.1 stereodelay=.1
+param strynght2_vol default=1
 
 filter Fstr         shape=resolp src=saw2 cutoff=100*stryngthlp_cutoff
 main  stryngthLP src=stringenv*Fstr release=2. relpower=3.4
@@ -190,7 +191,8 @@ filter A1oscmixF shape=resolp src=A1oscmixW cutoff=800*shortdec res=.1
 #main   PercBass  src=shortenv*A1oscmixF*5.
 env    Perc_LL   shape=limitlength factor=1. release=.07
 form   Perc_dly  delay src=Perc_LL*A1oscmixW  number=2 delay=.2 gain=.3 mode=beat
-main   PercBass  src=shortenv*shortenv2*Perc_dly release=.8 slidetime=.24
+main   PercBass  src=percbass_vol*shortenv*shortenv2*Perc_dly release=.8 slidetime=.24
+param percbass_vol default=1
 
 ########### DRUMS ###########
 
@@ -476,6 +478,13 @@ form fqmbace7_dist saturate src=fqmbace7_src gain=4
 main    FQMbace7Sat src=fqmbace7sat_vol*fqmbace7_dist release=1 slidetime=.03 relpower=4 stereodelay=.03
 param fqmbace7sat_vol default=1
 
+env fqmbace77_env1 shape=sawspense attack=1 power=6 decay=1 subdecay=4 repeat=.125 scale=fqmbace77_vol
+form fqmbace77_shift timescale src=fqmbace7_src scale=2.
+form fqmbace77_shpr parabellshape src=fqmbace77_shift amount="10.*fract(4.*B)" parabola_center=.75 parabola_squeeze=2 bell_squeeze=.1 bell_amount=2
+form fqmbace77_dist saturate src=fqmbace7_src gain=4
+main FQMbace77 src=.3*fqmbace77_env1*fqmbace77_shpr+.75*fqmbace77_env1*fqmbace77_dist release=1 slidetime=.03 relpower=4 stereodelay=.02 predraw=1
+param fqmbace77_vol default=1
+
 main    FQMbace.8   src="vel*QFM(_PROG,f,0.,.00787*20.,.00787*17.,.00787*54.,.00787*33.,.5,1.,1.001,1.,.00787*126.,.00787*19.,.00787*23.,.00787*36.,6.)*env_AHDSR(_PROG,tL,.007,0.,.01,1.,.006)" release=.2 slidetime=.6 relpower=1
 main    FQMimp.3    src="vel*waveshape(QFM(_PROG,f,0.,.00787*75.,.00787*59.,.00787*26.,.00787*53.,.5,1.,1.001,1.,.00787*1.,.00787*93.,.00787*18.,.00787*17.,7.),(.5+(.5*_sin(.4*B))),.05,.46,.3,.7,.8)*env_AHDSR(_PROG,tL,.2,0.,.01,1.,.05)+vel*clip((1.+2.)*_sin(f*_PROG))" release=.05 relpower=1 slidetime=.125
 main    chippy.7    src="vel*env_AHDSR(_PROG,tL,.05,0.,.185,.406,.037)*MADD(floor(16000.*_PROG+.5)/16000.,f,0.,128,1,-.13,(1236.+(527.*_sin_(2.*B,.4))),7.,0.,25.06,.023,.4*(.55+(.4*clip((1.+1.)*_sin(4.*B)))),0)" release=4e-2 relpower=1 slidetime=.125
@@ -545,7 +554,10 @@ main    FMpluck.5    src="vel*sinshape(QFM(_PROG,f,0.,.00787*103.,.00787*env_AHD
 main    FMpluck.6    src="vel*sinshape(QFM(_PROG,f,0.,.00787*67.,.00787*env_AHDSR(_BPROG,L,.0001,.131,.165,.193,0.)*75.,.00787*env_AHDSR(_BPROG,L,.0001,.12,.162,.071,0.)*48.,.00787*env_AHDSR(_BPROG,L,.0001,.237,.203,.236,0.)*100.,.999,1.,1.+.0711*(.5+(.5*_sin(.01*_BPROG))),2.,.00787*0.,.00787*75.,.00787*25.,.00787*15.,2.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.039,.08,.301,.013)" release=.2 slidetime=.1337 relpower=1 predraw=0
 form    FMpluck7src define src="vel*sinshape(QFM(_PROG,f,0.,.00787*125.,.00787*env_AHDSR(_BPROG,L,.0001,.047,.01,.404,0.)*20.,.00787*env_AHDSR(_BPROG,L,.0001,.151,.071,.069,0.)*110.,.00787*env_AHDSR(_BPROG,L,.0001,.232,.08,.003,0.)*65.,.999,1.,1.+.0799*(.5+(.5*_sin(.18*_BPROG))),2.,.00787*109.,.00787*21.,.00787*94.,.00787*0.,11.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.03,.167,.796,.114)"
 main    FMpluck.7    src=FMpluck7src release=.2 slidetime=.1337 relpower=1 predraw=0
-main    FMpluck.8    src="vel*sinshape(QFM(_PROG,f,0.,.00787*101.,.00787*env_AHDSR(_BPROG,L,.0001,.213,.215,.02,0.)*39.,.00787*env_AHDSR(_BPROG,L,.0001,.216,.123,.054,0.)*122.,.00787*env_AHDSR(_BPROG,L,.0001,.214,.243,.174,0.)*21.,.999,1.,1.+.0285*(.5+(.5*_sin(.24*_BPROG))),2.,.00787*28.,.00787*43.,.00787*95.,.00787*115.,10.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.03,.15,.177,.102)" release=.2 slidetime=.1337 relpower=1 predraw=0 stereodelay=.1
+#main    FMpluck.8    src="vel*sinshape(QFM(_PROG,f,0.,.00787*101.,.00787*env_AHDSR(_BPROG,L,.0001,.213,.215,.02,0.)*39.,.00787*env_AHDSR(_BPROG,L,.0001,.216,.123,.054,0.)*122.,.00787*env_AHDSR(_BPROG,L,.0001,.214,.243,.174,0.)*21.,.999,,1.+.0285*(.5+(.5*_sin(.24*_BPROG))),2.,.00787*28.,.00787*43.,.00787*95.,.00787*115.,10.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.03,.15,.177,.102)" release=.2 slidetime=.1337 relpower=1 predraw=0 stereodelay=.1
+form FMpluck8src define  src="vel*sinshape(QFM(_PROG,f,0.,.00787*101.,.00787*env_AHDSR(_BPROG,L,.0001,.213,.215,.02,0.)*39.,.00787*env_AHDSR(_BPROG,L,.0001,.216,.123,.054,0.)*122.,.00787*env_AHDSR(_BPROG,L,.0001,.214,.243,.174,0.)*21.,.999,1.,1.+.0285*(.5+(.5*_sin(.24*_BPROG))),2.,.00787*28.,.00787*43.,.00787*95.,.00787*115.,10.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.03,.15,.177,.102)"
+main    FMpluck.8    src=FMpluck8vol*FMpluck8src release=.2 slidetime=.1337 relpower=1 predraw=0 stereodelay=.1
+param FMpluck8vol default=1
 main    FMpluck.9    src="vel*sinshape(QFM(_PROG,f,0.,.00787*95.,.00787*env_AHDSR(_BPROG,L,.0001,.001,.106,.373,0.)*4.,.00787*env_AHDSR(_BPROG,L,.0001,.219,.242,.133,0.)*66.,.00787*env_AHDSR(_BPROG,L,.0001,.156,.142,.07,0.)*48.,.999,1.,1.+.0264*(.5+(.5*_sin(.25*_BPROG))),2.,.00787*45.,.00787*2.,.00787*84.,.00787*7.,8.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.078,.031,.665,.069)" release=.6 slidetime=.1337 relpower=1 predraw=0
 
 lfo     pluck7lfo  freq=.8 mode=beat
@@ -694,7 +706,8 @@ form  bl0002  saturate  src=bl0001+0.8*bl0010  gain="1.+aux"
 form  bl0003 op=chorus src=bl0002 number=3 step=1.3e-3 intensity=5. rate=0.08
 form  bl0004  sinshape src=bl0003  amount=0.8 parts=3
 env   bl0101  attack=0.034 release=.08
-main  BLies src=bl0101*bl0004 release=.14 slidetime=.33
+main  BLies src=blies_vol*bl0101*bl0004 release=.14 slidetime=.33
+param blies_vol default=1
 
 lfo   bl1201 shape=sin scale=0.24 shift=0.2 freq=.09 phase=.7
 osc   bl1001  shape=madd freq=.5*f nmax=32 ninc=1 mix=bl1201 cutoff=200 q=100 res=0 resq=0 pw=.48 detune=0.05
@@ -784,7 +797,8 @@ form bowedsrc define src="MADD(_PROG,f,0.,12,1,.92,2513.*env_AHDSRexp(_BPROG,L,.
 #form bowedsrc define src="MADD(_PROG,f,0.,12,1,.92,2513.*env_AHDSRexp(_BPROG,L,.031,0.,.1,1.,0.3),65.1,1.,3.,.008,.25,0.,1)*env_AHDSRexp(_BPROG,L,.145,0.,.1,1.,0.3)"
 main    bowed    src=bowedsrc release=.7 relpower=4 slidetime=.125 predraw=0.09 stereodelay=0.02
 form bowedsrc_ch chorus src=bowedsrc number=3 step=0.04 intensity=2 rate=0.013
-main    chored   src=bowedsrc_ch release=7.2 relpower=320 slidetime=.125 predraw=0.09 stereodelay=0.02
+main    chored   src=chored_vol*bowedsrc_ch release=7.2 relpower=320 slidetime=.125 predraw=0.09 stereodelay=0.02
+param chored_vol default=1
 main    blower    src="MADD(_PROG,f,0.,72,1,1.24,1675.*env_AHDSR(_BPROG,L,.151,0.,.1,1.,0.),33.6,2.8,3.,.013,.83,0.,0)*env_AHDSR(_BPROG,L,.041,0.,.1,1.,0.)" release=.03 relpower=1 slidetime=.125 predraw=0 stereodelay=0.2
 
 # damn, aux can't work with filter

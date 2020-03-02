@@ -95,6 +95,8 @@ def set_remaining_defaults(cid, cmd, form):
                 defaults.update({'vel': 'vel', 'velmin': '0', 'velmax': '1'})
             elif form['shape'] == 'limitlength':
                 defaults.update({'length': 'L-rel', 'factor': '1'})
+            elif form['shape'] == 'sawspense':
+                defaults.update({'power': '1', 'decay': '3', 'subdecay': '16', 'repeat': '.25'})
 
 
     elif cmd == 'seg':
@@ -163,7 +165,7 @@ def set_remaining_defaults(cid, cmd, form):
             defaults.update({'amount': '1', 'threshold': '.5', 'whatever': '2'})
 
         elif form['op'] == 'parabellshape':
-            defaults.update({'amount': '1', 'parabolaCenter': '.25', 'parabolaSqueeze': '10', 'bellSqueeze': '1', 'bellAmount': '1'})
+            defaults.update({'amount': '1', 'parabola_center': '.25', 'parabola_squeeze': '10', 'bell_squeeze': '1', 'bell_amount': '1'})
 
         elif form['op'] == 'saturate':
             defaults.update({'gain': '3'})

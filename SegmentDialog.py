@@ -1,6 +1,5 @@
-from PyQt5 import QtWidgets, QtCore
-from random import randint
 from functools import partial
+from PyQt5 import QtWidgets
 
 from may2Param import ParamSegment
 from may2Utils import findFreeSerial
@@ -11,7 +10,7 @@ class SegmentDialog(QtWidgets.QDialog):
     WIDTH = 500
     HEIGHT = 300
 
-    def __init__(self, parent, param, segment = None, *args, **kwargs):
+    def __init__(self, parent, param, *args, segment = None, **kwargs):
         super(SegmentDialog, self).__init__(parent, *args, **kwargs)
         self.setWindowTitle('Edit Parameter Segment')
         self.setGeometry(parent.x() + 0.5 * (parent.width() - self.WIDTH), parent.y() + 0.5 * (parent.height() - self.HEIGHT), self.WIDTH, self.HEIGHT)
@@ -111,18 +110,18 @@ class SegmentDialog(QtWidgets.QDialog):
             self.startEdit.setValue(self.param.getLastSegmentEnd())
             self.endEdit.setValue(self.param.getLastSegmentEnd())
         else:
-            self.setType(self.segment.type)
+            self.setType(self.segment.segmentType)
             self.nameEdit.setText(self.segment.id)
             self.startEdit.setValue(self.segment.start)
             self.endEdit.setValue(self.segment.end)
-            if self.segment.type == ParamSegment.LINEAR:
+            if self.segment.segmentType == ParamSegment.LINEAR:
                 self.typeLinearRadio.setChecked(True)
                 self.linearStartValueEdit.setValue(self.segment.args['startValue'])
                 self.linearEndValueEdit.setValue(self.segment.args['endValue'])
-            elif self.segment.type == ParamSegment.CONST:
+            elif self.segment.segmentType == ParamSegment.CONST:
                 self.typeConstRadio.setChecked(True)
                 self.constValueEdit.setValue(self.segment.args['value'])
-            elif self.segment.type == ParamSegment.LITERAL:
+            elif self.segment.segmentType == ParamSegment.LITERAL:
                 self.typeLiteralRadio.setChecked(True)
                 self.literalValueEdit.setText(self.segment.args['value'])
 
@@ -146,7 +145,7 @@ class SegmentDialog(QtWidgets.QDialog):
         if self.deleteSegment:
             return None
 
-        newSegment = ParamSegment(id = self.nameEdit.text(), start = self.startEdit.value(), end = self.endEdit.value())
+        newSegment = ParamSegment(ID = self.nameEdit.text(), start = self.startEdit.value(), end = self.endEdit.value())
         if self.segType == ParamSegment.LINEAR:
             kwargs = {'startValue': self.linearStartValueEdit.value(), 'endValue': self.linearEndValueEdit.value()}
         elif self.segType == ParamSegment.CONST:

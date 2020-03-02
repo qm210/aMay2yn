@@ -26,17 +26,20 @@ class NoteDialog(QtWidgets.QDialog):
 
         self.noteOnSpinBox = QtWidgets.QDoubleSpinBox(self)
         self.noteOnSpinBox.setRange(0, 999)
-        self.noteOnSpinBox.setSingleStep(0.01)
+        self.noteOnSpinBox.setDecimals(3)
+        self.noteOnSpinBox.setSingleStep(0.005)
         self.mainFormLayout.addRow('NoteOn:', self.noteOnSpinBox)
 
         self.noteLenSpinBox = QtWidgets.QDoubleSpinBox(self)
-        self.noteLenSpinBox.setRange(0.01, 999)
-        self.noteLenSpinBox.setSingleStep(0.01)
+        self.noteLenSpinBox.setRange(0.005, 999)
+        self.noteLenSpinBox.setDecimals(3)
+        self.noteLenSpinBox.setSingleStep(0.005)
         self.mainFormLayout.addRow('Length:', self.noteLenSpinBox)
 
         self.noteOffSpinBox = QtWidgets.QDoubleSpinBox(self)
         self.noteOffSpinBox.setRange(0, 999)
-        self.noteOffSpinBox.setSingleStep(0.01)
+        self.noteOffSpinBox.setDecimals(3)
+        self.noteOffSpinBox.setSingleStep(0.005)
         self.mainFormLayout.addRow('NoteOff:', self.noteOffSpinBox)
 
         self.notePitchSpinBox = QtWidgets.QSpinBox(self)

@@ -191,7 +191,7 @@ def encodeParamSegment(obj):
         'id': obj.id,
         'start': obj.start,
         'end': obj.end,
-        'type': obj.type,
+        'segmentType': obj.segmentType,
         'args': obj.args
     }
     return objDict
@@ -200,7 +200,7 @@ def decodeParamSegment(objDict):
     segment = ParamSegment(ID = objDict['id'])
     segment.start = objDict['start']
     segment.end = objDict['end']
-    segment.type = objDict['type']
+    segment.segmentType = objDict['segmentType']
     segment.args = objDict['args']
     return segment
 

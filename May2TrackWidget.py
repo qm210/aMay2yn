@@ -282,6 +282,9 @@ class May2TrackWidget(QWidget):
                 elif event.button() == Qt.MiddleButton:
                     self.deleteModule(corrTrack, corrModule)
 
+    def mouseDoubleClickEvent(self, event):
+        pass
+
     def mouseMoveEvent(self, event):
         if self.dragModule is not None:
             self.dragModuleTo(event.pos())

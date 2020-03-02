@@ -1,5 +1,6 @@
 from math import floor
 from re import match
+from random import choice, randint
 from PyQt5.QtCore import Qt, QRectF
 
 quantize = lambda x, q: floor(x/q)*q
@@ -79,3 +80,7 @@ def createListMapping(oldList, newList):
     if oldList is None:
         return list(range(len(newList)))
     return [(newList if item in newList else oldList).index(item) for item in oldList]
+
+def createShittyName():
+    parts = ['döner', 'pups', 'huhn', 'saft', 'pizza', 'bier', 'schiss', 'kopf', 'hund', 'eumel', 'trunk', 'druck', 'kraft', 'feind', 'neger']
+    return f"{choice(parts)}{choice(parts)}{randint(0, 100)}"

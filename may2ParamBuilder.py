@@ -10,14 +10,14 @@ def buildParamFunction(param):
     paramCode = f"float {param.id}(float B)\n{{{newlineindent}return B<0 ? 0. : "
 
     for segment in param.segments:
-
-        if segment.type == ParamSegment.CONST:
+        print(segment.id, segment.segmentType)
+        if segment.segmentType == ParamSegment.CONST:
             segmentCode = GLfloat(segment.args['value'])
 
-        elif segment.type == ParamSegment.LITERAL:
+        elif segment.segmentType == ParamSegment.LITERAL:
             segmentCode = GLstr(segment.args['value'])
 
-        elif segment.type == ParamSegment.LINEAR:
+        elif segment.segmentType == ParamSegment.LINEAR:
             linCoeffA = GLfloat(round(1/segment.length(), 4))
             linCoeffB = GLfloat(round(-segment.start/segment.length(), 4))
             segmentCode = f"linmix(B, {linCoeffA}, {linCoeffB}, {segment.args['startValue']}, {segment.args['endValue']})"
