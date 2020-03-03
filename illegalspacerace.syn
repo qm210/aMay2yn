@@ -555,8 +555,9 @@ main    FMpluck.6    src="vel*sinshape(QFM(_PROG,f,0.,.00787*67.,.00787*env_AHDS
 form    FMpluck7src define src="vel*sinshape(QFM(_PROG,f,0.,.00787*125.,.00787*env_AHDSR(_BPROG,L,.0001,.047,.01,.404,0.)*20.,.00787*env_AHDSR(_BPROG,L,.0001,.151,.071,.069,0.)*110.,.00787*env_AHDSR(_BPROG,L,.0001,.232,.08,.003,0.)*65.,.999,1.,1.+.0799*(.5+(.5*_sin(.18*_BPROG))),2.,.00787*109.,.00787*21.,.00787*94.,.00787*0.,11.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.03,.167,.796,.114)"
 main    FMpluck.7    src=FMpluck7src release=.2 slidetime=.1337 relpower=1 predraw=0
 #main    FMpluck.8    src="vel*sinshape(QFM(_PROG,f,0.,.00787*101.,.00787*env_AHDSR(_BPROG,L,.0001,.213,.215,.02,0.)*39.,.00787*env_AHDSR(_BPROG,L,.0001,.216,.123,.054,0.)*122.,.00787*env_AHDSR(_BPROG,L,.0001,.214,.243,.174,0.)*21.,.999,,1.+.0285*(.5+(.5*_sin(.24*_BPROG))),2.,.00787*28.,.00787*43.,.00787*95.,.00787*115.,10.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.03,.15,.177,.102)" release=.2 slidetime=.1337 relpower=1 predraw=0 stereodelay=.1
-form FMpluck8src define  src="vel*sinshape(QFM(_PROG,f,0.,.00787*101.,.00787*env_AHDSR(_BPROG,L,.0001,.213,.215,.02,0.)*39.,.00787*env_AHDSR(_BPROG,L,.0001,.216,.123,.054,0.)*122.,.00787*env_AHDSR(_BPROG,L,.0001,.214,.243,.174,0.)*21.,.999,1.,1.+.0285*(.5+(.5*_sin(.24*_BPROG))),2.,.00787*28.,.00787*43.,.00787*95.,.00787*115.,10.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.03,.15,.177,.102)"
-main    FMpluck.8    src=FMpluck8vol*FMpluck8src release=.2 slidetime=.1337 relpower=1 predraw=0 stereodelay=.1
+#form FMpluck8src define  src="vel*sinshape(QFM(_PROG,f,0.,.00787*101.,.00787*env_AHDSR(_BPROG,L,.0001,.213,.215,.02,0.)*39.,.00787*env_AHDSR(_BPROG,L,.0001,.216,.123,.054,0.)*122.,.00787*env_AHDSR(_BPROG,L,.0001,.214,.243,.174,0.)*21.,.999,1.,1.+.0285*(.5+(.5*_sin(.24*_BPROG))),2.,.00787*28.,.00787*43.,.00787*95.,.00787*115.,10.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.03,.15,.177,.102)"
+form FMpluck8src define  src="vel*sinshape(.33*QFM(_PROG,f,0.,.79487,.3*env_AHDSR(_BPROG,L,.0001,.213,.215,.02,0.),.96014*env_AHDSR(_BPROG,L,.0001,.216,.123,.054,0.),.165*env_AHDSR(_BPROG,L,.0001,.214,.243,.174,0.),.999,1.,1.+.0285*(.5+(.5*_sin(.24*_BPROG))),2.,.22,.338,.748,.91,10.)+.33*QFM(_PROG,.9975*f,0.,.79487,.3*env_AHDSR(_BPROG,L,.0001,.213,.215,.02,0.),.96014*env_AHDSR(_BPROG,L,.0001,.216,.123,.054,0.),.165*env_AHDSR(_BPROG,L,.0001,.214,.243,.174,0.),.999,1.,1.+.0285*(.5+(.5*_sin(.24*_BPROG))),2.,.22,.338,.748,.91,10.)+.33*QFM(_PROG,.502*f,0.,.79487,.3*env_AHDSR(_BPROG,L,.0001,.213,.215,.02,0.),.96014*env_AHDSR(_BPROG,L,.0001,.216,.123,.054,0.),.165*env_AHDSR(_BPROG,L,.0001,.214,.243,.174,0.),.999,1.,1.+.0285*(.5+(.5*_sin(.24*_BPROG))),2.,.22,.338,.748,.91,10.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.03,.15,.177,.102)"
+main    FMpluck.8    src=FMpluck8vol*FMpluck8src release=.8 slidetime=.1337 relpower=3 predraw=0 stereodelay=.1
 param FMpluck8vol default=1
 main    FMpluck.9    src="vel*sinshape(QFM(_PROG,f,0.,.00787*95.,.00787*env_AHDSR(_BPROG,L,.0001,.001,.106,.373,0.)*4.,.00787*env_AHDSR(_BPROG,L,.0001,.219,.242,.133,0.)*66.,.00787*env_AHDSR(_BPROG,L,.0001,.156,.142,.07,0.)*48.,.999,1.,1.+.0264*(.5+(.5*_sin(.25*_BPROG))),2.,.00787*45.,.00787*2.,.00787*84.,.00787*7.,8.),.03*aux,3.)*env_AHDSR(_BPROG,L,.0001,.078,.031,.665,.069)" release=.6 slidetime=.1337 relpower=1 predraw=0
 
@@ -706,7 +707,7 @@ form  bl0002  saturate  src=bl0001+0.8*bl0010  gain="1.+aux"
 form  bl0003 op=chorus src=bl0002 number=3 step=1.3e-3 intensity=5. rate=0.08
 form  bl0004  sinshape src=bl0003  amount=0.8 parts=3
 env   bl0101  attack=0.034 release=.08
-main  BLies src=blies_vol*bl0101*bl0004 release=.14 slidetime=.33
+main  BLies src=blies_vol*bl0101*bl0004 release=.14 slidetime=.33 relpower=1.5
 param blies_vol default=1
 
 lfo   bl1201 shape=sin scale=0.24 shift=0.2 freq=.09 phase=.7

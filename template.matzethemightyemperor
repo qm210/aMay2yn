@@ -29,7 +29,6 @@ float s_moothmin(float a, float k) {
 }
 float s_moothmin(float a) { return s_moothmin(a,.5); }
 
-
 //BEATHEADER
 float BPS, SPB, BT;
 
@@ -381,13 +380,13 @@ vec2 mainSynth(float time)
 
         for(int _mod = _modL; _mod <= _modU; _mod++)
         {
-            B = BT - mod_on(_mod);
+            B = BT - mod_on(_mod) + pre;
 
             ptn   = mod_ptn(_mod);
             psep0 = ptn_sep(ptn);
             psep1 = ptn_sep(ptn + 1);
 
-            for(_noteU = psep0; (_noteU < psep1 - 1) && (B > note_on(_noteU + 1) - pre); _noteU++);
+            for(_noteU = psep0; (_noteU < psep1 - 1) && (B > note_on(_noteU + 1)); _noteU++);
             for(_noteL = psep0; (_noteL < psep1 - 1) && (B >= note_off(_noteL) + rel); _noteL++);
 
             for(int _note = _noteL; _note <= _noteU; _note++)
@@ -403,19 +402,20 @@ vec2 mainSynth(float time)
                 amaydrumL = 0.;
                 amaydrumR = 0.;
 
-                Bon   = note_on(_note) - pre;
+                Bon   = note_on(_note);
                 Boff  = note_off(_note) + rel;
                 L     = Boff - Bon;
                 tL    = L * SPB;
-                Bprog = B - Bon;
+                Bprog = max(0., B - Bon); // I DO NOT GET THIS WEIRD FIX, but Revision is approaching
                 Bproc = Bprog / L;
                 _t    = Bprog * SPB; //TIMECODE
-                _t2   = _t - STEREO_DELAY;
+                _t2   = _t - STEREO_DELAY; // this is on purpose not max(0., _t - STEREO_DELAY), because I hope future-QM is clever
                 vel   = note_vel(_note);
                 amtL  = clamp(1. - note_pan(_note), 0., 1.);
                 amtR  = clamp(1. + note_pan(_note), 0., 1.);
                 slide = note_slide(_note);
                 aux   = note_aux(_note);
+
 
                 if(syn == DRUM_INDEX)
                 {

@@ -31,6 +31,7 @@ class May2ynBuilder:
         self.synFile = synFile
         self.info = info
         self.title = None
+        self.song_length = 30
 
         self.useSequenceTexture = False # if this is True: ignore 'shader' completely and use [self.fragment_shader, self.sequence]
 
@@ -57,7 +58,7 @@ class May2ynBuilder:
         # debug stuff
         self.extra_time_shift = 0
 
-    def updateState(self, title = None, info = None, synFile = None, stored_randoms = None, extra_time_shift = None):
+    def updateState(self, title = None, info = None, synFile = None, stored_randoms = None, extra_time_shift = None, song_length = None):
         if title is not None:
             self.title = title
         if info is not None:
@@ -68,6 +69,8 @@ class May2ynBuilder:
             self.stored_randoms = stored_randoms
         if extra_time_shift is not None:
             self.extra_time_shift = extra_time_shift
+        if song_length is not None:
+            self.song_length = song_length
 
     def initWavOut(self, outdir = None):
         if outdir is not None:
@@ -374,12 +377,6 @@ class May2ynBuilder:
         ntime = str(len(pos_B))
         ntime_1 = str(len(pos_B)-1)
 
-        beatheader = '#define NTIME ' + ntime + '\n'
-        beatheader += 'const float pos_B[' + ntime + '] = float[' + ntime + '](' + ','.join(map(GLfloat, pos_B)) + ');\n'
-        beatheader += 'const float pos_t[' + ntime + '] = float[' + ntime + '](' + ','.join(map(GLfloat, pos_t)) + ');\n'
-        beatheader += 'const float pos_BPS[' + ntime_1 + '] = float[' + ntime_1 + '](' + ','.join(map(GLfloat, pos_BPS)) + ');\n'
-        beatheader += 'const float pos_SPB[' + ntime_1 + '] = float[' + ntime_1 + '](' + ','.join(map(GLfloat, pos_SPB)) + ');'
-
         self.song_length = self.getTimeOfBeat(max_mod_off, bpm_list)
         if loop_mode != 'seamless':
             self.song_length = self.getTimeOfBeat(max_mod_off + max_rel, bpm_list)
@@ -387,14 +384,21 @@ class May2ynBuilder:
         time_offset = self.getTimeOfBeat(B_offset, bpm_list)
         self.song_length -= time_offset
 
+        beatheader  = '#define SONGLENGTH ' + GLfloat(self.song_length) + '\n'
+        beatheader += '#define NTIME ' + ntime + '\n'
+        beatheader += 'const float pos_B[' + ntime + '] = float[' + ntime + '](' + ','.join(map(GLfloat, pos_B)) + ');\n'
+        beatheader += 'const float pos_t[' + ntime + '] = float[' + ntime + '](' + ','.join(map(GLfloat, pos_t)) + ');\n'
+        beatheader += 'const float pos_BPS[' + ntime_1 + '] = float[' + ntime_1 + '](' + ','.join(map(GLfloat, pos_BPS)) + ');\n'
+        beatheader += 'const float pos_SPB[' + ntime_1 + '] = float[' + ntime_1 + '](' + ','.join(map(GLfloat, pos_SPB)) + ');'
+
         timecode = self.getInfo('timeCode')
         timecode = f'time = {timecode};' if timecode not in ['', 'time'] else ''
         timecode = timecode.replace('time', '_t')
 
         if loop_mode != 'none':
-            loopcode = ('time = mod(time, ' + GLfloat(self.song_length) + ');\n' + 4*' ')
+            loopcode = ('time = mod(time, SONGLENGTH);\n' + 4*' ')
         else:
-            loopcode = ('if (time > ' + GLfloat(self.song_length) + ') return vec2(0.);\n' + 4*' ')
+            loopcode = ('if (time > SONGLENGTH) return vec2(0.);\n' + 4*' ')
 
         if B_offset != 0:
             loopcode += f'time += {GLfloat(time_offset)};\n    '
@@ -575,18 +579,17 @@ class May2ynBuilder:
         return purged_code
 
 
-    def executeShader(self, shader, samplerate, texsize, renderWAV = False):
+    def executeShader(self, shader, samplerate, texsize, renderWAV = False, wavFileName = None):
         if not shader:
             print("you need to build() some shader before executeShader(). shady boi...")
             return None
 
-        wavFileName = self.getInfo('title') + '.wav'
+        if wavFileName is None:
+            wavFileName = self.getInfo('title') + '.wav'
         if self.MODE_justRenderWAV:
             renderWAV = True
             wavFileName = self.getWAVFileName(self.getWAVFileCount())
 
-        # TODO: would be really nice: option to not re-shuffle the last throw of randoms, but export these to WAV on choice... TODOTODOTODOTODO!
-        # TODO LATER: great plans -- live looping ability (how bout midi input?)
         if self.stored_randoms:
             timestamp = datetime.datetime.now().strftime('%Y/%m/%d %H:%M')[2:]
             countID = self.file_extra_information + (str(self.getWAVFileCount()) if renderWAV else '(unsaved)')

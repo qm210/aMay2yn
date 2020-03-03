@@ -3,8 +3,9 @@
 ## by QM / Team210
 #########################################################################
 
-import json
+import re
 import sys
+import json
 from math import ceil
 from copy import deepcopy
 from functools import partial
@@ -219,11 +220,19 @@ class MainWindow(QMainWindow):
 
         self.toolBar.addSeparator()
 
-        renderNoteAction = QAction(QIcon.fromTheme('media-playback-start'), 'RenderNote', self)
+        renderNoteAction = QAction(QIcon.fromTheme('media-playback-start'), 'Render Note', self)
         renderNoteAction.setShortcut('Ctrl+B')
         renderNoteAction.triggered.connect(self.renderNote)
-        self.toolBar.addWidget(QLabel('   Note: '))
+        self.toolBar.addWidget(QLabel('  Note:'))
         self.toolBar.addAction(renderNoteAction)
+
+        renderFileAction = QAction(QIcon.fromTheme('media-playback-start'), 'Render File', self)
+        renderFileAction.setShortcut('Ctrl+W')
+        renderFileAction.triggered.connect(self.renderFile)
+        self.renderFilePathEdit = QLineEdit(self)
+        self.toolBar.addWidget(QLabel('File: '))
+        self.toolBar.addWidget(self.renderFilePathEdit)
+        self.toolBar.addAction(renderFileAction)
 
 
     def initSignals(self):
@@ -468,6 +477,7 @@ class MainWindow(QMainWindow):
         self.updateAMay2yn()
         self.setModelsFromData(maysonData)
         self.checkSynFileTimestamp()
+        self.renderFilePathEdit.setText(f"{self.state['title']}.glsl")
         self.shufflePatternColors()
 
         self.trackWidget.activate()
@@ -572,7 +582,7 @@ class MainWindow(QMainWindow):
         print("fully implement autosave.... yet to do")
 
     def autoSaveGlobals(self):
-        file =  open(globalStateFile, 'w')
+        file = open(globalStateFile, 'w')
         json.dump(self.globalState, file)
         file.close()
 
@@ -598,10 +608,13 @@ class MainWindow(QMainWindow):
             elif key == Qt.Key_F12:
                 self.debugOutput()
 
-        elif self.ctrlPressed:
+        elif self.ctrlPressed and not self.shiftPressed:
 
             if key == Qt.Key_Tab:
                 self.activateNext()
+
+            elif key == Qt.Key_Return:
+                self.renderWhateverWasLast()
 
         if self.trackWidget.active:
 
@@ -1227,6 +1240,8 @@ class MainWindow(QMainWindow):
             self.renderTrack()
         elif self.state['lastRendered'] == 'note':
             self.renderNote()
+        elif self.state['lastRendered'] == 'file':
+            self.renderFile()
         else:
             self.renderSong()
 
@@ -1302,6 +1317,26 @@ class MainWindow(QMainWindow):
         self.executeShader(shader)
         self.toggleGlobalDeactivedState(active = True)
 
+    def renderFile(self, _ = None):
+        self.state['lastRendered'] = 'file'
+        glslFileName = self.renderFilePathEdit.text()
+        try:
+            glslFile = open(glslFileName)
+            glslShader = glslFile.read()
+            glslFile.close()
+            self.renderFilePathEdit.setStyleSheet("background-color: white;")
+        except FileNotFoundError:
+            print(f"File {glslFileName} not found.")
+            self.renderFilePathEdit.setStyleSheet("background-color: red;")
+            return
+        tryToReadSongLength = re.findall(r"#define SONGLENGTH [\d\.]+", glslShader, flags=re.MULTILINE)
+        songLength = float(tryToReadSongLength[0].split()[-1]) if len(tryToReadSongLength) == 1 else None
+        self.toggleGlobalDeactivedState(active = False)
+        self.amaysyn.updateState(title = glslFileName.replace('.glsl',''), song_length = songLength)
+        self.executeShader(glslShader)
+        self.toggleGlobalDeactivedState(active = True)
+
+
     def executeShader(self, shader):
         if shader is None:
             print("Called executeShader() with a shader of None.")
@@ -1334,8 +1369,8 @@ class MainWindow(QMainWindow):
         print('\n\n')
         print(self.state['synFile'], self.state['synFileTimestamp'])
         print("SYNTHS:")
-        for s in self.synthModel.synths:
-            print(s.name, s.type)
+        for index, s in enumerate(self.synthModel.synths):
+            print(index + 1, s.name, s.type)
 
         print('\n')
         print("TITLE:", self.state['title'])

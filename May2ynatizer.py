@@ -611,7 +611,8 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
         syncode = 'if(syn == 0){amaysynL = _sin(f*_t); amaysynR = _sin(f*_t2);}\n' + 20*' '
         synshapecode = ''
         for form_main in main_list:
-            if form_main['type']!='main': continue
+            if form_main['type'] != 'main':
+                continue
             sources = split_if_not_quoted(form_main['src'], '+')
             if actually_used_synths is None or form_main['id'] in actually_used_synths:
                 synatized_src = ''
@@ -620,7 +621,12 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                     instance_src = instance(term)
                     synatized_src += instance_src + ('+' if term != sources[-1] else '')
                     syncodeL += instance_src + (newlineplus if term != sources[-1] else ';')
-                synatized_forms.append({**form_main, 'src': '"' + sub(' *\n*','',synatized_src) + '"'})
+
+                synatized_forms.append({
+                    **form_main,
+                    'src': '"' + sub(' *\n*', '', synatized_src) + '"',
+                    'index': syncount
+                    })
 
                 extracode = ''
                 if form_main['stereodelay'] != 'default':
@@ -645,7 +651,8 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
         drumcount = 1
         drumsyncode = ''
         for form_main in main_list:
-            if form_main['type']!='maindrum': continue
+            if form_main['type'] != 'maindrum':
+                continue
             sourcesL = split_if_not_quoted(form_main['src'], '+')
             sourcesR = sourcesL if form_main['srcr'] == '' else split_if_not_quoted(form_main['srcr'], '+')
             if actually_used_drums is None or drumcount in actually_used_drums:
@@ -662,7 +669,12 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                     synatized_srcR += instance_src + ('+' if term != sourcesR[-1] else '')
                     drumsyncodeR += instance_src + (newlineplus if term != sourcesR[-1] else ';')
 
-                synatized_forms.append({**form_main, 'src': '"' + sub(' *\n*','',synatized_srcL) + '"', 'srcr': '"' + sub(' *\n*','',synatized_srcR) + '"'})
+                synatized_forms.append({
+                    **form_main,
+                    'src': '"' + sub(' *\n*','',synatized_srcL) + '"',
+                    'srcr': '"' + sub(' *\n*','',synatized_srcR) + '"',
+                    'index': drumcount
+                    })
 
                 drumsyncodeR = drumsyncodeR.replace('_TIME','time2').replace('_PROG','_t2' if form_main['srcr'] == '' else '_t')
                 drumsyncodeL = drumsyncodeL.replace('_TIME','time').replace('_PROG','_t')
