@@ -6,14 +6,14 @@ SYNTHTYPE, DRUMTYPE, NONETYPE = ['I', 'D', '_']
 
 class Pattern:
 
-    def __init__(self, name = 'NJU', length = 1, synthType = '_', max_note = 0, _hash = None):
+    def __init__(self, name = 'NJU', length = 1, synthType = '_', max_note = None, _hash = None):
         self._hash = _hash or hash(self)
         self.name = name
         self.notes = []
         self.length = length if length and length > 0 else 1
         self.currentNoteIndex = 0
         self.currentGap = 0
-        self.setTypeParam(synthType = synthType, max_note = max_note if max_note > 0 else 88)
+        self.setTypeParam(synthType = synthType, max_note = max_note if max_note is not None else 88)
 
     def __repr__(self):
         return ','.join(str(i) for i in [self.name, self.notes, self.length, self.currentNoteIndex, self.synthType])
@@ -277,7 +277,7 @@ class Pattern:
     def applyDrumMap(self, drumMap):
         if self.synthType != DRUMTYPE or not self.notes:
             return
-        self.max_note = len(drumMap) - 1
+        self.max_note = len(drumMap) # not - 1 ?
         for note in self.notes:
             note.note_pitch = drumMap[note.note_pitch] if note.note_pitch < len(drumMap) else self.max_note
 

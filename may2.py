@@ -241,8 +241,10 @@ class MainWindow(QMainWindow):
         self.trackWidget.trackChanged.connect(self.trackChanged)
         self.trackWidget.trackTypeChanged.connect(self.trackTypeChanged)
         self.trackWidget.activated.connect(partial(self.toggleActivated, activateTrack = True))
-        self.patternWidget.activated.connect(partial(self.toggleActivated, activatePattern = True))
-        self.patternWidget.patternChanged.connect(self.patternChanged)
+        self.synthPatternWidget.activated.connect(partial(self.toggleActivated, activatePattern = True))
+        self.synthPatternWidget.patternChanged.connect(self.synthPatternChanged)
+        self.drumPatternWidget.activated.connect(partial(self.toggleActivated, activatePattern = True))
+        self.drumPatternWidget.patternChanged.connect(self.drumPatternChanged)
         self.synthWidget.paramChanged.connect(self.paramChanged)
         self.synthWidget.randomsChanged.connect(self.randomsChanged)
 
@@ -400,7 +402,7 @@ class MainWindow(QMainWindow):
         self.synthWidget.active = activateSynth
         self.synthGroup.style().polish(self.synthGroup)
 
-        printDebug(self.trackWidget.active, self.patternWidget.active, self.synthPatternWidget.active, self.drumPatternWidget.active)
+        printDebug(self.trackWidget.active, self.patternWidget.active, self.synthPatternWidget.active, self.drumPatternWidget.active, "...", self.patternWidget == self.synthPatternWidget, self.patternWidget == self.drumPatternWidget)
 
         if activateTrack:
             self.trackWidget.setFocus()
@@ -710,7 +712,7 @@ class MainWindow(QMainWindow):
                     self.setParameterFromNumberInput('aux')
 
                 elif key == Qt.Key_Delete:
-                    self.patternWidget.deleteNote()
+                    self.patternWidget.deleteNote(self.getNote())
 
                 if keytext:
                     if keytext.isdigit() or keytext in ['.', '-']:
@@ -981,6 +983,9 @@ class MainWindow(QMainWindow):
     def getModulePatternHash(self):
         return self.getModule().patternHash if self.getModule() else None
 
+    def getNote(self):
+        return self.getModulePattern().getNote()
+
     # THE MOST IMPORTANT FUNCTION!
     def randomColor(self):
         colorHSV = QColor()
@@ -1031,8 +1036,8 @@ class MainWindow(QMainWindow):
         if self.state['numberInput']:
             self.state['lastNumberInput'] = self.state['numberInput']
             self.state['lastChangedParameterType'] = parameter
-        self.getModulePattern().getNote().setParameter(parameter, self.state['lastNumberInput'])
-        self.patternWidget.select(self.getModulePattern().getNote())
+        self.getNote().setParameter(parameter, self.state['lastNumberInput'])
+        self.patternWidget.select(self.getNote())
 
     def setRandomSynth(self):
         track = self.getTrack()
@@ -1112,12 +1117,17 @@ class MainWindow(QMainWindow):
     def trackTypeChanged(self):
         synthType = self.trackWidget.model.currentTrackType()
         if synthType == DRUMTYPE:
+            self.drumPatternWidget.active = self.patternWidget.active
             self.patternWidget = self.drumPatternWidget
         else:
+            self.synthPatternWidget.active = self.patternWidget.active
             self.patternWidget = self.synthPatternWidget
         self.patternGroupLayout.setCurrentWidget(self.patternWidget)
 
-    def patternChanged(self):
+    def synthPatternChanged(self):
+        self.pushUndoStack()
+
+    def drumPatternChanged(self):
         self.pushUndoStack()
 
     def paramChanged(self, param):
@@ -1171,7 +1181,7 @@ class MainWindow(QMainWindow):
         self.patternWidget.setPattern(self.getModulePattern())
         self.patternWidget.update()
         self.trackWidget.syncModulesToPatternChange(pattern)
-        self.patternChanged()
+        self.pushUndoStack()
 
 ######################### SYNATIZE FUNCTIONALITY #####################
 
@@ -1298,7 +1308,7 @@ class MainWindow(QMainWindow):
         if synthName is not None:
             track.setSynth(name = synthName)
         track.mute = False
-        note = deepcopy(self.getModulePattern().getNote())
+        note = deepcopy(self.getNote())
         if note is None:
             print('No Note Selected')
             return

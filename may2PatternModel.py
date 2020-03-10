@@ -100,7 +100,6 @@ class PatternModel(QAbstractListModel):
         pattern.length += beatsInc
 
     def updateDrumPatterns(self, drumMap):
-        print('lel', [(p.name, p.synthType) for p in self.patterns])
         if drumMap is not None:
             for pattern in self.patterns:
                 pattern.applyDrumMap(drumMap)

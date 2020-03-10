@@ -467,7 +467,9 @@ class May2PatternWidget(QWidget):
             newNote = Note(note_len = notePrototype.note_len)
         newNote.moveNoteOn(notePos[0])
         newNote.note_pitch = notePos[1]
+        printDebug(notePos, copyParameters, notePrototype, Note(note_len = notePrototype.note_len), newNote.note_pitch)
         self.pattern.addNote(newNote)
+        printDebug(newNote.note_pitch, self.pattern.getNote().note_pitch, self.pattern.max_note)
         if initDrag:
             self.initDragNote(self.pattern.getNote(), pos)
         self.finalizePatternChangeAndEmit()
