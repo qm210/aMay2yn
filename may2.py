@@ -643,23 +643,22 @@ class MainWindow(QMainWindow):
                     self.trackWidget.selectFirstModuleOnTrack()
                 elif key == Qt.Key_End:
                     self.trackWidget.selectLastModuleOnTrack()
-
                 elif key == Qt.Key_C:
                     self.trackWidget.cloneCurrentModuleNearby()
                 elif key == Qt.Key_Delete:
                     self.trackWidget.deleteCurrentModule()
 
-
-            elif self.ctrlPressed and not self.shiftPressed:
-
-                if key == Qt.Key_Plus:
+                elif key == Qt.Key_Plus:
                     self.trackModel.addTrack()
                 elif key == Qt.Key_Asterisk:
                     self.trackModel.cloneTrack()
                 elif key == Qt.Key_Minus:
                     self.trackModel.deleteTrack()
 
-                elif key == Qt.Key_Left:
+
+            elif self.ctrlPressed and not self.shiftPressed:
+
+                if key == Qt.Key_Left:
                     self.trackModel.moveAllModules(-1)
                 elif key == Qt.Key_Right:
                     self.trackModel.moveAllModules(+1)

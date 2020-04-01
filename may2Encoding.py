@@ -197,10 +197,11 @@ def encodeParamSegment(obj):
     return objDict
 
 def decodeParamSegment(objDict):
+    print(objDict)
     segment = ParamSegment(ID = objDict['id'])
     segment.start = objDict['start']
     segment.end = objDict['end']
-    segment.segmentType = objDict['segmentType']
+    segment.segmentType = objDict.get('segmentType', objDict.get('type','')) # compatibility
     segment.args = objDict['args']
     return segment
 
