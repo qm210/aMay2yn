@@ -7,7 +7,7 @@ def buildParamFunction(param):
     if not isinstance(param, Param):
         raise TypeError(f"Called buildParamFunction() with some argument of type {type(param)}; needs to be Param")
 
-    paramCode = f"float {param.id}(float B)\n{{{newlineindent}return B<0 ? 0. : "
+    paramCode = f"float {param.id}(float B)\n{{{newlineindent}return B<0. ? 0. : "
 
     for segment in param.segments:
         print(segment.id, segment.segmentType)

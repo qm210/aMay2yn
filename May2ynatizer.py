@@ -196,10 +196,8 @@ def synatize_build(form_list, main_list, param_list, actually_used_synths = None
                 return GLstr(form['value']).replace('"','')
 
             elif form['type']=='form':
-                if form['op'] == 'mix':
-                    return '(' + '+'.join([instance(f) for f in form['src'].split('+')]) + ')'
-                elif form['op'] == 'define': # actually pretty similar to mix, but I keep it. TODO: or is it identical??
-                    return instance(form['src'])
+                if form['op'] == 'mix' or form['op'] == 'define': # keep both keywords for compatibility
+                    return f"({'+'.join([instance(f) for f in form['src'].split('+')])})".replace('"','')
                 elif form['op'] == 'detune':
                     detuned_instances = '+'.join(instance(form['src'],{'freq':instance(amt)+'*'+param(form['src'],'freq')}) for amt in form['factor'].split(','))
                     return 's_atan(' + instance(form['src']) + '+' + detuned_instances + ')'

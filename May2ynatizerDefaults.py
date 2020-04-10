@@ -84,7 +84,7 @@ def set_remaining_defaults(cid, cmd, form):
 
 
     elif cmd == 'env':
-        defaults.update({'shape': 'ahdsrexp', 'attack': '1e-3', 'hold': '0', 'decay': '.1', 'sustain': '1', 'release': '0', 'scale': '1', 'shift': '0', 'offset': '0'})
+        defaults.update({'shape': 'ahdsrexp', 'attack': '1e-3', 'hold': '0', 'decay': '.1', 'sustain': '1', 'release': '1e-3', 'scale': '1', 'shift': '0', 'offset': '0'})
 
         if 'shape' in form:
             if form['shape'] == 'expdecay' or form['shape'] == 'expdecayrepeat' or form['shape'] == 'stepexpdecay':

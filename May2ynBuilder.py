@@ -539,8 +539,6 @@ class May2ynBuilder:
                 if func_head:
                     func_list.update({func_head[0]:i})
 
-            print(func_list)
-
             expendable = []
             self.printIfDebug("The following functions will be purged")
             for f in func_list:
@@ -569,12 +567,11 @@ class May2ynBuilder:
                 break
             else:
                 purged_code = code
-                self.printIfDebug('try to purge next iteration')
 
         purged_code = re.sub('\n[\n]*\n', '\n\n', purged_code)
 
         chars_after = len(purged_code)
-        print('// total purge of', chars_before-chars_after, 'chars.')
+        print('May2ynbuilder: total purge of', chars_before-chars_after, 'chars.')
 
         return purged_code
 

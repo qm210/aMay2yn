@@ -277,7 +277,7 @@ float QFM(float t, float f, float phase, float LV1, float LV2, float LV3, float 
     float OP4 = LV4 * _sin(PH4 + QFM_FB(PH4, FB4));
     float OP3 = LV3 * _sin(PH3 + QFM_FB(PH3, FB3) + LINK43*OP4);
     float OP2 = LV2 * _sin(PH2 + QFM_FB(PH2, FB2) + LINK42*OP4 + LINK32*OP3);
-    float OP1 = LV1 * _sin(PH1 + QFM_FB(PH1, FB1) + LINK41*OP4 + LINK31*OP3 + LINK32*OP2);
+    float OP1 = LV1 * _sin(PH1 + QFM_FB(PH1, FB1) + LINK41*OP4 + LINK31*OP3 + LINK21*OP2);
 
     float sum = OP1;
     if(LINK21 > 0.) sum += OP2;
