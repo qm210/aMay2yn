@@ -244,6 +244,9 @@ class May2PatternWidget(QWidget):
                 if self.pattern.currentGap:
                     qp.fillRect(R - 1, T + self.keyH / 2, self.beatW * self.pattern.currentGap, self.keyH / 4, QColor(255, 255, 255, 100))
 
+            if note.tagged:
+                qp.fillRect(L + 1, T, R - L - 1, B - T - 1, QColor(255, 255, 255, 32))
+
             font.setPointSize(self.fontSizeParameters - (1 if note.note_len >= .125 else 2))
             qp.setFont(font)
 
@@ -490,10 +493,25 @@ class May2PatternWidget(QWidget):
             self.select(addedNewNote)
             self.finalizePatternChangeAndEmit()
 
-    def deleteNote(self, note):
+    def deleteNote(self, note = None):
+        if note is None:
+            note = self.pattern.getNote()
         self.pattern.delNote(note)
         self.finalizePatternChangeAndEmit()
 
+    def toggleTagNote(self, note):
+        if note is None:
+            note = self.pattern.getNote()
+        note.tag(not note.tagged)
+        #self.finalizePatternChangeAndEmit()
+
+    def tagNoteRange(self, note):
+        pass
+
+    def untagAllNotes(self):
+        for n in self.pattern.notes:
+            n.tag(False)
+        #self.finalizePatternChangeAndEmit()
 
     def setNumberInput(self, numberInput):
         self.numberInput = numberInput

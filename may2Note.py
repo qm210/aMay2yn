@@ -15,7 +15,10 @@ class Note:
         self.tagged = False
 
     def __repr__(self):
-        return ','.join(str(i) for i in [self.note_on, self.note_off, self.note_pitch])
+        repr_str = ','.join(str(i) for i in [self.note_on, self.note_off, self.note_pitch])
+        if self.tagged:
+            repr_str += ',TAG'
+        return repr_str
 
     def __eq__(self, other):
         return (self.note_on == other.note_on

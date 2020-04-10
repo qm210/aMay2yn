@@ -236,7 +236,7 @@ maindrum fmnois1 src=fmnoise1*decnoise1 release=0
 
 drum fmnoise2 shape=fmnoise attack=0.0 decay=0.03 sustain=0.1 timbre1=.5 timbre2=.5
 env decnoise2 shape=expdecay exponent=13
-maindrum fmnois2 src=fmnoise2*decnoise2 release=0
+maindrum fmnois2 src=1.2*fmnoise2*decnoise2 release=0
 
 osc hutrev shape=lpnoise freq=6000
 drum hut shape=fmnoise attack=0 decay=0.1 sustain=.1 timbre1=30 timbre2=20
@@ -680,7 +680,7 @@ env crsh_env0 shape=expdecay exponent=8
 #maindrum crash src=crsh_env0*crsh_osc1
 maindrum crash src=crsh_noise_mod*crsh_env0
 
-form    ASSK2src define    src="vel*(clamp(1.32*_tri(drop_phase(_PROG,.06,308.,80.)),-1.,1.)*(1.-smstep(-1e-3,0.,_PROG-.15))+.82*clamp(.49*_tri(drop_phase(_PROG,.06,308.,80.)+.82*lpnoise(_PROG,4595.)),-1.,1.)*exp(-1.97*_PROG)+.09*lpnoise(_PROG,4032.)*(1.-smstep(0.,.97,_PROG-.79))+.1*lpnoise(_PROG,1111.)*exp(-_PROG*12.69)+.6*lpnoise(_PROG,7795.)*exp(-_PROG*1.08))*smstep(0.,.003,_PROG)"
+form    ASSK2src define    src="vel*(clamp(1.32*_tri(drop_phase(_PROG,.06,308.,80.)),-1.,1.)*(1.-smstep(-1e-3,0.,_PROG-.15))+.82*clamp(.49*_tri(drop_phase(_PROG,.06,308.,80.))+0.082*lpnoise(_PROG,4595.),-1.,1.)*exp(-1.97*_PROG)+.09*lpnoise(_PROG,4032.)*(1.-smstep(0.,.97,_PROG-.79))+.1*lpnoise(_PROG,1111.)*exp(-_PROG*12.69)+.16*lpnoise(_PROG,7795.)*exp(-_PROG*1.08))*smstep(0.,.003,_PROG)"
 maindrum ASSK72 src=ASSK2src+.5*ASSK7src
 
 env lin_sweep shape=linear scale=6 shift=1 mode=relative
@@ -870,8 +870,11 @@ main    choirpad.2    src="env_AHDSRexp(_BPROG,L,.4,0.,.35,.6,.33)*((BADD((_PROG
  drum  drykiksrc  shape=protokickass freq0=279.0 freq1=33.0 freqdecay=0.07 attack=0.006 decay=0.14 drive=2.7 rev1_amt=2 rev2_amt=0 rev3_amt=0 rev1_tone=3537.0 rev2_tone=8614.0 rev3_tone=3743.0 rev1_exp=26.74 rev2_exp=3.08 rev3_exp=38.19 rev1_drive=0.29 noise_amt=0.02 noise_hold=0.27 noise_decay=0.71 noise_tone=1391.0 
 maindrum spacekick src=.64*drykiksrc release=.5
 
-main    FManiclang0   src="(QFM((_PROG-0.0e+00*(1.+3.*_sin(.1*_PROG))),f,0.,.00787*41.,.00787*env_AHDSRexp(_BPROG,L,.005,.119,.062,.336,0.)*76.,.00787*env_AHDSRexp(_BPROG,L,.004,.16,.22,.156,0.)*2.,.00787*env_AHDSRexp(_BPROG,L,.135,.158,.094,.397,0.)*45.,.5,1.,1.001,1.,.00787*89.,.00787*40.,.00787*42.,.00787*66.,1.)+QFM((_PROG-4.0e-03*(1.+3.*_sin(.1*_PROG))),f,0.,.00787*41.,.00787*env_AHDSRexp(_BPROG,L,.005,.119,.062,.336,0.)*76.,.00787*env_AHDSRexp(_BPROG,L,.004,.16,.22,.156,0.)*2.,.00787*env_AHDSRexp(_BPROG,L,.135,.158,.094,.397,0.)*45.,.5,1.,1.001,1.,.00787*89.,.00787*40.,.00787*42.,.00787*66.,1.)+QFM((_PROG-8.0e-03*(1.+3.*_sin(.1*_PROG))),f,0.,.00787*41.,.00787*env_AHDSRexp(_BPROG,L,.005,.119,.062,.336,0.)*76.,.00787*env_AHDSRexp(_BPROG,L,.004,.16,.22,.156,0.)*2.,.00787*env_AHDSRexp(_BPROG,L,.135,.158,.094,.397,0.)*45.,.5,1.,1.001,1.,.00787*89.,.00787*40.,.00787*42.,.00787*66.,1.))*env_AHDSRexp(_BPROG,L,.021,.013,.038,.254,.113)" release=.4 slidetime=.1337 relpower=1 predraw=0 stereodelay=default
-main    FManiclang1    src="(QFM((_PROG-0.0e+00*(1.+3.*_sin(.1*_PROG))),f,0.,.00787*110.,.00787*env_AHDSRexp(_BPROG,L,.195,.003,.035,.383,0.)*78.,.00787*env_AHDSRexp(_BPROG,L,.144,.062,.01,.425,0.)*47.,.00787*env_AHDSRexp(_BPROG,L,.003,.018,.18,.126,0.)*70.,.5,1.,1.001,1.,.00787*118.,.00787*10.,.00787*103.,.00787*83.,5.)+QFM((_PROG-4.0e-03*(1.+3.*_sin(.1*_PROG))),f,0.,.00787*110.,.00787*env_AHDSRexp(_BPROG,L,.195,.003,.035,.383,0.)*78.,.00787*env_AHDSRexp(_BPROG,L,.144,.062,.01,.425,0.)*47.,.00787*env_AHDSRexp(_BPROG,L,.003,.018,.18,.126,0.)*70.,.5,1.,1.001,1.,.00787*118.,.00787*10.,.00787*103.,.00787*83.,5.)+QFM((_PROG-8.0e-03*(1.+3.*_sin(.1*_PROG))),f,0.,.00787*110.,.00787*env_AHDSRexp(_BPROG,L,.195,.003,.035,.383,0.)*78.,.00787*env_AHDSRexp(_BPROG,L,.144,.062,.01,.425,0.)*47.,.00787*env_AHDSRexp(_BPROG,L,.003,.018,.18,.126,0.)*70.,.5,1.,1.001,1.,.00787*118.,.00787*10.,.00787*103.,.00787*83.,5.))*env_AHDSRexp(_BPROG,L,.001,.034,.148,.677,.094)" release=.4 slidetime=.1337 relpower=1 predraw=0 stereodelay=default
+ drum  drykik2src  shape=protokickass freq0=179.0 freq1=53.0 freqdecay=0.03 attack=0.006 decay=0.5 drive=1.7 rev1_amt=2 rev2_amt=0 rev3_amt=0 rev1_tone=3537.0 rev2_tone=8614.0 rev3_tone=3743.0 rev1_exp=26.74 rev2_exp=3.08 rev3_exp=38.19 rev1_drive=0.29 noise_amt=0.02 noise_hold=0.27 noise_decay=0.71 noise_tone=1391.0 
+maindrum kick2 src=.64*drykik2src release=1
+
+main    FManiclang0   src="(QFM((_PROG),f,0.,.00787*41.,.00787*env_AHDSRexp(_BPROG,L,.005,.119,.062,.336,0.)*76.,.00787*env_AHDSRexp(_BPROG,L,.004,.16,.22,.156,0.)*2.,.00787*env_AHDSRexp(_BPROG,L,.135,.158,.094,.397,0.)*45.,.5,1.,1.001,1.,.00787*89.,.00787*40.,.00787*42.,.00787*66.,1.)+QFM((_PROG-4.0e-03*(1.+3.*_sin(.1*_PROG))),f,0.,.00787*41.,.00787*env_AHDSRexp(_BPROG,L,.005,.119,.062,.336,0.)*76.,.00787*env_AHDSRexp(_BPROG,L,.004,.16,.22,.156,0.)*2.,.00787*env_AHDSRexp(_BPROG,L,.135,.158,.094,.397,0.)*45.,.5,1.,1.001,1.,.00787*89.,.00787*40.,.00787*42.,.00787*66.,1.)+QFM((_PROG-8.0e-03*(1.+3.*_sin(.1*_PROG))),f,0.,.00787*41.,.00787*env_AHDSRexp(_BPROG,L,.005,.119,.062,.336,0.)*76.,.00787*env_AHDSRexp(_BPROG,L,.004,.16,.22,.156,0.)*2.,.00787*env_AHDSRexp(_BPROG,L,.135,.158,.094,.397,0.)*45.,.5,1.,1.001,1.,.00787*89.,.00787*40.,.00787*42.,.00787*66.,1.))*env_AHDSRexp(_BPROG,L,.021,.013,.038,.254,.113)" release=.4 slidetime=.1337 relpower=19 predraw=0
+main    FManiclang1    src="(QFM((_PROG),f,0.,.00787*110.,.00787*env_AHDSRexp(_BPROG,L,.195,.003,.035,.383,0.)*78.,.00787*env_AHDSRexp(_BPROG,L,.144,.062,.01,.425,0.)*47.,.00787*env_AHDSRexp(_BPROG,L,.003,.018,.18,.126,0.)*70.,.5,1.,1.001,1.,.00787*118.,.00787*10.,.00787*103.,.00787*83.,5.)+QFM((_PROG-4.0e-03*(1.+3.*_sin(.1*_PROG))),f,0.,.00787*110.,.00787*env_AHDSRexp(_BPROG,L,.195,.003,.035,.383,0.)*78.,.00787*env_AHDSRexp(_BPROG,L,.144,.062,.01,.425,0.)*47.,.00787*env_AHDSRexp(_BPROG,L,.003,.018,.18,.126,0.)*70.,.5,1.,1.001,1.,.00787*118.,.00787*10.,.00787*103.,.00787*83.,5.)+QFM((_PROG-8.0e-03*(1.+3.*_sin(.1*_PROG))),f,0.,.00787*110.,.00787*env_AHDSRexp(_BPROG,L,.195,.003,.035,.383,0.)*78.,.00787*env_AHDSRexp(_BPROG,L,.144,.062,.01,.425,0.)*47.,.00787*env_AHDSRexp(_BPROG,L,.003,.018,.18,.126,0.)*70.,.5,1.,1.001,1.,.00787*118.,.00787*10.,.00787*103.,.00787*83.,5.))*env_AHDSRexp(_BPROG,L,.001,.034,.148,.677,.094)" release=.2 slidetime=.1337 relpower=6 predraw=0
 
 env fqmbace200_env shape=ahdsrexp attack=0.024 decay=0.4 sustain=.1 release=.4
 env fqmbace200shape shape=xexpdecay lambda=8 kappa=.25 scale=2
@@ -889,7 +892,7 @@ env SUBenv shape=ahdsrexp attack=.02 decay=.01 sustain=.9 release=.01
 form SUBosc1q quantize src=SUBosc1 bits=24333
 form SUBosc2q quantize src=SUBosc2 bits=13400
 form SUBch chorus src=SUBosc1q+SUBosc2q number=2 step=.001 intensity=8.5 rate=0.2
-main SUB src=.4*SUBenv*SUBch*SUBvol release=.01 stereodelay=.5
+main SUB src=.4*SUBenv*SUBch*SUBvol release=.3 relpower=5 stereodelay=.5
 param SUBvol default=1
 
 env bracepad_env1 attack=.05 decay=.15 sustain=.01 release=.3
@@ -912,7 +915,7 @@ env SFQMPE02 attack=.185 sustain=1
 env SFQMPE03 attack=.225 sustain=1 scale=.04
 osc SFQMP000 shape=fm lv1=127 lv2=50*SFQMPE02 lv3=60 lv4=0 fr1=.25+.25*SFQMPE03*SFQML01 fr2=.5+SFQMPE03*SFQML01 fr3=.4999 fr4=1 fb1=-255 fb=-127 algo=9 parscale=127
 form SFQMP002 saturate src=SFQMP000 gain=5
-env    SFQMPE01 attack=.02 decay=.01 sustain=.95 !sustain=.5
+env    SFQMPE01 attack=.02 decay=.01 sustain=.75
 form   SFQMP001 op=detune src=SFQMP002 factor=1.003
 #form   SFQMP002 op=chorus src=SFQMP001 number=3 step=4e-3 intensity=3. rate=0.05
 main   FMSQU src=sfqm_vol*SFQMPE01*SFQMP001 release=.36 slidetime=.3 relpower=3 stereodelay=.005

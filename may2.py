@@ -711,7 +711,9 @@ class MainWindow(QMainWindow):
                     self.setParameterFromNumberInput('aux')
 
                 elif key == Qt.Key_Delete:
-                    self.patternWidget.deleteNote(self.getNote())
+                    self.patternWidget.deleteNote()
+                elif key == Qt.Key_Period:
+                    self.patternWidget.toggleTagNote()
 
                 if keytext:
                     if keytext.isdigit() or keytext in ['.', '-']:

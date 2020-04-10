@@ -34,11 +34,11 @@ class Pattern:
         self._hash = hash(self)
 
     # helpers...
-    def getNote(self, offset=0):
+    def getNote(self, offset = 0):
         return self.notes[(self.currentNoteIndex + offset) % len(self.notes)] if self.notes else None
-    def getNoteOn(self, offset=0):
+    def getNoteOn(self, offset = 0):
         return self.getNote(offset).note_on if self.getNote(offset) else None
-    def getNoteOff(self, offset=0):
+    def getNoteOff(self, offset = 0):
         return self.getNote(offset).note_off if self.getNote(offset) else None
     def getFirstNote(self):
         return self.notes[0]  if self.notes else None

@@ -12,9 +12,12 @@ env rndEnvFreq attack=rndFreqAttack
 osc  rndOsc shape=madd  mix=rndShape pw=rndPW nmax=72 cutoff=rndCutoff*rndEnvFreq q=rndCutoffDecay res=rndReso detune=0.013
 main rndTest src=rndOsc*rndEnv release=.03
 
-osc  fm0         shape=fm fb1="Bproc*.8*pseudorandom(Bon)+aux*pseudorandom(3.+f)*Bproc*(.5+.5+sin(64.*B))"
-main FM0         src=vel*fm0 slidetime=.2 shape=parabellshape,FM0_whatever,.8,13,"1.+Bproc",1 release=.27 relpower=7
+osc  fm0old      shape=fm fb1="Bproc*.8*pseudorandom(Bon)+aux*pseudorandom(3.+f)*Bproc*(.5+.5+sin(64.*B))"
+main FM0old      src=vel*fm0old slidetime=.2 shape=parabellshape,FM0_whatever,.8,13,"1.+Bproc",1 release=.27 relpower=7
 param FM0_whatever
+
+osc  fm0         shape=fm fb1="Bproc*.8*pseudorandom(Bon)+aux*pseudorandom(3.+f)*Bproc*(.5+.5+sin(64.*B))" lv2=".09*pseudorandom(Bon)" fr2=2. fb2="-.5*pseudorandom(Boff)" algo=2
+main FM0         src=vel*fm0 slidetime=.2 shape=parabellshape,FM0_whatever,.8,13,"1.+Bproc",1 release=.27 relpower=7
 
 osc fm1op2fb
 osc fm1op2   freq=.999*f phase=.35*fm1op2fb
@@ -189,9 +192,9 @@ form   A1oscmixW waveshape src=A1oscmix amount=0.00001 a=0.15 b=.13 c=0.3 d=0.8 
 env    shortdec  attack=0.0001 hold=0.0001 decay=0.4 sustain=0
 filter A1oscmixF shape=resolp src=A1oscmixW cutoff=800*shortdec res=.1
 #main   PercBass  src=shortenv*A1oscmixF*5.
-env    Perc_LL   shape=limitlength factor=1. release=.07
+env    Perc_LL   shape=limitlength factor=1. release=.7
 form   Perc_dly  delay src=Perc_LL*A1oscmixW  number=2 delay=.2 gain=.3 mode=beat
-main   PercBass  src=percbass_vol*shortenv*shortenv2*Perc_dly release=.8 slidetime=.24
+main   PercBass  src=vel*percbass_vol*shortenv*shortenv2*Perc_dly release=.8 slidetime=.24
 param percbass_vol default=1
 
 ########### DRUMS ###########
@@ -775,16 +778,17 @@ lfo tri0211 shape=sin freq=.21 mode=global
 osc trinoise0 shape=lpnoise freq=2142
 osc trinoise1 shape=lpnoise freq=3961
 osc tri0000 shape=tri freq=.51*f phase=.35*tri0200
-osc tri0001 shape=tri freq=f phase=.4+.15*tri0200+.22*trienv002*tri0000+trienv002*trinoise1*.1 overdrive=4*tri0210*tri0211
+osc tri0001 shape=tri freq=f phase=.4+.15*tri0200+.22*trienv002*tri0000+trienv002*trinoise1*.01 overdrive=tri0210*tri0211
 osc tri0002 shape=tri freq=1.995*f phase=.15*tri0200+.22*trienv002*tri0000+trienv002*trinoise0*.1
 osc tri0003 shape=saw freq=2.011*f phase=.1+.5*trienv002*tri0000
 osc tri0004 shape=sin freq=.52*f+trienv002*tri0200 phase=.4+.25*tri0200*.22*trienv002*tri0000
 env trienv001 shape=stepexpdecay exponent=7 hold=.03 decay=.1
-env trienv002 attack=.025 hold=0 decay=.1 sustain=.3
+env trienv002 attack=.0 hold=0 decay=.1 sustain=.3
 form picmix mix src=.25*trienv001*tri0000+.76*trienv001*tri0001+tri0210*trienv001*tri0002+.62*tri0211*trienv001*tri0003+.27*trienv001*tri0004
 form picmix_sat saturate src=picmix gain=1
-form picmix_ch chorus src=picmix_sat number=5 step=1e-5 intensity=3 rate=1.4
-main PicCyb src=picmix_ch release=1.5 stereodelay=2e-3
+form picmix_ch chorus src=picmix_sat number=4 step=1e-5 intensity=3 rate=1.4
+form picmix_rndvol define src=".4+.4*pseudorandom(f)"
+main PicCyb src=picmix_ch*picmix_rndvol release=1.5 stereodelay=2e-3
 
 param include src="float _HCybHHClENV0(float t){return t <= .004? linmix(t,250.,0.,0.,1.):t <= .032? linmix(t,35.7143,-.1429,1.,0.):0.;} float _HCybHHClENV1(float t){return t <= .009? linmix(t,111.1111,0.,0.,1.):t <= .06? linmix(t,19.6078,-.1765,1.,0.):0.;} float _HCybHHClENV2(float t){return t <= .15? linmix(t,6.6667,0.,6000.,1000.):t <= .4? linmix(t,4.,-.6,1000.,200.):200.;} float _HCybHHClENV3(float t){return t <= .18? linmix(t,5.5556,0.,4.123,4.04):4.04;} "
 
@@ -864,11 +868,10 @@ main    choirpad.2    src="env_AHDSRexp(_BPROG,L,.4,0.,.35,.6,.33)*((BADD((_PROG
 maindrum spacekick src=.64*drykiksrc release=.5
 
 env fqmbace200_env shape=ahdsrexp attack=0.024 decay=0.4 sustain=.1 release=.4
-env fqmbace200shape shape=xexpdecay lambda=8 kappa=.25 scale=2
+env fqmbace200shape shape=xexpdecay lambda=9 kappa=.25 scale=0.25
 osc fqmbace200Sub shape=sin freq=.499*f
 osc    fqmbace200C shape=fm freq=f lv1=126.0 lv2=19.0 lv3=fqmbace200shape*107.0 lv4=80.0 fr1=.5 fr3=1.001 fb1=69.0*fqmbace200shape fb2=9.0*fqmbace200shape fb3=37.0*fqmbace200shape fb4=118.0*fqmbace200shape algo=3.0 parscale=127
-form   fqmbace200D quantize src=fqmbace200C bits=8000
-form   fqmbace200E op=chorus src=fqmbace200D number=2 step=.002 intensity=5. rate=5.5
+form   fqmbace200D quantize src=fqmbace200C bits=15000
 form fqmbace200src mix src=fqmbace200C+fqmbace200Sub
 main   fQMbace200  src="sqrt(vel)"*fqmbace200src*fqmbace200_env*fqmbace200vel release=1.95 relpower=8.4 slidetime=.116
 param fqmbace200vel
