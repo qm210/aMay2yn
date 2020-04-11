@@ -287,7 +287,7 @@ osc pling_osc03 shape=saw freq=3.97*f
 osc pling_osc05 shape=lpnoise freq=6000+200*note
 form pling_frm01 sinshape src=pling_osc01 amount=0.01*aux*pling_env00 parts=5
 main pling src=pling_env00*pling_env01*pling_frm01+.4*pling_env05*pling_osc05+.4*pling_env00*pling_env03*pling_osc02*pling_env04  release=.4 relpower=3 stereodelay=1
-main softpling src=pling_env00*pling_env01*pling_frm01+.2*pling_env05*pling_osc05+.4*pling_env00*pling_env03*pling_osc02*pling_env04 release=.65 relpower=6
+main softpling src=pling_env00*pling_env01*pling_frm01+.2*pling_env05*pling_osc05+.4*pling_env00*pling_env03*pling_osc02*pling_env04 release=1.65 relpower=6
 
 form pling0_src define src="theta(_BPROG)*exp(-11.*_BPROG)*env_AHDSR(_BPROG,L,.01,0.,.1+.5*vel,.01,.4)*clip((1.+theta(_BPROG)*exp(-11.*_BPROG))*_tri(f*_PROG+.2*env_AHDSR(_BPROG,L,.5,1.,.1,1.,0.)*clip((1.+3.)*_sq_(1.99*f*_PROG,.3+2.*vel+.2*(2.*fract(3.97*f*_PROG+0.)-1.)))+.2*vel*env_AHDSR(_BPROG,L,.325,1.,.1,1.,0.)*(2.*fract(3.97*f*_PROG+0.)-1.)))+.4*theta(_BPROG)*exp(-11.*_BPROG)*env_AHDSR(_BPROG,L,.325,1.,.1,1.,0.)*clip((1.+3.)*_sq_(1.99*f*_PROG,.3+2.*vel+.2*(2.*fract(3.97*f*_PROG+0.)-1.)))*env_AHDSR(_BPROG,L,0.,0.,.2+.2*vel,.01,.4)+.4*env_AHDSR(_BPROG,L,0.,0.,.05,0.,0.)*lpnoise(_PROG+0.,6000.+200.*note_pitch(_note))"
 osc pling0_subosc shape=sin freq=.501*f phase=.1*pling0_sublfo
@@ -920,4 +920,5 @@ form   SFQMP001 op=detune src=SFQMP002 factor=1.003
 #form   SFQMP002 op=chorus src=SFQMP001 number=3 step=4e-3 intensity=3. rate=0.05
 main   FMSQU src=sfqm_vol*SFQMPE01*SFQMP001 release=.36 slidetime=.3 relpower=3 stereodelay=.005
 param sfqm_vol default=1
-main    macebawsss    src="env_AHDSR(_BPROG,L,.007,0.,.01,1.,.01)*(sinshape(MADD(_PROG,.5*f,0.,256,2,1.+.9*(.55+(.4*clip((1.+1.)*_sin(4.*_BEAT)))),(1088.+(863.*_sin_(2.*_BEAT,.4))),10.,5.37,3.85,.005,.4*(.55+(.4*clip((1.+1.)*_sin(4.*_BEAT)))),0.,0.),1.,3.)+.8*clip((1.+.5)*_sin(.499*f*_PROG))+.4*_sq_(1.01*f*_PROG,.95))*maceboss_vol(_BEAT)" release=.06 slidetime=.31 relpower=1
+form macebawsss_src define src="env_AHDSR(_BPROG,L,.007,0.,.01,1.,.01)*(sinshape(MADD(_PROG,.5*f,0.,256,2,1.+.9*(.55+(.4*clip((1.+1.)*_sin(4.*_BEAT)))),(1088.+(863.*_sin_(2.*_BEAT,.4))),10.,5.37,3.85,.005,.4*(.55+(.4*clip((1.+1.)*_sin(4.*_BEAT)))),0.,0.),1.,3.)+.8*clip((1.+.5)*_sin(.499*f*_PROG))+.4*_sq_(1.01*f*_PROG,.95))"
+main    macebawsss    src=maceboss_vol*macebawsss_src release=.09 slidetime=.31 relpower=1
